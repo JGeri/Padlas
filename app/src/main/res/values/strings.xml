@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Padlás</string>
+
+    <!--
+        Drive OAuth client id. Empty by default: the app is sideloaded and every user
+        brings their own GCP project. Set it in a local res override or via CI.
+    -->
+    <string name="drive_web_client_id" translatable="false"></string>
+
+    <string name="work_channel_name">Háttérmunka</string>
+    <string name="work_channel_description">Feltöltés, tömörítés, beolvasás</string>
+</resources>

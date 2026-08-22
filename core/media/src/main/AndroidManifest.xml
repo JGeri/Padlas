@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Package visibility is required on API 30+ for the Samsung/OneDrive sync probe (spec 4.1). -->
+    <queries>
+        <package android:name="com.microsoft.skydrive" />
+        <package android:name="com.sec.android.gallery3d" />
+        <package android:name="com.samsung.android.scloud" />
+        <provider android:authorities="com.sec.android.gallery3d.provider" />
+        <provider android:authorities="com.samsung.android.scloud.provider" />
+        <provider android:authorities="com.microsoft.skydrive.content.external" />
+    </queries>
+</manifest>
