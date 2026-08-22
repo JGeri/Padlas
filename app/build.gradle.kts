@@ -48,7 +48,9 @@ android {
                 storePassword = secret("storePassword", "PADLAS_KEYSTORE_PASSWORD")
                 keyAlias = secret("keyAlias", "PADLAS_KEY_ALIAS")
                 keyPassword = secret("keyPassword", "PADLAS_KEY_PASSWORD")
-                enableV1Signing = false
+                // v1 costs a little size but keeps the oldest package installers happy;
+                // v2 and v3 are what Android 11+ actually verifies.
+                enableV1Signing = true
                 enableV2Signing = true
                 enableV3Signing = true
                 enableV4Signing = false

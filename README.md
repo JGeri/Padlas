@@ -92,6 +92,28 @@ Kiadás:
 git tag v1.0.0 && git push origin v1.0.0
 ```
 
+## Telepítés a telefonra
+
+A build **sideload**, tehát az APK-t a rendszer ismeretlen forrásnak látja. Ha a
+telepítés elakad, az szinte mindig nem az aláírás, hanem a készülék védelme:
+
+1. **Samsung Auto Blocker** (One UI 6.1+, alapból bekapcsolva) minden oldalról telepítést
+   blokkol: *Beállítások → Biztonság és adatvédelem → Auto Blocker* → kikapcsolás, vagy az
+   "Alkalmazások telepítése ismeretlen forrásból" kapcsoló engedélyezése.
+2. **Ismeretlen alkalmazások telepítése**: *Beállítások → Alkalmazások → (a fájlkezelő,
+   amiből telepítesz) → Ismeretlen alkalmazások telepítése* → engedélyezés.
+3. **Play Protect** ("Nem biztonságos alkalmazás blokkolva"): a Play Áruházban
+   *Profil → Play Protect → Beállítások* alatt kapcsold ki az ismeretlen appok
+   vizsgálatát, vagy a figyelmeztetésnél válaszd a "Mégis telepítem" opciót.
+4. Ha korábban telepítve volt egy másik kulccsal aláírt Padlás, előbb távolítsd el:
+   ugyanaz a package más aláírással `INSTALL_FAILED_UPDATE_INCOMPATIBLE` hibát ad.
+
+Ellenőrzés géppel, ha bizonytalan a hiba oka:
+
+```bash
+adb install -r padlas-1.0.0.apk   # a pontos hibakódot ez írja ki
+```
+
 ## Google Drive
 
 A Drive REST v3-at használjuk, nem SAF-ot, egyetlen okból: a `files.get?fields=md5Checksum`
@@ -100,7 +122,12 @@ szerveroldali MD5-öt ad, és eredetit csak bizonyítottan bitre azonos másolat
 Beállítás (kb. 20 perc, egyszer):
 
 1. GCP projekt, Drive API bekapcsolva.
-2. OAuth kliens: Android típus, package `hu.padlas`, a saját aláíró kulcsod SHA-1-ével.
+2. OAuth kliens: Android típus, package `hu.padlas`, az aláíró kulcsod SHA-1-ével.
+   A helyi release kulcs ujjlenyomatát így kapod meg:
+
+   ```bash
+   keytool -list -v -keystore padlas.jks -alias padlas | grep SHA1
+   ```
 3. Egy Web kliens azonosító is kell az Identity API-hoz; tedd be a
    `drive_web_client_id` string resource-ba (`app/src/main/res/values/strings.xml`)
    vagy adj hozzá egy `app/src/main/res/values/secrets.xml`-t, amit nem commitolsz.
