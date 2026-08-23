@@ -12,6 +12,7 @@ import androidx.navigation.navArgument
 import hu.padlas.feature.archive.ArchiveScheduler
 import hu.padlas.feature.archive.ui.AtticRoute
 import hu.padlas.feature.audit.LogRoute
+import hu.padlas.feature.browse.BrowseRoute
 import hu.padlas.feature.dedup.DedupRoute
 import hu.padlas.feature.index.IndexRoute
 import hu.padlas.feature.map.MapRoute
@@ -36,6 +37,14 @@ object Dest {
     const val FOLDER = "folder"
     const val FOLDER_ARG = "bucketId"
     fun folder(bucketId: Long) = "$FOLDER/$bucketId"
+
+    const val BROWSE = "browse"
+    const val BROWSE_DAYS = "days"
+    const val BROWSE_BUCKET = "bucket"
+
+    /** Zero means "no preset"; the browser treats both axes as optional. */
+    fun browse(olderThanDays: Int = 0, bucketId: Long = 0) =
+        "$BROWSE?$BROWSE_DAYS=$olderThanDays&$BROWSE_BUCKET=$bucketId"
 }
 
 @Composable
@@ -60,6 +69,7 @@ fun PadlasNavHost(
                 onOpenRules = { navController.navigate(Dest.RULES) },
                 onOpenIndex = { navController.navigate(Dest.INDEX) },
                 onOpenFolder = { bucketId -> navController.navigate(Dest.folder(bucketId)) },
+                onOpenBrowse = { days -> navController.navigate(Dest.browse(olderThanDays = days)) },
             )
         }
         composable(Dest.INDEX) {
@@ -76,6 +86,23 @@ fun PadlasNavHost(
                 onBack = { navController.popBackStack() },
                 // The rows are already queued; the deck only has to wake the worker.
                 onArchiveRequested = { ArchiveScheduler.enqueueUploads(context) },
+            )
+        }
+        composable(
+            route = "${Dest.BROWSE}?${Dest.BROWSE_DAYS}={${Dest.BROWSE_DAYS}}&${Dest.BROWSE_BUCKET}={${Dest.BROWSE_BUCKET}}",
+            arguments = listOf(
+                navArgument(Dest.BROWSE_DAYS) { type = NavType.IntType; defaultValue = 0 },
+                navArgument(Dest.BROWSE_BUCKET) { type = NavType.LongType; defaultValue = 0L },
+            ),
+        ) { entry ->
+            val context = LocalContext.current
+            val days = entry.arguments?.getInt(Dest.BROWSE_DAYS) ?: 0
+            val bucket = entry.arguments?.getLong(Dest.BROWSE_BUCKET) ?: 0L
+            BrowseRoute(
+                onBack = { navController.popBackStack() },
+                olderThanDaysPreset = days.takeIf { it > 0 },
+                bucketPreset = bucket.takeIf { it > 0 },
+                onArchiveQueued = { ArchiveScheduler.enqueueUploads(context) },
             )
         }
         composable(Dest.RULES) { RulesRoute(onBack = { navController.popBackStack() }) }

@@ -18,3 +18,5 @@ google-services.json
 *.apk
 *.aab
 /dist/
+hs_err_pid*.log
+replay_pid*.log

@@ -17,6 +17,7 @@ import hu.padlas.core.database.model.BucketAggregate
 import hu.padlas.core.database.model.ClassAggregate
 import hu.padlas.core.database.model.HashRow
 import hu.padlas.core.database.model.MediaTypeAggregate
+import hu.padlas.core.database.model.MonthAggregate
 import hu.padlas.core.database.model.PathAggregate
 import hu.padlas.core.database.model.QuickHashCandidate
 import hu.padlas.core.database.model.ShotKindAggregate
@@ -131,6 +132,17 @@ interface AssetDao {
         """,
     )
     fun observeBuckets(): Flow<List<BucketAggregate>>
+
+    @Query(
+        """
+        SELECT strftime('%Y-%m', dateTaken / 1000, 'unixepoch', 'localtime') AS month,
+               COUNT(*) AS itemCount, COALESCE(SUM(sizeBytes), 0) AS totalBytes
+        FROM asset
+        WHERE state IN ('LOCAL', 'PROTECTED') AND dateTaken > 0
+        GROUP BY month ORDER BY month DESC
+        """,
+    )
+    fun observeMonths(): Flow<List<MonthAggregate>>
 
     @Query(
         """
@@ -435,6 +447,11 @@ interface AssetDao {
 
     @RawQuery(observedEntities = [Asset::class])
     suspend fun rawSizeAndCount(query: SupportSQLiteQuery): SizeAndCount
+
+    /** The browser filters on folders and months at the same time, so the WHERE is built
+     *  in Kotlin and paged straight out of SQLite rather than loaded into memory. */
+    @RawQuery(observedEntities = [Asset::class])
+    fun rawPage(query: SupportSQLiteQuery): PagingSource<Int, Asset>
 
     @Transaction
     suspend fun replaceWholeIndex(assets: List<Asset>) {

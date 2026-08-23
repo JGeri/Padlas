@@ -23,6 +23,14 @@ data class PathAggregate(
     val totalBytes: Long,
 )
 
+/** "2024-07" plus what that month still occupies. Buckets and months are the two axes
+ *  the user actually thinks in when deciding what may leave the phone. */
+data class MonthAggregate(
+    val month: String,
+    val itemCount: Int,
+    val totalBytes: Long,
+)
+
 data class ClassAggregate(
     val valueClass: ValueClass,
     val itemCount: Int,

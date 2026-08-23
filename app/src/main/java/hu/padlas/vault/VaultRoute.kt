@@ -46,6 +46,7 @@ import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
 import hu.padlas.core.design.theme.Spectrum
 import hu.padlas.feature.index.IndexScheduler
+import hu.padlas.work.PadlasBootstrap
 
 @Composable
 fun VaultRoute(
@@ -59,6 +60,7 @@ fun VaultRoute(
     onOpenRules: () -> Unit,
     onOpenIndex: () -> Unit,
     onOpenFolder: (Long) -> Unit,
+    onOpenBrowse: (Int) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: VaultViewModel = hiltViewModel(),
 ) {
@@ -80,8 +82,14 @@ fun VaultRoute(
     }
 
     // The first run has nothing to show until the index exists, so it starts itself.
+    // Once there is an index the measuring passes are queued as well: hashing, screenshot
+    // recognition and the weekly delta only shrink the next layer's input if they run.
     LaunchedEffect(state.indexedCount) {
-        if (state.indexedCount == 0) IndexScheduler.enqueueFullScan(context)
+        if (state.indexedCount == 0) {
+            IndexScheduler.enqueueFullScan(context)
+        } else {
+            PadlasBootstrap.onIndexReady(context)
+        }
     }
 
     LazyColumn(
@@ -146,7 +154,7 @@ fun VaultRoute(
                         when (action.kind) {
                             VaultActionKind.DEDUP -> onOpenDedup()
                             VaultActionKind.VIDEO -> onOpenVideo()
-                            VaultActionKind.ARCHIVE -> onOpenAttic()
+                            VaultActionKind.ARCHIVE -> onOpenBrowse(365)
                             VaultActionKind.DISCARD -> onOpenDiscard()
                         }
                     },
@@ -198,6 +206,7 @@ fun VaultRoute(
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 PadlasTextButton(text = "Térkép", onClick = onOpenMap)
+                PadlasTextButton(text = "Válogatás", onClick = { onOpenBrowse(0) })
                 PadlasTextButton(text = "Padlás", onClick = onOpenAttic)
                 PadlasTextButton(text = "Válogató", onClick = onOpenSort)
                 PadlasTextButton(text = "Napló", onClick = onOpenLog)

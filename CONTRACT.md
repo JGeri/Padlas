@@ -199,6 +199,7 @@ Every feature exposes one entry composable and keeps its ViewModel internal:
 | `:feature:triage` | `DiscardRoute(onBack, modifier)` and `FolderRoute(bucketId, onBack, modifier)` |
 | `:feature:transcode` | `VideoRoute(onBack: () -> Unit, modifier: Modifier = Modifier)` |
 | `:feature:archive` | `hu.padlas.feature.archive.ui.AtticRoute(onBack, modifier)` |
+| `:feature:browse` | `BrowseRoute(onBack, modifier, olderThanDaysPreset: Int?, bucketPreset: Long?, onArchiveQueued: () -> Unit)` |
 | `:feature:sort` | `SortRoute(onBack, modifier, onArchiveRequested: (List<Long>) -> Unit = {})` |
 | `:feature:rules` | `RulesRoute(onBack: () -> Unit, modifier: Modifier = Modifier)` |
 | `:feature:audit` | `LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier)` |

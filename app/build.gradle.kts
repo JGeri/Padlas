@@ -111,6 +111,7 @@ dependencies {
     implementation(project(":core:media"))
     implementation(project(":feature:index"))
     implementation(project(":feature:map"))
+    implementation(project(":feature:browse"))
     implementation(project(":feature:dedup"))
     implementation(project(":feature:triage"))
     implementation(project(":feature:transcode"))

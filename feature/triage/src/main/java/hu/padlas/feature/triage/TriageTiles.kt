@@ -14,6 +14,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
@@ -77,7 +79,9 @@ internal fun ShotTile(
         FallAway(falling) {
             SelectableTile(
                 model = item.model,
-                selected = kept || item.locked,
+                // Inverse mode: what is going gets the quiet look, what you rescued stays
+                // at full colour. Selected here means "still in the delete batch".
+                selected = !kept && !item.locked,
                 onToggle = {
                     if (item.locked) return@SelectableTile
                     haptics?.tick()
@@ -96,6 +100,14 @@ internal fun ShotTile(
                     }
                 } else {
                     null
+                },
+                image = { tileModifier ->
+                    AsyncImage(
+                        model = item.model,
+                        contentDescription = null,
+                        modifier = tileModifier,
+                        contentScale = ContentScale.Crop,
+                    )
                 },
             )
         }

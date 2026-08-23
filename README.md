@@ -24,6 +24,7 @@ elsődleges eszköz.
 :feature:triage         screenshot-triázs, Kidobó, inverz mappamód
 :feature:transcode      Media3 Transformer, hőfojtás-kezelés
 :feature:archive        Drive REST kliens, resumable feltöltés, verifikáció, cédula
+:feature:browse         mappa és hónap szerinti válogatás, kötegelt művelettel
 :feature:sort           válogató (swipe deck)
 :feature:rules          szabálymotor, dry-run, delta követés
 :feature:audit          napló, visszavonás, CSV export
@@ -91,6 +92,22 @@ Kiadás:
 ```bash
 git tag v1.0.0 && git push origin v1.0.0
 ```
+
+## Válogatás mappa és hónap szerint
+
+A Vault „x kép egy évnél régebbi" sávja, illetve alul a **Válogatás** belépő ide vezet.
+A képernyő tetején két sín van: **mappák** és **hónapok**, mindkettő többszörös
+kijelöléssel és a rájuk eső mérettel, plusz gyorsszűrők (1 évnél régebbi, fél évnél
+régebbi, csak fotó, csak videó). A rács lapozva tölt (Paging 3), tehát 25 000 elemnél is
+azonnal nyílik. A kijelölésre három művelet jár:
+
+- **Padlásra** — feltöltési sorba teszi (a helyi példány marad, amíg a Padláson nem
+  ellenőrzött a másolat, INV-1),
+- **Kukába** — kétfázisú rendszerkuka egyetlen dialógusban (INV-2, INV-3),
+- **Védetté teszem** — kiveszi minden automatizmus alól (INV-4).
+
+A „Mind kijelöl" a szűrő teljes találathalmazát jelöli ki, 2 000 elemnél megállva, és ezt
+ki is írja — egy koppintás ne jelenthessen 25 000 fájlt.
 
 ## Telepítés a telefonra
 
