@@ -45,6 +45,9 @@ internal class DiscardViewModel @Inject constructor(
 
     private val reload = MutableStateFlow(0)
     private val kept = MutableStateFlow<Set<Long>>(emptySet())
+
+    /** Unrecognised items already offered once; a later reload must not re-add them to keep. */
+    private val seenUnrecognised = HashSet<Long>()
     private val committing = MutableStateFlow(false)
     private val falling = MutableStateFlow(false)
     private val message = MutableStateFlow<String?>(null)
@@ -57,7 +60,9 @@ internal class DiscardViewModel @Inject constructor(
     /** Null until the first load lands, so the screen never flashes its empty state. */
     private val groups: StateFlow<List<TriageGroup>?> =
         combine(assetDao.observeByShotKind(), reload) { aggregates, _ -> aggregates }
-            .mapLatest<List<ShotKindAggregate>, List<TriageGroup>?> { aggregates -> loadGroups(aggregates) }
+            .mapLatest<List<ShotKindAggregate>, List<TriageGroup>?> { aggregates ->
+                loadGroups(aggregates).also(::keepUnrecognised)
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), null)
 
     private val trash: Flow<TrashState> = reload.map {
@@ -158,6 +163,18 @@ internal class DiscardViewModel @Inject constructor(
         return groups.value.orEmpty().flatMap { group ->
             group.items.filter { !it.locked && it.id !in keptNow }.map { it.id }
         }
+    }
+
+    /**
+     * Pictures the recognition pass has not read yet are only guessed to be throwaway from
+     * their folder, so they start on the keep side: thousands of them must never go out
+     * with one tap on a button the user did not mean for them.
+     */
+    private fun keepUnrecognised(loaded: List<TriageGroup>) {
+        val fresh = loaded.filter { it.kind == null }
+            .flatMap { group -> group.items.map { it.id } }
+            .filter { seenUnrecognised.add(it) }
+        if (fresh.isNotEmpty()) kept.update { it + fresh }
     }
 
     private suspend fun loadGroups(aggregates: List<ShotKindAggregate>): List<TriageGroup> {

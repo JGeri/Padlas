@@ -120,22 +120,26 @@ fun StorageGauge(
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Text(text = "Szabad", style = PadlasTheme.type.caption, color = Ink.TextSecondary)
             Spacer(Modifier.height(2.dp))
-            Row(verticalAlignment = Alignment.Bottom) {
-                RollingNumber(
-                    value = bytesValue(freeBytes),
-                    style = PadlasTheme.type.display,
-                    color = Ink.Text,
-                )
-                Text(
-                    text = " " + bytesUnit(freeBytes),
-                    style = PadlasTheme.type.title,
-                    color = Ink.TextSecondary,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
+            if (totalBytes <= 0L) {
+                Text(text = "…", style = PadlasTheme.type.display, color = Ink.TextTertiary)
+            } else {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    RollingNumber(
+                        value = bytesValue(freeBytes),
+                        style = PadlasTheme.type.display,
+                        color = Ink.Text,
+                    )
+                    Text(
+                        text = " " + bytesUnit(freeBytes),
+                        style = PadlasTheme.type.title,
+                        color = Ink.TextSecondary,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                }
             }
             Spacer(Modifier.height(2.dp))
             Text(
-                text = "${(usedFraction * 100).toInt()}% foglalt",
+                text = if (totalBytes > 0L) "${(usedFraction * 100).toInt()}% foglalt" else "Mérés",
                 style = PadlasTheme.type.caption,
                 color = Ink.TextTertiary,
             )

@@ -27,6 +27,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -125,12 +128,16 @@ internal class SwipeSetupViewModel @Inject constructor(
     val deleteRequests: Flow<DeleteBatch> = _deleteRequests.receiveAsFlow()
     private var pendingBatch: DeleteBatch? = null
 
-    private val preview: Flow<SizeAndCount?> = combine(filter, repository.monthStats) { current, _ -> current }
+    private val media = filter.map { it.media }.distinctUntilChanged()
+    private val monthStats = media.flatMapLatest { repository.monthStats(it) }
+    private val bucketStats = media.flatMapLatest { repository.bucketStats(it) }
+
+    private val preview: Flow<SizeAndCount?> = combine(filter, monthStats) { current, _ -> current }
         .debounce(120)
         .mapLatest { repository.count(it) }
 
     val state: StateFlow<SetupUiState> = combine(
-        combine(repository.monthStats, repository.bucketStats, ::Pair),
+        combine(monthStats, bucketStats, ::Pair),
         filter,
         preview,
         combine(repository.pending, tab, local, ::Triple),

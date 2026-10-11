@@ -81,10 +81,10 @@ internal fun SwipeCardView(
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .blur(48.dp)
-                .graphicsLayer { alpha = 0.55f },
+                .blur(56.dp)
+                .graphicsLayer { alpha = 0.7f },
         )
-        Box(Modifier.fillMaxSize().background(Ink.Background.copy(alpha = 0.35f)))
+        Box(Modifier.fillMaxSize().background(Ink.Background.copy(alpha = 0.5f)))
 
         AsyncImage(
             model = if (card.isVideo) MediaThumb(card.uri, 1024) else card.uri,

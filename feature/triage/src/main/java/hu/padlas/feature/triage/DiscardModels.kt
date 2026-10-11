@@ -81,7 +81,7 @@ internal fun kindHint(kind: ShotKind?): String = when (kind) {
     ShotKind.PLACE -> "Címek, útvonalak és térképrészletek."
     ShotKind.CHAT -> "Beszélgetésekről készült képernyőképek."
     ShotKind.OTHER -> "Kevés szöveg, semmi fontos nem látszik rajtuk."
-    null -> "A felismerés még nem futott le rajtuk, de eldobhatónak tűnnek."
+    null -> "A felismerés még nem futott le rajtuk, csak a mappájuk alapján tűnnek eldobhatónak. Ezért alapból maradnak."
 }
 
 internal fun groupKey(kind: ShotKind?): String = kind?.name ?: "UNTRIAGED"

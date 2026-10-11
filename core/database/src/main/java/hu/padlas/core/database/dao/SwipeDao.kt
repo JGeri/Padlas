@@ -68,11 +68,11 @@ interface SwipeDao {
                SUM(CASE WHEN d.assetId IS NULL THEN 0 ELSE 1 END) AS reviewedCount,
                SUM(CASE WHEN a.mimeType LIKE 'video/%' THEN 1 ELSE 0 END) AS videoCount
         FROM asset a LEFT JOIN swipe_decision d ON d.assetId = a.mediaStoreId
-        WHERE a.state IN ('LOCAL', 'PROTECTED') AND a.dateTaken > 0
+        WHERE a.state IN ('LOCAL', 'PROTECTED') AND a.dateTaken > 0 AND a.mimeType LIKE :mimePattern
         GROUP BY month ORDER BY month DESC
         """,
     )
-    fun observeMonthStats(): Flow<List<SwipeMonthStat>>
+    fun observeMonthStats(mimePattern: String): Flow<List<SwipeMonthStat>>
 
     @Query(
         """
@@ -84,16 +84,18 @@ interface SwipeDao {
                MAX(a.dateTaken) AS latestTaken,
                (SELECT c.mediaStoreId FROM asset c
                  WHERE c.bucketId = a.bucketId AND c.state IN ('LOCAL', 'PROTECTED')
+                   AND c.mimeType LIKE :mimePattern
                  ORDER BY c.dateTaken DESC LIMIT 1) AS coverId,
                (SELECT c.mimeType FROM asset c
                  WHERE c.bucketId = a.bucketId AND c.state IN ('LOCAL', 'PROTECTED')
+                   AND c.mimeType LIKE :mimePattern
                  ORDER BY c.dateTaken DESC LIMIT 1) AS coverMime
         FROM asset a LEFT JOIN swipe_decision d ON d.assetId = a.mediaStoreId
-        WHERE a.state IN ('LOCAL', 'PROTECTED')
+        WHERE a.state IN ('LOCAL', 'PROTECTED') AND a.mimeType LIKE :mimePattern
         GROUP BY a.bucketId ORDER BY totalBytes DESC
         """,
     )
-    fun observeBucketStats(): Flow<List<SwipeBucketStat>>
+    fun observeBucketStats(mimePattern: String): Flow<List<SwipeBucketStat>>
 
     /** The deck filter is built in Kotlin: folders, months and media type are all optional. */
     @RawQuery(observedEntities = [Asset::class, SwipeDecisionEntity::class])

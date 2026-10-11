@@ -56,9 +56,11 @@ class SwipeRepository @Inject constructor(
     /** A decision and its undo must reach the database in the order they were made. */
     private val writeLock = Mutex()
 
-    val monthStats: Flow<List<SwipeMonthStat>> = swipeDao.observeMonthStats()
+    fun monthStats(media: MediaFilter = MediaFilter.ALL): Flow<List<SwipeMonthStat>> =
+        swipeDao.observeMonthStats(media.mimePattern)
 
-    val bucketStats: Flow<List<SwipeBucketStat>> = swipeDao.observeBucketStats()
+    fun bucketStats(media: MediaFilter = MediaFilter.ALL): Flow<List<SwipeBucketStat>> =
+        swipeDao.observeBucketStats(media.mimePattern)
 
     val pending: Flow<SizeAndCount> = swipeDao.observePending()
 
@@ -158,6 +160,13 @@ class SwipeRepository @Inject constructor(
     private suspend fun <T> write(block: suspend () -> T): T = withContext(io) {
         writeLock.withLock { block() }
     }
+
+    private val MediaFilter.mimePattern: String
+        get() = when (this) {
+            MediaFilter.ALL -> "%"
+            MediaFilter.PHOTOS -> "image/%"
+            MediaFilter.VIDEOS -> "video/%"
+        }
 
     companion object {
         const val DECK_LIMIT = 6_000

@@ -219,7 +219,8 @@ private fun DiscardGrid(
                 label = "Felszabadítható",
                 bytes = selection.discardBytes,
                 caption = "Képernyőképek és letöltött képek, amikre valószínűleg már nincs szükséged. " +
-                    "Minden ki van jelölve törlésre: koppints arra, amit megtartanál.",
+                    "A felismert csoportok ki vannak jelölve törlésre, koppints arra, amit megtartanál. " +
+                    "A még fel nem ismert képeket csak a „Mind törlése” jelöli ki.",
             )
         }
         open.forEach { group ->

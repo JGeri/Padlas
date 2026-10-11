@@ -81,7 +81,7 @@ class HomeViewModel @Inject constructor(
 
     private val device = MutableStateFlow(DeviceState(mediaAccess = hasMediaAccess()))
 
-    private val review = swipeRepository.monthStats.map { months ->
+    private val review = swipeRepository.monthStats().map { months ->
         months.sumOf { it.reviewedCount } to months.sumOf { it.itemCount }
     }
 
