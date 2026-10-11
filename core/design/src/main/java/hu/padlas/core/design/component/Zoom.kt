@@ -1,4 +1,4 @@
-package hu.padlas.feature.triage
+package hu.padlas.core.design.component
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -9,10 +9,10 @@ import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
@@ -54,23 +54,16 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
-import coil3.memory.MemoryCache
-import coil3.request.ImageRequest
-import coil3.request.crossfade
-import hu.padlas.core.design.component.PadlasIconButton
-import hu.padlas.core.design.component.glass
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.theme.Ink
@@ -84,7 +77,7 @@ import kotlinx.coroutines.launch
 
 /** What the viewer shows: the tile's own picture, a name and one line about it. */
 @Immutable
-internal data class ZoomTarget(
+data class ZoomTarget(
     val key: Any,
     val model: Any?,
     val title: String? = null,
@@ -95,10 +88,10 @@ internal data class ZoomTarget(
 private data class ZoomKey(val key: Any)
 
 /** Learnt from the tile's own load, so the viewer can open at the right shape at once. */
-internal class ZoomMemo(val ratio: Float, val cacheKey: MemoryCache.Key?)
+internal class ZoomMemo(val ratio: Float, val placeholder: Any?)
 
 @Stable
-internal class ZoomState {
+class ZoomState {
     var target: ZoomTarget? by mutableStateOf(null)
         private set
 
@@ -114,15 +107,15 @@ internal class ZoomState {
 
     fun isOpen(key: Any): Boolean = target?.key == key
 
-    internal fun note(key: Any, ratio: Float, cacheKey: MemoryCache.Key?) {
-        memos[key] = ZoomMemo(ratio, cacheKey)
+    internal fun note(key: Any, ratio: Float, placeholder: Any?) {
+        memos[key] = ZoomMemo(ratio, placeholder)
     }
 
     internal fun memo(key: Any): ZoomMemo? = memos[key]
 }
 
 @Composable
-internal fun rememberZoomState(): ZoomState = remember { ZoomState() }
+fun rememberZoomState(): ZoomState = remember { ZoomState() }
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 private val LocalZoomScope = staticCompositionLocalOf<SharedTransitionScope?> { null }
@@ -136,13 +129,21 @@ private val ZoomBounds = BoundsTransform { _, _ -> spring(dampingRatio = 0.84f, 
 private val InstantBounds = BoundsTransform { _, _ -> snap() }
 
 /**
- * Lets any tile below it grow into a full-screen picture and shrink back into its slot.
- * The decision stays in the viewer: [actions] puts the tile's own choice under the picture.
+ * Lets any [ZoomableImage] below it grow into a full-screen picture and shrink back into
+ * its slot. Unlike [PhotoViewer] it stays in the screen's own window, which is what lets
+ * the picture fly out of the tile. The decision stays in the viewer: [actions] puts the
+ * tile's own choice under the picture.
+ *
+ * core:design does not load images, so [picture] draws the full picture with
+ * ContentScale.Crop into the modifier it is given. Its placeholder is whatever the tile
+ * reported once its thumbnail loaded (a Coil memory-cache key): the tile's pixels stay up
+ * while the full picture arrives.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-internal fun ZoomHost(
+fun ZoomHost(
     state: ZoomState,
+    picture: @Composable (target: ZoomTarget, placeholder: Any?, modifier: Modifier) -> Unit,
     modifier: Modifier = Modifier,
     actions: @Composable ColumnScope.(ZoomTarget) -> Unit = {},
     content: @Composable () -> Unit,
@@ -151,7 +152,7 @@ internal fun ZoomHost(
         CompositionLocalProvider(LocalZoomScope provides this, LocalZoom provides state) {
             Box(Modifier.fillMaxSize()) {
                 content()
-                ZoomOverlay(state = state, shared = this@SharedTransitionLayout, actions = actions)
+                ZoomOverlay(state = state, shared = this@SharedTransitionLayout, picture = picture, actions = actions)
             }
         }
     }
@@ -160,19 +161,22 @@ internal fun ZoomHost(
 /**
  * A grid picture that knows how to fly. While its viewer is open the slot stays empty, so
  * there is only ever one copy of the picture on screen.
+ *
+ * [image] draws the thumbnail with ContentScale.Crop into the modifier it is given and,
+ * once loaded, reports the painter's intrinsic size and the loader's cache key through
+ * `onLoaded`, so the viewer opens at the right shape on top of the same pixels.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-internal fun ZoomableImage(
+fun ZoomableImage(
     key: Any,
-    model: Any?,
     modifier: Modifier = Modifier,
-    contentDescription: String? = null,
+    image: @Composable (modifier: Modifier, onLoaded: (intrinsicSize: Size, placeholder: Any?) -> Unit) -> Unit,
 ) {
     val shared = LocalZoomScope.current
     val zoom = LocalZoom.current
     if (shared == null || zoom == null) {
-        AsyncImage(model = model, contentDescription = contentDescription, contentScale = ContentScale.Crop, modifier = modifier)
+        image(modifier) { _, _ -> }
         return
     }
     val reduced = LocalReducedMotion.current
@@ -184,17 +188,8 @@ internal fun ZoomableImage(
             modifier = Modifier.matchParentSize(),
         ) {
             with(shared) {
-                AsyncImage(
-                    model = model,
-                    contentDescription = contentDescription,
-                    contentScale = ContentScale.Crop,
-                    onSuccess = { success ->
-                        val size = success.painter.intrinsicSize
-                        if (size.width > 0f && size.height > 0f) {
-                            zoom.note(key, size.width / size.height, success.result.memoryCacheKey)
-                        }
-                    },
-                    modifier = Modifier
+                image(
+                    Modifier
                         .fillMaxSize()
                         .sharedElement(
                             sharedContentState = rememberSharedContentState(ZoomKey(key)),
@@ -205,7 +200,11 @@ internal fun ZoomableImage(
                             shape = Shapes.small
                             clip = true
                         },
-                )
+                ) { size, placeholder ->
+                    if (size.width > 0f && size.height > 0f) {
+                        zoom.note(key, size.width / size.height, placeholder)
+                    }
+                }
             }
         }
     }
@@ -216,6 +215,7 @@ internal fun ZoomableImage(
 private fun ZoomOverlay(
     state: ZoomState,
     shared: SharedTransitionScope,
+    picture: @Composable (target: ZoomTarget, placeholder: Any?, modifier: Modifier) -> Unit,
     actions: @Composable ColumnScope.(ZoomTarget) -> Unit,
 ) {
     val reduced = LocalReducedMotion.current
@@ -236,6 +236,7 @@ private fun ZoomOverlay(
                 shared = shared,
                 visibility = this,
                 reduced = reduced,
+                picture = picture,
                 actions = actions,
             )
         }
@@ -254,18 +255,11 @@ private fun ZoomViewer(
     shared: SharedTransitionScope,
     visibility: AnimatedVisibilityScope,
     reduced: Boolean,
+    picture: @Composable (target: ZoomTarget, placeholder: Any?, modifier: Modifier) -> Unit,
     actions: @Composable ColumnScope.(ZoomTarget) -> Unit,
 ) {
-    val context = LocalContext.current
     val memo = remember(target.key) { state.memo(target.key) }
     val ratio = memo?.ratio ?: 1f
-    val request = remember(target.model, memo) {
-        ImageRequest.Builder(context)
-            .data(target.model)
-            .placeholderMemoryCacheKey(memo?.cacheKey)
-            .crossfade(true)
-            .build()
-    }
 
     var scale by remember { mutableFloatStateOf(1f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
@@ -388,11 +382,10 @@ private fun ZoomViewer(
                             shape = RoundedCornerShape(radius)
                         },
                 ) {
-                    AsyncImage(
-                        model = request,
-                        contentDescription = target.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
+                    picture(
+                        target,
+                        memo?.placeholder,
+                        Modifier
                             .fillMaxSize()
                             .graphicsLayer {
                                 scaleX = scale

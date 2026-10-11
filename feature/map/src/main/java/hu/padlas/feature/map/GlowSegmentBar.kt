@@ -1,20 +1,12 @@
 package hu.padlas.feature.map
 
-import android.os.SystemClock
-import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
-import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,84 +18,16 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.HazeState
-import hu.padlas.core.design.component.frosted
-import hu.padlas.core.design.component.glass
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.theme.Ink
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
-/** A floating pane of glass: the list behind it blurred, then the lit rim on top. */
-internal fun Modifier.frostedPane(haze: HazeState, shape: Shape): Modifier = this
-    .glass(shape, Color.Transparent, Ink.HairlineStrong)
-    .frosted(haze)
-
-/**
- * Hands out entrance slots in composition order. Only what is composed while the tab
- * opens sits down one after the other; rows scrolled in later are simply there.
- */
-@Stable
-internal class Entrance(private val enabled: Boolean) {
-    private val start = SystemClock.uptimeMillis()
-    private var next = 0
-
-    fun claim(): Int? {
-        if (!enabled || SystemClock.uptimeMillis() - start > EntranceWindowMs) return null
-        return next++
-    }
-}
-
-@Composable
-internal fun rememberEntrance(): Entrance {
-    val reduced = LocalReducedMotion.current
-    return remember { Entrance(enabled = !reduced) }
-}
-
-/** Rises a few dp and fades in on its own spring, delayed by its place in the queue. */
-@Composable
-internal fun Modifier.entrance(entrance: Entrance): Modifier {
-    val slot = remember { entrance.claim() } ?: return this
-    val progress = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        delay(minOf(slot, Motion.StaggerCap).toLong() * EntranceStepMs)
-        progress.animateTo(1f, Motion.settle())
-    }
-    return graphicsLayer {
-        val p = progress.value
-        alpha = p.coerceIn(0f, 1f)
-        translationY = (1f - p) * EntranceRise.toPx()
-    }
-}
-
-/**
- * Rows arriving with a new view fade in, rows that leave fade out, and the rest closes up
- * on a spring: switching views or deleting reads as one list rearranging itself.
- */
-@Composable
-internal fun LazyItemScope.itemMotion(): Modifier =
-    if (LocalReducedMotion.current) {
-        Modifier
-    } else {
-        Modifier.animateItem(
-            fadeInSpec = Motion.settle(),
-            placementSpec = Motion.settle(),
-            fadeOutSpec = Motion.snapSpring(),
-        )
-    }
-
-internal fun popIn(reduced: Boolean): EnterTransition =
-    scaleIn(if (reduced) snap() else Motion.bouncy(), initialScale = 0.6f) + fadeIn(finite(reduced))
-
-internal fun <T> finite(reduced: Boolean): FiniteAnimationSpec<T> = if (reduced) snap() else Motion.settle()
 
 /**
  * The share bar, lit: every segment grows out of zero on arrival, one after the other, and
@@ -197,8 +121,5 @@ internal fun GlowSegmentBar(
     }
 }
 
-private const val EntranceWindowMs = 450L
-private const val EntranceStepMs = 45L
-private val EntranceRise = 18.dp
 private const val SegmentStepMs = 70L
 private val GlowPad = 4.dp

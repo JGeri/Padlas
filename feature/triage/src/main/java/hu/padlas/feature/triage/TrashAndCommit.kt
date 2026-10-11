@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import hu.padlas.core.common.format.Format
+import hu.padlas.core.design.component.BarFigures
 import hu.padlas.core.design.component.ButtonStyle
 import hu.padlas.core.design.component.IconBubble
 import hu.padlas.core.design.component.PadlasButton
@@ -32,6 +33,7 @@ import hu.padlas.core.design.component.PadlasCard
 import hu.padlas.core.design.component.SectionHeader
 import hu.padlas.core.design.component.hairlineBottom
 import hu.padlas.core.design.motion.LocalReducedMotion
+import hu.padlas.core.design.motion.finite
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
@@ -129,7 +131,12 @@ internal fun CommitBar(
 ) {
     val reduced = LocalReducedMotion.current
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Space.s)) {
-        BarFigures(count = count, noun = "fájl törlésre", bytes = bytes)
+        BarFigures(
+            count = Format.count(count),
+            noun = "fájl törlésre",
+            value = Format.bytesValue(bytes),
+            unit = Format.bytesUnit(bytes),
+        )
         AnimatedContent(
             targetState = count == 0,
             transitionSpec = { fadeIn(finite(reduced)) togetherWith fadeOut(finite(reduced)) },
