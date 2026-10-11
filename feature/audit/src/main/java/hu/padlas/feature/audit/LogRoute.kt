@@ -5,8 +5,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,10 +15,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -32,6 +30,7 @@ import androidx.compose.material.icons.rounded.StopCircle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,7 +58,6 @@ import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.hairlineBottom
 import hu.padlas.core.design.theme.Ink
-import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Radius
 import hu.padlas.core.design.theme.Space
@@ -81,6 +79,11 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     var confirmStop by remember { mutableStateOf(false) }
     val navBottom = navigationBarBottom()
+    val listState = rememberLazyListState()
+    val scrolled by remember {
+        derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0 }
+    }
+    val entrance = rememberEntrance()
 
     val undoLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult(),
@@ -108,8 +111,11 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         undoLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
     }
 
-    Box(modifier = modifier.fillMaxSize().auroraBackground()) {
-        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+
+    GlassScreen(
+        scrolled = scrolled,
+        modifier = modifier,
+        topBar = {
             PadlasTopBar(
                 title = "Napló",
                 onBack = onBack,
@@ -123,62 +129,73 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     )
                 },
             )
+        },
+        overlay = {
+            Toast(
+                message = state.message,
+                onShown = viewModel::dismissMessage,
+                icon = if (state.messageOk) Icons.Rounded.CheckCircle else Icons.Rounded.Info,
+                tint = if (state.messageOk) Ink.Success else Ink.Info,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = navBottom + Space.l),
+            )
+        },
+    ) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = Space.page,
+                end = Space.page,
+                top = topBarClearance() + Space.s,
+                bottom = navBottom + Space.xl,
+            ),
+        ) {
+            item(key = "hero") {
+                ReclaimHero(
+                    label = "Eddig felszabadítva",
+                    bytes = state.reclaimedBytes,
+                    caption = "Itt látod, mit csinált az app a fájljaiddal. " +
+                        "A kukába tett fájlok 30 napig visszaállíthatók.",
+                    modifier = Modifier.entrance(entrance),
+                )
+            }
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = Space.page,
-                    end = Space.page,
-                    top = Space.s,
-                    bottom = navBottom + Space.xl,
-                ),
-            ) {
-                item(key = "hero") {
-                    ReclaimHero(
-                        label = "Eddig felszabadítva",
-                        bytes = state.reclaimedBytes,
-                        caption = "Itt látod, mit csinált az app a fájljaiddal. " +
-                            "A kukába tett fájlok 30 napig visszaállíthatók.",
+            if (state.days.isEmpty() && !state.loading) {
+                item(key = "empty") {
+                    EmptyState(
+                        title = "Még üres a napló",
+                        text = "Amint az app bármit csinál a fájljaiddal, itt megjelenik.",
+                        icon = Icons.Rounded.History,
+                        modifier = Modifier.entrance(entrance),
                     )
                 }
+            }
 
-                if (state.days.isEmpty() && !state.loading) {
-                    item(key = "empty") {
-                        EmptyState(
-                            title = "Még üres a napló",
-                            text = "Amint az app bármit csinál a fájljaiddal, itt megjelenik.",
-                            icon = Icons.Rounded.History,
-                        )
-                    }
+            state.days.forEach { day ->
+                item(key = "day-${day.key}") {
+                    DayHeader(day, modifier = Modifier.entrance(entrance).then(itemMotion()))
                 }
-
-                state.days.forEach { day ->
-                    item(key = "day-${day.key}") { DayHeader(day) }
-                    itemsIndexed(day.rows, key = { _, row -> row.key }) { index, row ->
-                        LogRowItem(
-                            row = row,
-                            first = index == 0,
-                            last = index == day.rows.lastIndex,
-                            undoEnabled = state.undoRequest == null,
-                            onUndo = { viewModel.undo(row.entries) },
-                        )
-                    }
-                }
-
-                item(key = "kill") {
-                    KillSwitchCard(onStop = { confirmStop = true }, modifier = Modifier.padding(top = Space.xxl))
+                itemsIndexed(day.rows, key = { _, row -> row.key }) { index, row ->
+                    LogRowItem(
+                        row = row,
+                        first = index == 0,
+                        last = index == day.rows.lastIndex,
+                        undoEnabled = state.undoRequest == null,
+                        onUndo = { viewModel.undo(row.entries) },
+                        modifier = Modifier.entrance(entrance).then(itemMotion()),
+                    )
                 }
             }
-        }
 
-        Toast(
-            message = state.message,
-            onShown = viewModel::dismissMessage,
-            icon = if (state.messageOk) Icons.Rounded.CheckCircle else Icons.Rounded.Info,
-            tint = if (state.messageOk) Ink.Success else Ink.Info,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = navBottom + Space.l),
-        )
+            item(key = "kill") {
+                KillSwitchCard(
+                    onStop = { confirmStop = true },
+                    modifier = Modifier.entrance(entrance).then(itemMotion()).padding(top = Space.xxl),
+                )
+            }
+        }
     }
+
 
     if (confirmStop) {
         ConfirmDialog(
@@ -198,9 +215,9 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun DayHeader(day: LogDay) {
+private fun DayHeader(day: LogDay, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(top = Space.xl, bottom = Space.s),
         verticalAlignment = Alignment.CenterVertically,
@@ -233,6 +250,7 @@ private fun LogRowItem(
     last: Boolean,
     undoEnabled: Boolean,
     onUndo: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(
         topStart = if (first) Radius.card else 0.dp,
@@ -243,7 +261,7 @@ private fun LogRowItem(
     val look = LogCopy.look(row.action)
     val time = TIME.format(Instant.ofEpochMilli(row.timestamp).atZone(ZoneId.systemDefault()))
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(shape)
             .background(Ink.Surface)

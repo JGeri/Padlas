@@ -14,8 +14,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,12 +33,14 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -48,6 +48,9 @@ import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.design.component.ConfirmDialog
 import hu.padlas.core.design.component.LargeHeader
@@ -55,12 +58,14 @@ import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.SegmentedControl
 import hu.padlas.core.design.component.Toast
+import hu.padlas.core.design.component.frosted
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.haptics
 import hu.padlas.core.design.theme.Ink
-import hu.padlas.core.design.theme.auroraBackground
+import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
+import hu.padlas.core.design.theme.auroraBackground
 
 /** The "Tárhely" tab: a WizTree-style map of the whole shared storage and what to do about it. */
 @Composable
@@ -111,7 +116,6 @@ private sealed interface Panel {
     data class Detail(val focus: Focus) : Panel
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun StorageScreen(
     viewModel: StorageViewModel,
@@ -138,6 +142,8 @@ internal fun StorageScreen(
     val toast by viewModel.toast.collectAsStateWithLifecycle()
     val reduced = LocalReducedMotion.current
     val haptic = haptics()
+    val haze = rememberHazeState()
+    val entrance = rememberEntrance()
 
     LifecycleResumeEffect(viewModel) {
         viewModel.onResume()
@@ -162,6 +168,14 @@ internal fun StorageScreen(
         // A new view or folder starts at its top, not wherever the previous list was left.
         if (listState.firstVisibleItemIndex > switcherIndex) listState.scrollToItem(switcherIndex)
     }
+    // The switcher scrolls with the list until it reaches the top edge; from there a frosted
+    // copy holds the place, so the list keeps a real blur source behind it.
+    val pinned by remember(switcherIndex) {
+        derivedStateOf {
+            val switcher = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == SwitcherKey }
+            if (switcher != null) switcher.offset < 0 else listState.firstVisibleItemIndex > switcherIndex
+        }
+    }
 
     val panel: Panel = when {
         deleting -> Panel.Busy
@@ -171,19 +185,25 @@ internal fun StorageScreen(
     }
     val bottomInset = contentPadding.calculateBottomPadding()
     val listBottom = bottomInset + if (panel == Panel.None) Space.xl else 236.dp
+    val onSelectView: (StorageView) -> Unit = {
+        haptic?.tick(0.2f)
+        viewModel.selectView(it)
+    }
 
     Box(modifier = modifier) {
         LazyColumn(
             state = listState,
             contentPadding = PaddingValues(bottom = listBottom),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(haze),
         ) {
             if (largeHeader) {
                 item(key = "header") {
                     LargeHeader(
                         title = "Tárhely",
                         subtitle = header,
-                        modifier = Modifier.padding(horizontal = Space.page),
+                        modifier = Modifier.entrance(entrance).padding(horizontal = Space.page),
                         actions = { RefreshButton(enabled = access.allFiles && !scanning, onClick = viewModel::rescan) },
                     )
                 }
@@ -192,7 +212,10 @@ internal fun StorageScreen(
                 item(key = "gate") {
                     AllFilesGate(
                         onGrant = { context.openAllFilesSettings() },
-                        modifier = Modifier.padding(horizontal = Space.page, vertical = Space.s),
+                        modifier = Modifier
+                            .entrance(entrance)
+                            .then(itemMotion())
+                            .padding(horizontal = Space.page, vertical = Space.s),
                     )
                 }
                 return@LazyColumn
@@ -203,30 +226,39 @@ internal fun StorageScreen(
                         progressState = progressState,
                         rootPath = viewModel.rootPath,
                         onCancel = viewModel::cancelScan,
-                        modifier = Modifier.padding(horizontal = Space.page, vertical = Space.s),
+                        modifier = Modifier
+                            .entrance(entrance)
+                            .then(itemMotion())
+                            .padding(horizontal = Space.page, vertical = Space.s),
                     )
                 }
             }
             if (!hasResult && !scanning) {
                 item(key = "no-result") {
-                    NoResultCard(onStart = viewModel::rescan, modifier = Modifier.padding(horizontal = Space.page, vertical = Space.s))
+                    NoResultCard(
+                        onStart = viewModel::rescan,
+                        modifier = Modifier
+                            .entrance(entrance)
+                            .then(itemMotion())
+                            .padding(horizontal = Space.page, vertical = Space.s),
+                    )
                 }
             }
             summary?.let { current ->
                 item(key = "summary") {
-                    SummaryCard(current, modifier = Modifier.padding(horizontal = Space.page, vertical = Space.s))
+                    SummaryCard(
+                        current,
+                        modifier = Modifier
+                            .entrance(entrance)
+                            .then(itemMotion())
+                            .padding(horizontal = Space.page, vertical = Space.s),
+                    )
                 }
             }
             if (!hasResult) return@LazyColumn
 
-            stickyHeader(key = "switcher") {
-                ViewSwitcher(
-                    view = view,
-                    onSelect = {
-                        haptic?.tick(0.2f)
-                        viewModel.selectView(it)
-                    },
-                )
+            item(key = SwitcherKey) {
+                ViewSwitcher(view = view, onSelect = onSelectView, modifier = Modifier.entrance(entrance))
             }
             when (view) {
                 StorageView.MAP -> if (dir != null) {
@@ -281,6 +313,15 @@ internal fun StorageScreen(
             }
         }
 
+        if (pinned && access.allFiles && hasResult) {
+            ViewSwitcher(
+                view = view,
+                onSelect = onSelectView,
+                haze = haze,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+        }
+
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -296,6 +337,7 @@ internal fun StorageScreen(
                 reduced = reduced,
                 rootPath = viewModel.rootPath,
                 hint = if (view == StorageView.MAP) "Koppints rá még egyszer a térképen, és megnyílik." else null,
+                haze = haze,
                 viewModel = viewModel,
             )
         }
@@ -314,31 +356,38 @@ internal fun StorageScreen(
     }
 }
 
+/**
+ * Sheets rise from below the edge on a spring with a little give, and sink back without
+ * one: arriving has weight, leaving gets out of the way.
+ */
 @Composable
 private fun BottomPanel(
     panel: Panel,
     reduced: Boolean,
     rootPath: String,
     hint: String?,
+    haze: HazeState,
     viewModel: StorageViewModel,
 ) {
     AnimatedContent(
         targetState = panel,
         contentKey = { it::class },
         transitionSpec = {
-            val slide: FiniteAnimationSpec<IntOffset> = if (reduced) snap() else Motion.settle()
+            val rise: FiniteAnimationSpec<IntOffset> = if (reduced) snap() else Motion.weight()
+            val sink: FiniteAnimationSpec<IntOffset> = if (reduced) snap() else Motion.settle()
             val fade: FiniteAnimationSpec<Float> = if (reduced) snap() else Motion.settle()
-            (slideInVertically(slide) { it / 2 } + fadeIn(fade)) togetherWith
-                (slideOutVertically(slide) { it / 2 } + fadeOut(fade)) using SizeTransform(clip = false)
+            (slideInVertically(rise) { it } + fadeIn(fade)) togetherWith
+                (slideOutVertically(sink) { it } + fadeOut(fade)) using SizeTransform(clip = false)
         },
         contentAlignment = Alignment.BottomCenter,
         label = "bottomPanel",
     ) { state ->
         when (state) {
             Panel.None -> Box(Modifier.fillMaxWidth())
-            Panel.Busy -> BusyPill(text = "Törlés folyamatban…")
+            Panel.Busy -> BusyPill(text = "Törlés folyamatban…", haze = haze)
             is Panel.Select -> SelectionBar(
                 selection = state.selection,
+                haze = haze,
                 onDelete = viewModel::requestDeleteSelection,
                 onClear = viewModel::clearSelection,
             )
@@ -346,6 +395,7 @@ private fun BottomPanel(
                 focus = state.focus,
                 rootPath = rootPath,
                 hint = if (state.focus is Focus.Item && state.focus.item.isDirectory) hint else null,
+                haze = haze,
                 onOpen = { viewModel.open(it.path) },
                 onDelete = { viewModel.requestDelete(listOf(it)) },
                 onShowAll = viewModel::showAllInFolder,
@@ -380,18 +430,27 @@ private fun ToastHost(toast: ToastUi?, onShown: () -> Unit) {
     )
 }
 
+/**
+ * The view switcher. In the list it is see-through like everything else; the pinned copy
+ * gets its own frosted pane, because there the list scrolls right underneath it.
+ */
 @Composable
-private fun ViewSwitcher(view: StorageView, onSelect: (StorageView) -> Unit) {
+private fun ViewSwitcher(
+    view: StorageView,
+    onSelect: (StorageView) -> Unit,
+    modifier: Modifier = Modifier,
+    haze: HazeState? = null,
+) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .background(Ink.Background)
             .padding(horizontal = Space.page, vertical = Space.s),
     ) {
         SegmentedControl(
             options = StorageView.entries.map { it.label },
             selectedIndex = view.ordinal,
             onSelect = { onSelect(StorageView.entries[it]) },
+            modifier = if (haze != null) Modifier.clip(Shapes.pill).frosted(haze) else Modifier,
         )
     }
 }
@@ -405,6 +464,8 @@ private fun RefreshButton(enabled: Boolean, onClick: () -> Unit) {
         enabled = enabled,
     )
 }
+
+private const val SwitcherKey = "switcher"
 
 private fun deleteTitle(request: DeleteRequest): String = when {
     request.items.size > 1 -> "Törlöd a kijelölt elemeket?"

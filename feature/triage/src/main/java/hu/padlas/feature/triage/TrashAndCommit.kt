@@ -1,5 +1,10 @@
 package hu.padlas.feature.triage
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import hu.padlas.core.common.format.Format
@@ -27,6 +31,7 @@ import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasCard
 import hu.padlas.core.design.component.SectionHeader
 import hu.padlas.core.design.component.hairlineBottom
+import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
@@ -111,7 +116,8 @@ private fun TrashRow(
 
 /**
  * Spec 6.6 ⑥: the copy names the irreversibility before the finger goes down; the system
- * dialog that follows is the one batched confirmation (INV-3).
+ * dialog that follows is the one batched confirmation (INV-3). The figures roll with every
+ * tap in the grid, so the bar always shows the batch as it stands.
  */
 @Composable
 internal fun CommitBar(
@@ -121,24 +127,27 @@ internal fun CommitBar(
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = if (count == 0) {
-                "Mindent megtartasz, nincs mit törölni."
-            } else {
-                "Véglegesen törlődnek. A telefon még egyszer rákérdez."
-            },
-            style = PadlasTheme.type.caption,
-            color = Ink.TextSecondary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(bottom = Space.s),
-        )
+    val reduced = LocalReducedMotion.current
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Space.s)) {
+        BarFigures(count = count, noun = "fájl törlésre", bytes = bytes)
+        AnimatedContent(
+            targetState = count == 0,
+            transitionSpec = { fadeIn(finite(reduced)) togetherWith fadeOut(finite(reduced)) },
+            label = "commitNote",
+        ) { nothing ->
+            Text(
+                text = if (nothing) {
+                    "Mindent megtartasz, nincs mit törölni."
+                } else {
+                    "Véglegesen törlődnek. A telefon még egyszer rákérdez."
+                },
+                style = PadlasTheme.type.caption,
+                color = Ink.TextSecondary,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         PadlasButton(
-            text = if (count == 0) {
-                "Nincs kijelölt fájl"
-            } else {
-                "${Format.count(count)} fájl törlése · ${Format.bytes(bytes)}"
-            },
+            text = if (count == 0) "Nincs kijelölt fájl" else "Kijelöltek törlése",
             onClick = onConfirm,
             enabled = count > 0 && !busy,
             icon = Icons.Rounded.Delete,

@@ -112,7 +112,9 @@ internal fun Treemap(
                 progress.snapTo(1f)
             } else {
                 progress.snapTo(0f)
-                progress.animateTo(1f, if (motion == MapMotion.Enter) Motion.weight() else Motion.settle())
+                // Drilling is a camera move with mass: it runs a touch past the folder and
+                // settles back, which is what tells the eye the map is one surface.
+                progress.animateTo(1f, if (motion == MapMotion.Morph) Motion.settle() else Motion.weight())
             }
             previous = null
         }
@@ -219,7 +221,7 @@ internal fun Treemap(
 
             val key = outlined
             val picked = key?.let(current::tile)
-            if (selection > 0.01f && picked != null && p >= 1f) {
+            if (selection > 0.01f && picked != null && p >= SettledProgress) {
                 drawRect(Ink.Background.copy(alpha = 0.52f * selection))
                 drawTile(picked, identity, 1f, currentLabels[picked.key], 1f, brushes, chrome)
                 val r = picked.rect
@@ -483,6 +485,22 @@ private fun DrawScope.cushion(rect: MapRect, color: Color, radius: Float, alpha:
         drawRoundRect(brushes.shade, size = UnitSize, cornerRadius = corner, alpha = alpha)
         drawRoundRect(brushes.gloss, size = UnitSize, cornerRadius = corner, alpha = alpha)
     }
+    if (rect.width < SheenMin || rect.height < SheenMin) return
+    // A lit top edge and a faint rim, like the glass cards around the map: each tile reads
+    // as a pane catching the light rather than a flat patch of colour.
+    drawLine(
+        color = Color.White.copy(alpha = 0.34f * alpha),
+        start = Offset(rect.left + r, rect.top + 0.75f),
+        end = Offset(rect.right - r, rect.top + 0.75f),
+        strokeWidth = 1.5f,
+    )
+    drawRoundRect(
+        color = Color.White.copy(alpha = 0.10f * alpha),
+        topLeft = Offset(rect.left, rect.top),
+        size = Size(rect.width, rect.height),
+        cornerRadius = CornerRadius(r),
+        style = Stroke(1f),
+    )
 }
 
 private fun MapRect.scaledAroundCenter(factor: Float): MapRect {
@@ -503,6 +521,10 @@ private fun fadeIn(p: Float): Float = ((p - 0.55f) / 0.45f).coerceIn(0f, 1f)
 private fun fadeOut(p: Float): Float = (1f - p * 2.5f).coerceIn(0f, 1f)
 
 private const val UNIT = 64f
+private const val SheenMin = 10f
+
+/** The overshooting drill spring dips just under 1 on its way back; the outline waits it out. */
+private const val SettledProgress = 0.97f
 private val UnitSize = Size(UNIT, UNIT)
 private const val STAGGER_WINDOW_MS = 700f
 

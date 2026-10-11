@@ -1,5 +1,14 @@
 package hu.padlas.feature.map
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +44,7 @@ import hu.padlas.core.design.component.EmptyState
 import hu.padlas.core.design.component.LinearMeter
 import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.SelectionMark
+import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
@@ -49,31 +59,57 @@ internal fun LazyListScope.directoryHeader(
     onUp: () -> Unit,
 ) {
     item(key = "crumbs") {
-        Breadcrumbs(crumbs = directory.crumbs, onJump = onJump, modifier = Modifier.padding(top = Space.s))
+        Breadcrumbs(
+            crumbs = directory.crumbs,
+            onJump = onJump,
+            modifier = Modifier.then(itemMotion()).padding(top = Space.s),
+        )
     }
     item(key = "dir-title") {
+        val reduced = LocalReducedMotion.current
         Row(
             modifier = Modifier
+                .then(itemMotion())
                 .fillMaxWidth()
                 .padding(horizontal = Space.page, vertical = Space.m),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = directory.label,
-                    style = PadlasTheme.type.title,
-                    color = Ink.Text,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = "${Format.bytes(directory.bytes)} · ${Format.count(directory.fileCount)} fájl",
-                    style = PadlasTheme.type.caption,
-                    color = Ink.TextSecondary,
-                    maxLines = 1,
-                )
+            // The title slides the way the map zooms: in from the right going deeper, in
+            // from the left coming back up.
+            AnimatedContent(
+                targetState = directory,
+                contentKey = { it.path },
+                transitionSpec = {
+                    val deeper = targetState.path.startsWith(initialState.path + "/")
+                    val shift = if (deeper) 1 else -1
+                    (slideInHorizontally(finite(reduced)) { shift * it / 4 } + fadeIn(finite(reduced))) togetherWith
+                        (slideOutHorizontally(finite(reduced)) { -shift * it / 4 } + fadeOut(finite(reduced))) using
+                        SizeTransform(clip = false)
+                },
+                modifier = Modifier.weight(1f),
+                label = "dirTitle",
+            ) { shown ->
+                Column {
+                    Text(
+                        text = shown.label,
+                        style = PadlasTheme.type.title,
+                        color = Ink.Text,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = "${Format.bytes(shown.bytes)} · ${Format.count(shown.fileCount)} fájl",
+                        style = PadlasTheme.type.caption,
+                        color = Ink.TextSecondary,
+                        maxLines = 1,
+                    )
+                }
             }
-            if (!directory.isRoot) {
+            AnimatedVisibility(
+                visible = !directory.isRoot,
+                enter = popIn(reduced),
+                exit = scaleOut(finite(reduced), targetScale = 0.6f) + fadeOut(finite(reduced)),
+            ) {
                 PadlasIconButton(
                     icon = Icons.Rounded.ArrowUpward,
                     contentDescription = "Egy szinttel feljebb",
@@ -97,6 +133,7 @@ internal fun LazyListScope.mapSection(
                 text = "Ebben a mappában nincs semmi, ami helyet foglalna.",
                 icon = Icons.Rounded.FolderOpen,
                 tint = Ink.TextSecondary,
+                modifier = Modifier.then(itemMotion()),
             )
         }
         return
@@ -112,6 +149,7 @@ internal fun LazyListScope.mapSection(
             selectedKey = selectedKey,
             onTap = onTap,
             modifier = Modifier
+                .then(itemMotion())
                 .padding(horizontal = Space.page)
                 .fillMaxWidth()
                 .aspectRatio(MAP_ASPECT)
@@ -120,19 +158,19 @@ internal fun LazyListScope.mapSection(
         )
     }
     item(key = "map-legend") {
-        MapLegend(directory)
+        MapLegend(directory, modifier = Modifier.then(itemMotion()))
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun MapLegend(directory: DirectoryUi) {
+private fun MapLegend(directory: DirectoryUi, modifier: Modifier = Modifier) {
     val total = directory.bytes.coerceAtLeast(1L)
     val present = FileCategory.all
         .map { it to directory.categoryBytes.getOrElse(it.ordinal) { 0L } }
         .filter { it.second > 0L }
         .sortedByDescending { it.second }
-    Column(modifier = Modifier.padding(horizontal = Space.page, vertical = Space.m)) {
+    Column(modifier = modifier.padding(horizontal = Space.page, vertical = Space.m)) {
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(Space.m),
             verticalArrangement = Arrangement.spacedBy(Space.s),
@@ -179,6 +217,7 @@ internal fun LazyListScope.foldersSection(
                 text = "Ebben a mappában nincs semmi.",
                 icon = Icons.Rounded.FolderOpen,
                 tint = Ink.TextSecondary,
+                modifier = Modifier.then(itemMotion()),
             )
         }
         return
@@ -189,7 +228,7 @@ internal fun LazyListScope.foldersSection(
                 text = "Hosszan nyomva több elemet is kijelölhetsz.",
                 style = PadlasTheme.type.micro,
                 color = Ink.TextTertiary,
-                modifier = Modifier.padding(start = Space.page, end = Space.page, bottom = Space.s),
+                modifier = Modifier.then(itemMotion()).padding(start = Space.page, end = Space.page, bottom = Space.s),
             )
         }
     }

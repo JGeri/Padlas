@@ -55,7 +55,7 @@ import hu.padlas.core.design.theme.Space
 
 internal fun LazyListScope.typesSection(types: TypesUi, onCategory: (FileCategory) -> Unit) {
     item(key = "types-head") {
-        SectionHeader(title = "Kategóriák", modifier = Modifier.padding(horizontal = Space.page, vertical = Space.s))
+        SectionHeader(title = "Kategóriák", modifier = Modifier.then(itemMotion()).padding(horizontal = Space.page, vertical = Space.s))
     }
     val total = types.totalBytes.coerceAtLeast(1L)
     itemsIndexed(types.categories, key = { _, it -> "cat-" + it.category.name }) { index, category ->
@@ -63,7 +63,7 @@ internal fun LazyListScope.typesSection(types: TypesUi, onCategory: (FileCategor
             index = index,
             count = types.categories.size,
             onClick = { onCategory(category.category) },
-            modifier = Modifier.padding(horizontal = Space.page),
+            modifier = Modifier.then(itemMotion()).padding(horizontal = Space.page),
         ) {
             IconBubble(icon = category.category.icon, tint = category.category.color)
             Spacer(Modifier.width(Space.m))
@@ -101,7 +101,7 @@ internal fun LazyListScope.typesSection(types: TypesUi, onCategory: (FileCategor
     item(key = "ext-head") {
         SectionHeader(
             title = "Kiterjesztések",
-            modifier = Modifier.padding(start = Space.page, end = Space.page, top = Space.xl, bottom = Space.s),
+            modifier = Modifier.then(itemMotion()).padding(start = Space.page, end = Space.page, top = Space.xl, bottom = Space.s),
         )
     }
     val largest = types.extensions.first().bytes.coerceAtLeast(1L)
@@ -110,7 +110,7 @@ internal fun LazyListScope.typesSection(types: TypesUi, onCategory: (FileCategor
             index = index,
             count = types.extensions.size,
             dividerInset = 82.dp,
-            modifier = Modifier.padding(horizontal = Space.page),
+            modifier = Modifier.then(itemMotion()).padding(horizontal = Space.page),
         ) {
             ExtensionBadge(extension)
             Spacer(Modifier.width(Space.m))
@@ -185,11 +185,11 @@ internal fun LazyListScope.filesSection(
         return
     }
     item(key = "smart-head") {
-        SectionHeader(title = "Okos takarítás", modifier = Modifier.padding(horizontal = Space.page, vertical = Space.s))
+        SectionHeader(title = "Okos takarítás", modifier = Modifier.then(itemMotion()).padding(horizontal = Space.page, vertical = Space.s))
     }
     item(key = "smart-rows") {
         Column(
-            modifier = Modifier.padding(horizontal = Space.page),
+            modifier = Modifier.then(itemMotion()).padding(horizontal = Space.page),
             verticalArrangement = Arrangement.spacedBy(Space.s),
         ) {
             files.shortcuts.forEach { shortcut ->
@@ -209,12 +209,13 @@ internal fun LazyListScope.filesSection(
     item(key = "largest-head") {
         SectionHeader(
             title = "Legnagyobb fájlok",
-            modifier = Modifier.padding(start = Space.page, end = Space.page, top = Space.xl),
+            modifier = Modifier.then(itemMotion()).padding(start = Space.page, end = Space.page, top = Space.xl),
         )
     }
     item(key = "filters") {
         Row(
             modifier = Modifier
+                .then(itemMotion())
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
                 .padding(horizontal = Space.page, vertical = Space.m),
@@ -237,6 +238,7 @@ internal fun LazyListScope.filesSection(
                 text = "Ebben a kategóriában semmi nem foglal helyet.",
                 icon = Icons.Rounded.DoneAll,
                 tint = Ink.Success,
+                modifier = Modifier.then(itemMotion()),
             )
         }
         return
@@ -256,7 +258,7 @@ private fun LazyListScope.cleanupSection(
     onClearSelection: () -> Unit,
 ) {
     item(key = "cleanup-head") {
-        Column(modifier = Modifier.padding(start = Space.page, end = Space.page, top = Space.s, bottom = Space.m)) {
+        Column(modifier = Modifier.then(itemMotion()).padding(start = Space.page, end = Space.page, top = Space.s, bottom = Space.m)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 PadlasIconButton(
                     icon = Icons.AutoMirrored.Rounded.ArrowBack,
@@ -301,6 +303,7 @@ private fun LazyListScope.cleanupSection(
                 text = "Nincs mit takarítani ebben a csoportban.",
                 icon = Icons.Rounded.DoneAll,
                 tint = Ink.Success,
+                modifier = Modifier.then(itemMotion()),
             )
         }
         return

@@ -5,9 +5,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,19 +13,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,7 +51,6 @@ import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.motion.haptics
 import hu.padlas.core.design.theme.Ink
-import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
 import kotlinx.coroutines.delay
@@ -135,18 +134,59 @@ private fun DiscardScreen(
 ) {
     val hasContent = !state.loading && state.groups.isNotEmpty()
     val navBottom = navigationBarBottom()
+    val gridState = rememberLazyGridState()
+    val scrolled by remember {
+        derivedStateOf { gridState.firstVisibleItemIndex > 0 || gridState.firstVisibleItemScrollOffset > 0 }
+    }
+    val zoom = rememberZoomState()
 
-    Box(modifier = modifier.fillMaxSize().auroraBackground()) {
-        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-            PadlasTopBar(
-                title = "Eldobható képek",
-                onBack = onBack,
-                subtitle = if (hasContent) {
-                    "${Format.count(selection.discardCount)} kijelölve · ${Format.bytes(selection.discardBytes)}"
-                } else {
-                    null
-                },
-            )
+    ZoomHost(
+        state = zoom,
+        modifier = modifier.fillMaxSize(),
+        actions = { target ->
+            val id = target.key as? Long
+            if (id != null) {
+                KeepVerdict(
+                    kept = id in selection.kept,
+                    locked = target.tag == true,
+                    onToggle = { onToggle(id) },
+                )
+            }
+        },
+    ) {
+        GlassScreen(
+            scrolled = scrolled,
+            topBar = {
+                PadlasTopBar(
+                    title = "Eldobható képek",
+                    onBack = onBack,
+                    subtitle = if (hasContent) {
+                        "${Format.count(selection.discardCount)} kijelölve · ${Format.bytes(selection.discardBytes)}"
+                    } else {
+                        null
+                    },
+                )
+            },
+            overlay = { haze ->
+                PinnedActionBar(visible = hasContent, haze = haze, modifier = Modifier.align(Alignment.BottomCenter)) {
+                    CommitBar(
+                        count = selection.discardCount,
+                        bytes = selection.discardBytes,
+                        busy = state.committing || state.falling,
+                        onConfirm = onConfirm,
+                    )
+                }
+                Toast(
+                    message = state.message,
+                    onShown = onMessageShown,
+                    icon = Icons.Rounded.Info,
+                    tint = Ink.Info,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = navBottom + if (hasContent) CommitBarClearance else Space.l),
+                )
+            },
+        ) {
             when {
                 state.loading -> Unit
                 state.groups.isEmpty() -> EmptyState(
@@ -156,40 +196,34 @@ private fun DiscardScreen(
                     tint = Ink.Success,
                     actionLabel = "Átnézés újra",
                     onAction = onRetriage,
-                    modifier = Modifier.padding(top = Space.xxl),
+                    modifier = Modifier.padding(top = topBarClearance() + Space.xxl),
                 )
 
                 else -> DiscardGrid(
                     state = state,
                     selection = selection,
+                    gridState = gridState,
                     onToggle = onToggle,
                     onKeepAll = onKeepAll,
                     onDiscardAll = onDiscardAll,
                     onUnlock = onUnlock,
+                    onView = { group, item ->
+                        zoom.open(
+                            ZoomTarget(
+                                key = item.id,
+                                model = item.model,
+                                title = group.title,
+                                caption = Format.bytes(item.sizeBytes),
+                                tag = item.locked,
+                            ),
+                        )
+                    },
+                    topPadding = topBarClearance() + Space.s,
                     bottomPadding = navBottom + CommitBarClearance,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
         }
-
-        PinnedActionBar(visible = hasContent, modifier = Modifier.align(Alignment.BottomCenter)) {
-            CommitBar(
-                count = selection.discardCount,
-                bytes = selection.discardBytes,
-                busy = state.committing || state.falling,
-                onConfirm = onConfirm,
-            )
-        }
-
-        Toast(
-            message = state.message,
-            onShown = onMessageShown,
-            icon = Icons.Rounded.Info,
-            tint = Ink.Info,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = navBottom + if (hasContent) CommitBarClearance else Space.l),
-        )
     }
 }
 
@@ -197,21 +231,26 @@ private fun DiscardScreen(
 private fun DiscardGrid(
     state: DiscardUiState,
     selection: DiscardSelection,
+    gridState: LazyGridState,
     onToggle: (Long) -> Unit,
     onKeepAll: (String) -> Unit,
     onDiscardAll: (String) -> Unit,
     onUnlock: (List<Long>) -> Unit,
+    onView: (TriageGroup, ShotItem) -> Unit,
+    topPadding: Dp,
     bottomPadding: Dp,
     modifier: Modifier = Modifier,
 ) {
     var showProtected by rememberSaveable { mutableStateOf(false) }
     val open = state.groups.filterNot { it.locked }
     val protectedGroups = state.groups.filter { it.locked }
+    val entrance = rememberEntrance()
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(GRID_COLUMNS),
+        state = gridState,
         modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(start = Space.page, end = Space.page, top = Space.s, bottom = bottomPadding),
+        contentPadding = PaddingValues(start = Space.page, end = Space.page, top = topPadding, bottom = bottomPadding),
         horizontalArrangement = Arrangement.spacedBy(TileSpacing),
         verticalArrangement = Arrangement.spacedBy(TileSpacing),
     ) {
@@ -221,7 +260,9 @@ private fun DiscardGrid(
                 bytes = selection.discardBytes,
                 caption = "Képernyőképek és letöltött képek, amikre valószínűleg már nincs szükséged. " +
                     "A felismert csoportok ki vannak jelölve törlésre, koppints arra, amit megtartanál. " +
-                    "A még fel nem ismert képeket csak a „Mind törlése” jelöli ki.",
+                    "A még fel nem ismert képeket csak a „Mind törlése” jelöli ki. " +
+                    "Hosszan nyomva bármelyik képet megnézheted nagyban.",
+                modifier = Modifier.entrance(entrance),
             )
         }
         open.forEach { group ->
@@ -231,6 +272,7 @@ private fun DiscardGrid(
                     tally = selection.tally(group.key),
                     onKeepAll = { onKeepAll(group.key) },
                     onDiscardAll = { onDiscardAll(group.key) },
+                    modifier = Modifier.entrance(entrance).then(itemMotion()),
                 )
             }
             items(items = group.items, key = { it.id }) { item ->
@@ -239,6 +281,8 @@ private fun DiscardGrid(
                     kept = item.id in selection.kept,
                     falling = state.falling,
                     onToggle = { onToggle(item.id) },
+                    onView = { onView(group, item) },
+                    modifier = Modifier.entrance(entrance).then(itemMotion()),
                 )
             }
         }
@@ -249,8 +293,10 @@ private fun DiscardGrid(
                 onExpand = { showProtected = !showProtected },
                 keptIds = selection.kept,
                 falling = state.falling,
+                entrance = entrance,
                 onToggle = onToggle,
                 onUnlock = onUnlock,
+                onView = { item -> onView(group, item) },
             )
         }
         item(key = "kuka", span = { GridItemSpan(maxLineSpan) }) {
@@ -258,6 +304,7 @@ private fun DiscardGrid(
                 trash = state.trash,
                 pendingCount = selection.discardCount,
                 pendingBytes = selection.discardBytes,
+                modifier = Modifier.then(itemMotion()),
             )
         }
     }
@@ -274,11 +321,19 @@ private fun LazyGridScope.protectedSection(
     onExpand: () -> Unit,
     keptIds: Set<Long>,
     falling: Boolean,
+    entrance: Entrance,
     onToggle: (Long) -> Unit,
     onUnlock: (List<Long>) -> Unit,
+    onView: (ShotItem) -> Unit,
 ) {
     item(key = "protected-${group.key}", span = { GridItemSpan(maxLineSpan) }) {
-        PadlasCard(modifier = Modifier.fillMaxWidth().padding(top = Space.xl, bottom = Space.s)) {
+        PadlasCard(
+            modifier = Modifier
+                .entrance(entrance)
+                .then(itemMotion())
+                .fillMaxWidth()
+                .padding(top = Space.xl, bottom = Space.s),
+        ) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconBubble(icon = kindIcon(group.kind), tint = kindTint(group.kind))
@@ -318,12 +373,14 @@ private fun LazyGridScope.protectedSection(
             falling = falling,
             onToggle = { onToggle(item.id) },
             onUnlock = { onUnlock(listOf(item.id)) },
+            onView = { onView(item) },
+            modifier = Modifier.then(itemMotion()),
         )
     }
     val locked = group.items.filter { it.locked }.map { it.id }
     if (locked.isNotEmpty()) {
         item(key = "unlock-${group.key}", span = { GridItemSpan(maxLineSpan) }) {
-            Column(modifier = Modifier.fillMaxWidth().padding(top = Space.m)) {
+            Column(modifier = Modifier.then(itemMotion()).fillMaxWidth().padding(top = Space.m)) {
                 HoldToConfirm(
                     label = "Tartsd lenyomva a feloldáshoz",
                     onConfirm = { onUnlock(locked) },
@@ -342,4 +399,4 @@ private fun LazyGridScope.protectedSection(
 }
 
 private const val UNLOCK_HOLD_MS = 1_500
-internal val CommitBarClearance = 132.dp
+internal val CommitBarClearance = 172.dp

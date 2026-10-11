@@ -3,9 +3,15 @@ package hu.padlas.feature.transcode
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,10 +21,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -33,7 +39,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,20 +60,28 @@ import hu.padlas.core.design.component.IconBubble
 import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasCard
 import hu.padlas.core.design.component.PadlasTopBar
+import hu.padlas.core.design.component.ProgressRing
 import hu.padlas.core.design.component.ProgressStrip
 import hu.padlas.core.design.component.SectionHeader
+import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.theme.CategoryColor
 import hu.padlas.core.design.theme.Ink
-import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
 import hu.padlas.feature.transcode.data.TranscodeMath
 import hu.padlas.feature.transcode.data.VideoItem
+import hu.padlas.feature.transcode.ui.BarFigures
+import hu.padlas.feature.transcode.ui.GlassScreen
 import hu.padlas.feature.transcode.ui.PinnedActionBar
 import hu.padlas.feature.transcode.ui.PinnedBarClearance
 import hu.padlas.feature.transcode.ui.ReclaimHero
 import hu.padlas.feature.transcode.ui.VideoCard
+import hu.padlas.feature.transcode.ui.entrance
+import hu.padlas.feature.transcode.ui.finite
+import hu.padlas.feature.transcode.ui.itemMotion
 import hu.padlas.feature.transcode.ui.navigationBarBottom
+import hu.padlas.feature.transcode.ui.rememberEntrance
+import hu.padlas.feature.transcode.ui.topBarClearance
 
 /**
  * The largest videos first. Compression is a night job on the charger; the screen says
@@ -118,12 +134,21 @@ private fun VideoScreen(
     val waiting = state.videos.filter { it.state == null || it.state == JobState.PENDING }
     val open = state.videos.filter { it.state != JobState.SUCCEEDED && it.state != JobState.FAILED }
     val estimate = open.sumOf { TranscodeMath.estimatedSavingBytes(it.originalBytes) }
+    val waitingEstimate = waiting.sumOf { TranscodeMath.estimatedSavingBytes(it.originalBytes) }
     val finished = state.videos.count { it.state == JobState.SUCCEEDED && !it.published }
     val showBar = state.running || waiting.isNotEmpty()
     val navBottom = navigationBarBottom()
+    val listState = rememberLazyListState()
+    val scrolled by remember {
+        derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0 }
+    }
+    val entrance = rememberEntrance()
+    val reduced = LocalReducedMotion.current
 
-    Box(modifier = modifier.fillMaxSize().auroraBackground()) {
-        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+    GlassScreen(
+        scrolled = scrolled,
+        modifier = modifier,
+        topBar = {
             PadlasTopBar(
                 title = "Nagy videók",
                 onBack = onBack,
@@ -135,34 +160,83 @@ private fun VideoScreen(
                         Format.bytes(state.videos.sumOf { it.originalBytes })
                 },
             )
-            if (state.videos.isEmpty()) {
-                EmptyState(
-                    title = "Nincs nagy videó",
-                    text = "Ide a 80 MB-nál nagyobb videók kerülnek. Most egy sincs a telefonon.",
-                    icon = Icons.Rounded.VideoLibrary,
-                    tint = CategoryColor.Videos,
-                    modifier = Modifier.padding(top = Space.xxl),
-                )
-                return@Column
+        },
+        overlay = { haze ->
+            PinnedActionBar(visible = showBar, haze = haze, modifier = Modifier.align(Alignment.BottomCenter)) {
+                AnimatedContent(
+                    targetState = state.running,
+                    transitionSpec = {
+                        (fadeIn(finite(reduced)) togetherWith fadeOut(finite(reduced)))
+                            .using(SizeTransform(clip = false))
+                    },
+                    label = "videoBar",
+                ) { running ->
+                    Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
+                        if (running) {
+                            PadlasButton(
+                                text = "Tömörítés leállítása",
+                                onClick = onStop,
+                                enabled = !state.busy,
+                                icon = Icons.Rounded.Stop,
+                                style = ButtonStyle.Secondary,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        } else {
+                            BarFigures(
+                                count = waiting.size,
+                                noun = "videó",
+                                bytes = waitingEstimate,
+                                bytesPrefix = "kb.",
+                            )
+                            PadlasButton(
+                                text = "Tömörítés indítása",
+                                onClick = onStart,
+                                enabled = !state.busy,
+                                icon = Icons.Rounded.Compress,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+                }
             }
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = Space.page,
-                    end = Space.page,
-                    top = Space.s,
-                    bottom = navBottom + if (showBar) PinnedBarClearance else Space.xl,
-                ),
-                verticalArrangement = Arrangement.spacedBy(Space.m),
-            ) {
-                item(key = "hero") {
-                    ReclaimHero(
-                        label = "Megspórolható",
-                        bytes = estimate,
-                        caption = "Tömörítve nagyjából feleakkorák lesznek, a minőség szemre alig változik. " +
-                            "Csak töltés közben fut, hogy ne merítse a telefont.",
+        },
+    ) {
+        if (state.videos.isEmpty()) {
+            EmptyState(
+                title = "Nincs nagy videó",
+                text = "Ide a 80 MB-nál nagyobb videók kerülnek. Most egy sincs a telefonon.",
+                icon = Icons.Rounded.VideoLibrary,
+                tint = CategoryColor.Videos,
+                modifier = Modifier.padding(top = topBarClearance() + Space.xxl),
+            )
+            return@GlassScreen
+        }
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = Space.page,
+                end = Space.page,
+                top = topBarClearance() + Space.s,
+                bottom = navBottom + if (showBar) PinnedBarClearance else Space.xl,
+            ),
+            verticalArrangement = Arrangement.spacedBy(Space.m),
+        ) {
+            item(key = "hero") {
+                ReclaimHero(
+                    label = "Megspórolható",
+                    bytes = estimate,
+                    caption = "Tömörítve nagyjából feleakkorák lesznek, a minőség szemre alig változik. " +
+                        "Csak töltés közben fut, hogy ne merítse a telefont.",
+                    glow = CategoryColor.Videos,
+                    modifier = Modifier.entrance(entrance),
+                ) {
+                    AnimatedVisibility(
+                        visible = state.saved.totalBytes > 0,
+                        enter = expandVertically(finite(reduced)) + fadeIn(finite(reduced)),
+                        exit = shrinkVertically(finite(reduced)) + fadeOut(finite(reduced)),
                     ) {
-                        if (state.saved.totalBytes > 0) {
+                        Column {
                             Spacer(Modifier.height(Space.l))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
@@ -184,52 +258,49 @@ private fun VideoScreen(
                         }
                     }
                 }
+            }
 
-                statusFor(state)?.let { status ->
-                    item(key = "status") { StatusCard(status = status, state = state) }
-                }
-
-                if (finished > 0 || state.pendingRemovalIds.isNotEmpty()) {
-                    item(key = "replace") {
-                        ReplaceCard(
-                            finished = finished,
-                            pendingRemovalBytes = state.pendingRemovalBytes,
-                            busy = state.busy,
-                            onReplace = onReplace,
-                        )
+            statusFor(state)?.let { status ->
+                item(key = "status") {
+                    AnimatedContent(
+                        targetState = status,
+                        transitionSpec = {
+                            (fadeIn(finite(reduced)) togetherWith fadeOut(finite(reduced)))
+                                .using(SizeTransform(clip = false))
+                        },
+                        label = "runPhase",
+                        modifier = Modifier.entrance(entrance).then(itemMotion()),
+                    ) { phase ->
+                        StatusCard(status = phase, state = state)
                     }
                 }
+            }
 
-                item(key = "list-head") { SectionHeader(title = "Videók, a legnagyobbtól") }
-
-                items(state.videos, key = { it.assetId }) { item ->
-                    VideoCard(
-                        item = item,
-                        progress = progressOf(item, state),
-                        onRetry = { onRetry(item.assetId) },
-                        modifier = Modifier.animateItem(),
+            if (finished > 0 || state.pendingRemovalIds.isNotEmpty()) {
+                item(key = "replace") {
+                    ReplaceCard(
+                        finished = finished,
+                        pendingRemovalBytes = state.pendingRemovalBytes,
+                        busy = state.busy,
+                        onReplace = onReplace,
+                        modifier = Modifier.entrance(entrance).then(itemMotion()),
                     )
                 }
             }
-        }
 
-        PinnedActionBar(visible = showBar, modifier = Modifier.align(Alignment.BottomCenter)) {
-            if (state.running) {
-                PadlasButton(
-                    text = "Tömörítés leállítása",
-                    onClick = onStop,
-                    enabled = !state.busy,
-                    icon = Icons.Rounded.Stop,
-                    style = ButtonStyle.Secondary,
-                    modifier = Modifier.fillMaxWidth(),
+            item(key = "list-head") {
+                SectionHeader(
+                    title = "Videók, a legnagyobbtól",
+                    modifier = Modifier.entrance(entrance).then(itemMotion()),
                 )
-            } else {
-                PadlasButton(
-                    text = "${Format.count(waiting.size)} videó tömörítése",
-                    onClick = onStart,
-                    enabled = !state.busy,
-                    icon = Icons.Rounded.Compress,
-                    modifier = Modifier.fillMaxWidth(),
+            }
+
+            items(state.videos, key = { it.assetId }) { item ->
+                VideoCard(
+                    item = item,
+                    progress = progressOf(item, state),
+                    onRetry = { onRetry(item.assetId) },
+                    modifier = Modifier.entrance(entrance).then(itemMotion()),
                 )
             }
         }
@@ -259,7 +330,14 @@ private fun StatusCard(status: RunPhase, state: VideoUiState) {
         RunPhase.WORKING -> PadlasCard(modifier = Modifier.fillMaxWidth()) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconBubble(icon = Icons.Rounded.Compress, tint = Ink.Accent)
+                    ProgressRing(fraction = state.run.fraction, size = 48.dp, stroke = 4.dp) {
+                        Icon(
+                            imageVector = Icons.Rounded.Compress,
+                            contentDescription = null,
+                            tint = Ink.Accent,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                     Spacer(Modifier.width(Space.m))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -330,9 +408,10 @@ private fun ReplaceCard(
     pendingRemovalBytes: Long,
     busy: Boolean,
     onReplace: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val ready = finished > 0
-    PadlasCard(modifier = Modifier.fillMaxWidth()) {
+    PadlasCard(modifier = modifier.fillMaxWidth()) {
         Column {
             Row(verticalAlignment = Alignment.Top) {
                 IconBubble(
