@@ -55,6 +55,7 @@ import hu.padlas.core.media.MediaOps
 import hu.padlas.core.media.MediaThumb
 import hu.padlas.feature.sort.DeleteBatch
 import hu.padlas.feature.sort.SwipeRepository
+import hu.padlas.feature.sort.ui.ZoomViewer
 import hu.padlas.feature.sort.ui.rememberSystemRequest
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
@@ -167,6 +168,7 @@ fun PendingDeletionsRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
     LaunchedEffect(viewModel) { viewModel.requests.collect { launch(it.intentSender) } }
     var confirm by remember { mutableStateOf(false) }
     val haze = rememberHazeState()
+    var preview by remember { mutableStateOf<android.net.Uri?>(null) }
 
     Box(modifier = modifier.fillMaxSize().auroraBackground().systemBarsPadding()) {
         Column(Modifier.fillMaxSize()) {
@@ -200,6 +202,7 @@ fun PendingDeletionsRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                             selected = item.marked,
                             onToggle = { viewModel.toggle(item) },
                             selectedTint = Ink.Danger,
+                            onLongPress = { preview = item.thumb.uri },
                             badge = if (item.asset.isVideo) item.asset.durationMs?.let(Format::duration) ?: "Videó" else null,
                             image = { tileModifier ->
                                 AsyncImage(
@@ -243,6 +246,8 @@ fun PendingDeletionsRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 .padding(bottom = 88.dp),
         )
     }
+
+    preview?.let { uri -> ZoomViewer(uri = uri, onDismiss = { preview = null }) }
 
     if (confirm) {
         ConfirmDialog(
