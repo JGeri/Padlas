@@ -36,6 +36,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,6 +60,7 @@ import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.PadlasTopBar
+import hu.padlas.core.design.component.PhotoViewer
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.component.Toast
 import dev.chrisbanes.haze.HazeState
@@ -90,6 +93,7 @@ fun BrowseRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val items = viewModel.items.collectAsLazyPagingItems()
     val haze = rememberHazeState()
+    var preview by remember { mutableStateOf<android.net.Uri?>(null) }
 
     val trashLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult(),
@@ -141,7 +145,7 @@ fun BrowseRoute(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = if (state.selected.isEmpty()) "Koppints a képekre a kijelöléshez" else "${Format.count(state.selected.size)} kijelölve",
+                            text = if (state.selected.isEmpty()) "Koppints a kijelöléshez, nyomd hosszan a nagyításhoz" else "${Format.count(state.selected.size)} kijelölve",
                             style = PadlasTheme.type.caption,
                             color = Ink.TextSecondary,
                             modifier = Modifier.weight(1f),
@@ -178,6 +182,7 @@ fun BrowseRoute(
                             selected = asset.mediaStoreId in state.selected,
                             model = viewModel.uriOf(asset),
                             onToggle = { viewModel.toggleSelection(asset) },
+                            onLongPress = { preview = viewModel.uriOf(asset) },
                         )
                     }
                 }
@@ -204,6 +209,12 @@ fun BrowseRoute(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = if (state.selected.isEmpty()) Space.xl else 190.dp),
         )
+    }
+
+    preview?.let { uri ->
+        PhotoViewer(onDismiss = { preview = null }) { modifier ->
+            AsyncImage(model = uri, contentDescription = null, contentScale = ContentScale.Fit, modifier = modifier)
+        }
     }
 }
 
@@ -278,12 +289,13 @@ private fun FilterRails(state: BrowseUiState, viewModel: BrowseViewModel) {
 }
 
 @Composable
-private fun AssetTile(asset: Asset, selected: Boolean, model: android.net.Uri, onToggle: () -> Unit) {
+private fun AssetTile(asset: Asset, selected: Boolean, model: android.net.Uri, onToggle: () -> Unit, onLongPress: () -> Unit) {
     val thumb = remember(model) { MediaThumb(model, 384) }
     SelectableTile(
         model = thumb,
         selected = selected,
         onToggle = onToggle,
+        onLongPress = onLongPress,
         badge = if (asset.isVideo) asset.durationMs?.let(Format::duration) ?: "Videó" else null,
         image = { tileModifier ->
             AsyncImage(
