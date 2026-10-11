@@ -1,31 +1,57 @@
 # Padlás
 
-A telefon a szoba, amiben élsz. A Drive a padlás fölötte. A kuka meg kuka.
-
-Nem takarítóapp: a 128 GB-os készüléket meleg réteggé, a 2 TB-os Drive-ot hideg réteggé
-fokozza le, és úgy mozgat közöttük tartalmat, hogy közben semmi ne vesszen el. A termék-
-és UI-specifikáció a [`padlas-spec.md`](padlas-spec.md), a modulhatárok a
-[`CONTRACT.md`](CONTRACT.md).
+Galéria-válogató és tárhelykezelő Androidra. Swipe-pal mész végig a fotóidon és videóidon
+— hónapok vagy mappák szerint —, és közben látod, mi foglalja a helyet a telefonon.
 
 Android 14+ (minSdk 34, target 36), sideload terjesztés, Samsung Galaxy S22 Ultra az
-elsődleges eszköz.
+elsődleges eszköz. A modulhatárok a [`CONTRACT.md`](CONTRACT.md)-ben, az eredeti
+termékspecifikáció a [`padlas-spec.md`](padlas-spec.md)-ben.
+
+## Három fül
+
+- **Áttekintés** — tárhely-gyűrű (szabad hely, fotók, videók, minden más), a válogatás
+  állása, javaslatok byte-sorrendben (duplikátumok, nagy videók, eldobható képek, kuka,
+  régi fotók) és az összes eszköz egy rácsban.
+- **Válogatás** — hónapok évek szerint és mappák, mindegyiknél az átnézett arány. Bármi
+  kombinálható: hónapok × mappák × fotó/videó × csak át nem nézett × sorrend.
+- **Tárhely** — WizTree-szerű elemző: treemap, mappafa, fájltípusok, legnagyobb fájlok,
+  appok mérete és gyorsítótára, okos takarítás (APK-k, régi letöltések, üres mappák).
+
+## Válogatás (swipe)
+
+| mozdulat | jelentés |
+|---|---|
+| balra | törlésre jelöl |
+| jobbra | megtartod |
+| felfelé | kedvenc (a pakli végén a telefon Galériájába is átvihető) |
+| koppintás | kép nagyítása / videó megállítása |
+
+- A videók a felső kártyán némítva, ismételve lejátszódnak; a hang egy gombbal bekapcsolható.
+- Semmi nem törlődik swipe közben. A megjelöltek a pakli végén **egyetlen rendszer-
+  párbeszédben** törlődnek, vagy bármikor a jobb felső **Törlés** gombbal.
+- A döntések adatbázisban vannak, így egy félbehagyott pakli ott folytatódik, ahol abbamaradt.
+- Törlés előtt a „Törlésre jelölve” rácsban bármi visszamenthető.
+- Alapból a rendszer kukájába kerülnek (30 napig visszaállíthatók); a Beállításokban
+  átállítható végleges törlésre. A **Kuka** képernyőn visszaállítható vagy üríthető.
+- A „Médiakezelés” engedéllyel (Beállítások → Törlés rákérdezés nélkül) a rendszer nem
+  kérdez rá minden kötegre; ilyenkor az app saját megerősítést kér.
 
 ## Modulok
 
 ```
-:app                    Compose UI, navigáció, Vault képernyő, DI belépés
+:app                    három fül, navigáció, Áttekintés, Beállítások, képbetöltő
 :core:common            dispatcherek, formázás
-:core:design            design tokenek, motion, haptika, komponenskönyvtár
-:core:database          Room entitások, DAO-k
-:core:media             MediaStore adapter, EXIF, hash, thumbnail, törlési műveletek
+:core:design            design rendszer: színek, típus, komponensek, mozgás, haptika
+:core:database          Room entitások, DAO-k (swipe_decision: 2. séma)
+:core:media             MediaStore adapter, EXIF, hash, thumbnail, kuka, kedvencek
 :feature:index          bejáró + inkrementális szinkron
-:feature:map            treemap, cache-túra
+:feature:map            tárhely-elemző (treemap, mappák, típusok, fájlok, appok)
 :feature:dedup          hash pipeline, csoportosítás, élességpont
-:feature:triage         screenshot-triázs, Kidobó, inverz mappamód
+:feature:triage         képernyőkép-felismerés, eldobható képek, mappa-takarítás
 :feature:transcode      Media3 Transformer, hőfojtás-kezelés
-:feature:archive        Drive REST kliens, resumable feltöltés, verifikáció, cédula
-:feature:browse         mappa és hónap szerinti válogatás, kötegelt művelettel
-:feature:sort           válogató (swipe deck)
+:feature:archive        Drive REST kliens, resumable feltöltés, verifikáció
+:feature:browse         rácsos böngészés mappa/hónap szerint, Kuka
+:feature:sort           swipe válogatás: beállító, pakli, összegzés, törlési lista
 :feature:rules          szabálymotor, dry-run, delta követés
 :feature:audit          napló, visszavonás, CSV export
 ```
@@ -90,18 +116,18 @@ aláírt legyen — de két ilyen build nem frissíti egymást a készüléken, 
 Kiadás:
 
 ```bash
-git tag v1.0.0 && git push origin v1.0.0
+git tag v2.0.0 && git push origin v2.0.0
 ```
 
-## Válogatás mappa és hónap szerint
+## Böngészés mappa és hónap szerint
 
-A Vault „x kép egy évnél régebbi" sávja, illetve alul a **Válogatás** belépő ide vezet.
-A képernyő tetején két sín van: **mappák** és **hónapok**, mindkettő többszörös
-kijelöléssel és a rájuk eső mérettel, plusz gyorsszűrők (1 évnél régebbi, fél évnél
-régebbi, csak fotó, csak videó). A rács lapozva tölt (Paging 3), tehát 25 000 elemnél is
-azonnal nyílik. A kijelölésre három művelet jár:
+Az Áttekintés „egy évnél régebbi fotó” javaslata és a **Böngészés** eszköz ide vezet.
+Fent két sín: **mappák** és **hónapok**, többszörös kijelöléssel és a rájuk eső mérettel,
+plusz gyorsszűrők (1 évnél régebbi, fél évnél régebbi, csak fotó, csak videó). A rács
+lapozva tölt (Paging 3), tehát 25 000 elemnél is azonnal nyílik. A kijelölésre három
+művelet jár:
 
-- **Padlásra** — feltöltési sorba teszi (a helyi példány marad, amíg a Padláson nem
+- **Felhőbe** — feltöltési sorba teszi (a helyi példány marad, amíg a Padláson nem
   ellenőrzött a másolat, INV-1),
 - **Kukába** — kétfázisú rendszerkuka egyetlen dialógusban (INV-2, INV-3),
 - **Védetté teszem** — kiveszi minden automatizmus alól (INV-4).
@@ -128,7 +154,7 @@ telepítés elakad, az szinte mindig nem az aláírás, hanem a készülék véd
 Ellenőrzés géppel, ha bizonytalan a hiba oka:
 
 ```bash
-adb install -r padlas-1.0.0.apk   # a pontos hibakódot ez írja ki
+adb install -r padlas-2.0.0.apk   # a pontos hibakódot ez írja ki
 ```
 
 ## Google Drive
@@ -161,14 +187,16 @@ A spec 4. fejezete kötelező érvényű, és a kód is így épül:
   Drive-másolat után törölhető.
 - **INV-1b** automatizmus soha nem töröl véglegesen, csak padlásra visz vagy kukába rak.
 - **INV-1c** a `SECRET` besorolású screenshot védett, és nem kerül törlési ajánlásba.
-- **INV-2** minden törlés kétfázisú (`MediaStore.createTrashRequest`), és az app kiírja,
-  hogy a kukában lévő fájl még helyet foglal.
+- **INV-2** a törlés alapból kétfázisú (`MediaStore.createTrashRequest`), és az app kiírja,
+  hogy a kukában lévő fájl még helyet foglal. Végleges törlés csak a felhasználó kifejezett
+  döntésére történik: a Beállításokban választott módban, a Kuka ürítésekor, vagy a
+  tárhely-elemzőben külön megerősítés után.
 - **INV-3** minden törlés kötegelt: egy rendszerdialógus, nem háromszáz.
 - **INV-4** védett halmaz: `DCIM/Camera` utolsó 30 nap, kedvencek, kézzel védett, és a
   háromnál kevesebb elemű mappák.
 - **INV-5** minden művelet naplózva, CSV-be exportálható.
 - **INV-6** a szabálymotor csak dry-run után futhat.
-- **INV-7** globális kill switch a Vault képernyőn.
+- **INV-7** globális kill switch a Beállításokban (Minden háttérmunka leállítása).
 
 ## Samsung-figyelmeztetés
 

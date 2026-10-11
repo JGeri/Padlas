@@ -28,8 +28,8 @@ need a dependency that is missing, say so in your final report instead.
    In particular: automation never deletes permanently, `SECRET` is never offered for
    deletion, and permanent deletion is always batched through one system dialog.
 8. Do not create files outside the module you were assigned.
-9. Compose: no infinite animations, no shimmer, no ripple. Motion comes from
-   `hu.padlas.core.design.motion.Motion` springs only.
+9. Compose: no shimmer, no ripple. Motion comes from `hu.padlas.core.design.motion.Motion`
+   springs (or plain `spring()` for gesture physics).
 
 ## core:common (done)
 
@@ -141,51 +141,33 @@ class OneDriveGuard @Inject constructor(...) {   // spec 4.1
 }
 ```
 
-## core:design (owner: design agent) — API other modules may use
+## core:design — API other modules use
 
-Already written: `theme.Ink`, `theme.Spectrum`, `theme.PadlasTheme`, `theme.PadlasTypography`
-(`PadlasTheme.type.display/title/body/label/micro/numeric/numericLarge`),
-`theme.Shapes`, `theme.Radius`, `theme.Space`, `theme.SquircleShape`, `Modifier.grain()`,
-`motion.Motion`, `motion.motionSpec`, `motion.staggerDelayMs`, `motion.LocalReducedMotion`,
-`motion.PadlasHaptics` + `motion.LocalHaptics` + `motion.haptics()`,
-`component.PadlasCard`, `Modifier.raisedSurface`, `Modifier.hairlineBottom`.
+Dark only. Semantic colour tokens in `theme.Ink`: `Background`, `Surface`, `SurfaceHigh`,
+`SurfaceHighest`, `Hairline`, `HairlineStrong`, `Scrim`, `Text`, `TextSecondary`,
+`TextTertiary`, `Accent` (+`AccentDim`, `AccentSoft`, `OnAccent`), and one colour per swipe
+fate: `Success` (keep), `Danger` (delete), `Favorite` (favourite), plus `Warning`, `Info`,
+each with a `…Soft` tint. Storage categories: `theme.CategoryColor` / `theme.Spectrum`
+(photos, videos, apps, system, other, cloud, audio, documents, archives).
+`theme.AccentGradient` is for one hero element per screen.
 
-To be added by the design agent (other modules code against exactly these):
+Type (`PadlasTheme.type`): `display`, `displaySmall`, `headline`, `title`, `body`,
+`bodyStrong`, `label`, `caption`, `micro`, `numeric`, `numericLarge` — all Instrument Sans,
+numbers with tabular figures. Spacing `theme.Space` (4dp grid, `page` = 20dp margin),
+shapes `theme.Shapes` (`pill`, `small`, `tile`, `card`, `sheet`, `hero`).
 
-```kotlin
-package hu.padlas.core.design.component
+Components (`component.*`): `PadlasTopBar`, `LargeHeader`, `PadlasButton` (`ButtonStyle`,
+`ButtonSize`, optional icon), `PadlasTextButton`, `PadlasIconButton`, `Chip`,
+`SegmentedControl`, `PadlasSwitch`, `Pill`, `PadlasCard`, `ListRow`, `IconBubble`,
+`ActionBar`, `SectionHeader`, `SectionLabel`, `NumericText`, `RollingNumber`, `EmptyState`,
+`LinearMeter`, `ProgressStrip`, `ProgressRing`, `SegmentBar`, `LegendItem`, `StorageGauge`,
+`SelectableTile`, `SelectionMark`, `GhostTile`, `HoldToConfirm`, `Toast`, `ConfirmDialog`,
+`StatTile`, `StaggeredColumnItem`, `Modifier.raisedSurface`, `Modifier.hairlineTop/Bottom`.
+Icons come from `androidx.compose.material.icons` (Rounded), exposed through `api`.
 
-@Composable fun RollingNumber(value: String, style: TextStyle, modifier: Modifier = Modifier,
-                              color: Color = Ink.Paper)
-@Composable fun SectionLabel(text: String, modifier: Modifier = Modifier)   // micro, uppercase
-@Composable fun NumericText(text: String, modifier: Modifier = Modifier,
-                            color: Color = Ink.Faded, large: Boolean = false)
-@Composable fun PadlasTopBar(title: String, modifier: Modifier = Modifier,
-                             onBack: (() -> Unit)? = null, action: @Composable () -> Unit = {})
-@Composable fun PadlasButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier,
-                             enabled: Boolean = true, destructive: Boolean = false)
-@Composable fun PadlasTextButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier)
-@Composable fun HoldToConfirm(label: String, onConfirm: () -> Unit, modifier: Modifier = Modifier,
-                              holdMillis: Int = 2000, enabled: Boolean = true)
-@Composable fun StorageGauge(segments: List<GaugeSegment>, freeBytes: Long, totalBytes: Long,
-                             modifier: Modifier = Modifier)
-data class GaugeSegment(val label: String, val bytes: Long, val color: Color)
-@Composable fun ActionBar(title: String, detail: String, direction: ActionDirection,
-                          onClick: () -> Unit, modifier: Modifier = Modifier, index: Int = 0)
-enum class ActionDirection { UP, DOWN, COMPRESS, NONE }
-@Composable fun EmptyState(text: String, actionLabel: String? = null,
-                           onAction: (() -> Unit)? = null, modifier: Modifier = Modifier)
-@Composable fun SelectableTile(model: Any?, selected: Boolean, onToggle: () -> Unit,
-                               modifier: Modifier = Modifier, badge: String? = null,
-                               onLongPress: (() -> Unit)? = null)
-@Composable fun GhostTile(model: Any?, modifier: Modifier = Modifier)
-@Composable fun StaggeredColumnItem(index: Int, content: @Composable () -> Unit)
-@Composable fun ProgressStrip(fraction: Float, label: String, modifier: Modifier = Modifier)
-@Composable fun Chip(text: String, selected: Boolean = false, onClick: (() -> Unit)? = null,
-                     modifier: Modifier = Modifier)
-```
-
-`SelectableTile`/`GhostTile` take a Coil model (`Uri`, `File`, `String`, or `null`).
+Motion: `motion.Motion` springs, `motion.motionSpec`, `motion.LocalReducedMotion`,
+`motion.haptics()` (`threshold`, `binImpact`, `keep`, `favorite`, `lift`, `undo`, `commit`,
+`tick`, …). No ripples: press feedback is a small scale or alpha change.
 
 ## Feature modules
 
@@ -194,13 +176,13 @@ Every feature exposes one entry composable and keeps its ViewModel internal:
 | module | entry composable |
 |---|---|
 | `:feature:index` | `IndexRoute(onFinished: () -> Unit, modifier: Modifier = Modifier)` |
-| `:feature:map` | `MapRoute(onBack: () -> Unit, modifier: Modifier = Modifier)` |
+| `:feature:map` | `StorageRoute(modifier, contentPadding)` (tab), `MapRoute(onBack, modifier)` |
 | `:feature:dedup` | `DedupRoute(onBack: () -> Unit, modifier: Modifier = Modifier)` |
 | `:feature:triage` | `DiscardRoute(onBack, modifier)` and `FolderRoute(bucketId, onBack, modifier)` |
 | `:feature:transcode` | `VideoRoute(onBack: () -> Unit, modifier: Modifier = Modifier)` |
 | `:feature:archive` | `hu.padlas.feature.archive.ui.AtticRoute(onBack, modifier)` |
-| `:feature:browse` | `BrowseRoute(onBack, modifier, olderThanDaysPreset: Int?, bucketPreset: Long?, onArchiveQueued: () -> Unit)` |
-| `:feature:sort` | `SortRoute(onBack, modifier, onArchiveRequested: (List<Long>) -> Unit = {})` |
+| `:feature:browse` | `BrowseRoute(onBack, modifier, olderThanDaysPreset: Int?, bucketPreset: Long?, onArchiveQueued: () -> Unit)`, `TrashRoute(onBack, modifier)` |
+| `:feature:sort` | `SwipeHomeRoute(onStartSession, onOpenPending, modifier, contentPadding)` (tab), `SwipeSessionRoute(onClose, onNewSession, onOpenPending, onOpenTrash, modifier)`, `PendingDeletionsRoute(onBack, modifier)`; `SwipeRepository` and `SwipePreferences` are public for the overview and settings |
 | `:feature:rules` | `RulesRoute(onBack: () -> Unit, modifier: Modifier = Modifier)` |
 | `:feature:audit` | `LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier)` |
 
@@ -244,8 +226,13 @@ Every state change that touches a file writes an `AuditEntry` (INV-5). Use
 - `core:design` does not depend on Coil, so `SelectableTile`/`GhostTile` take a trailing
   `image: @Composable (Modifier) -> Unit` slot; feature modules pass an `AsyncImage`.
 - `AtticRoute` lives in `hu.padlas.feature.archive.ui`, not in the module root.
-- `SortRoute` takes `onArchiveRequested` so the deck can queue uploads without depending
-  on `:feature:archive`; the app module wires it to `ArchiveScheduler.enqueueUploads`.
+- The swipe deck (`:feature:sort`) stores decisions in `swipe_decision` (schema 2, Room
+  auto-migration). DELETE rows are a pending batch; they leave through one system dialog
+  and are removed once the system confirms.
+- Tab roots take a `contentPadding` that carries the bottom bar inset; pushed screens handle
+  their own system bar insets.
+- Grids load thumbnails through `core.media.MediaThumb`, which the app's Coil loader
+  resolves with `ContentResolver.loadThumbnail`.
 - A rule with the `TRASH` action stages its matches (`AssetDao.defer`) instead of writing
   `TRASHED`: the system bin can only be entered through a user-confirmed dialog, and a
   staged batch that pretends to be in the bin would make the trash counter lie.

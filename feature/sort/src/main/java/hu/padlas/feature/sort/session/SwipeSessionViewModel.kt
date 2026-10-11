@@ -213,6 +213,10 @@ internal class SwipeSessionViewModel @Inject constructor(
             _state.update { it.copy(busy = false, message = "A törlés elmaradt, a jelölések megmaradtak.") }
             return
         }
+        // A card whose file already left cannot be swiped back; undo skips over it.
+        val gone = batch.ids.toSet()
+        history.removeAll { it.card.id in gone }
+        _state.update { it.copy(canUndo = history.isNotEmpty()) }
         viewModelScope.launch {
             repository.onDeleted(batch)
             val text = if (batch.permanent) {
