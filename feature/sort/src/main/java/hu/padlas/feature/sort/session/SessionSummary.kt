@@ -2,6 +2,8 @@ package hu.padlas.feature.sort.session
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -64,20 +66,25 @@ internal fun SessionSummary(
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(Space.s))
-        Row(horizontalArrangement = Arrangement.spacedBy(Space.s), modifier = Modifier.fillMaxWidth()) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Space.s),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+        ) {
             StatTile(
                 label = "Megtartva",
                 value = Format.count(state.kept),
                 icon = Icons.Rounded.Check,
                 tint = Ink.Success,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             StatTile(
                 label = "Kedvenc",
                 value = Format.count(state.favorited),
                 icon = Icons.Rounded.Star,
                 tint = Ink.Favorite,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             StatTile(
                 label = "Törlésre",
@@ -85,7 +92,7 @@ internal fun SessionSummary(
                 caption = Format.bytes(state.deletedBytes),
                 icon = Icons.Rounded.DeleteOutline,
                 tint = Ink.Danger,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
             )
         }
 

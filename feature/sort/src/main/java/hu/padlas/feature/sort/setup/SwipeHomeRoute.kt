@@ -112,7 +112,7 @@ fun SwipeHomeRoute(
                 start = Space.page,
                 end = Space.page,
                 top = top,
-                bottom = bottom + 140.dp,
+                bottom = bottom + 180.dp,
             ),
             verticalArrangement = Arrangement.spacedBy(Space.m),
         ) {
@@ -490,12 +490,19 @@ private fun StartBar(
     onStart: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(Color.Transparent, Ink.Background.copy(alpha = 0.92f), Ink.Background)))
-            .padding(start = Space.page, end = Space.page, top = Space.xl, bottom = Space.m),
-    ) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Spacer(
+            Modifier
+                .fillMaxWidth()
+                .height(Space.xl)
+                .background(Brush.verticalGradient(listOf(Color.Transparent, Ink.Background))),
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Ink.Background)
+                .padding(start = Space.page, end = Space.page, bottom = Space.m),
+        ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = label,
@@ -532,6 +539,6 @@ private fun StartBar(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        Spacer(Modifier.width(0.dp))
+        }
     }
 }
