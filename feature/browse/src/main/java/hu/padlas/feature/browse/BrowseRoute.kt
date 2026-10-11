@@ -161,7 +161,7 @@ fun BrowseRoute(
             Text(
                 text = message,
                 style = PadlasTheme.type.label,
-                color = Ink.Faded,
+                color = Ink.TextSecondary,
                 modifier = Modifier.padding(bottom = Space.s),
             )
             LaunchedEffect(message) { viewModel.dismissMessage() }

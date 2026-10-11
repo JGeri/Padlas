@@ -93,7 +93,7 @@ fun RulesRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
             Text(
                 text = message,
                 style = PadlasTheme.type.label,
-                color = Ink.Faded,
+                color = Ink.TextSecondary,
                 modifier = Modifier.padding(vertical = Space.s),
             )
             LaunchedEffect(message) { viewModel.dismissMessage() }
@@ -120,7 +120,7 @@ private fun RuleCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = rule.name, style = PadlasTheme.type.body, color = Ink.Paper)
+                Text(text = rule.name, style = PadlasTheme.type.body, color = Ink.Text)
                 Chip(
                     text = if (rule.enabled) "aktív" else "kikapcsolva",
                     selected = rule.enabled,
@@ -136,7 +136,7 @@ private fun RuleCard(
                     append(rule.action.hungarian())
                 },
                 style = PadlasTheme.type.label,
-                color = Ink.Faded,
+                color = Ink.TextSecondary,
             )
 
             if (dryRun != null) {
@@ -182,9 +182,9 @@ private fun DryRunSamples(dryRun: DryRunResult, onClose: () -> Unit) {
                 Text(
                     text = asset.relativePath + asset.displayName,
                     style = PadlasTheme.type.micro,
-                    color = Ink.Dust,
+                    color = Ink.TextTertiary,
                 )
-                NumericText(text = Format.bytes(asset.sizeBytes), color = Ink.Dust)
+                NumericText(text = Format.bytes(asset.sizeBytes), color = Ink.TextTertiary)
             }
         }
         PadlasTextButton(text = "Bezárás", onClick = onClose)
@@ -199,10 +199,10 @@ private fun DeltaRow(delta: BucketDelta) {
             .padding(vertical = Space.xs),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(text = delta.label, style = PadlasTheme.type.body, color = Ink.Paper)
+        Text(text = delta.label, style = PadlasTheme.type.body, color = Ink.Text)
         NumericText(
             text = (if (delta.delta >= 0) "+" else "") + Format.bytes(delta.delta),
-            color = if (delta.delta >= 0) Ink.Rust else Ink.Patina,
+            color = if (delta.delta >= 0) Ink.Danger else Ink.Success,
         )
     }
 }

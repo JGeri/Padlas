@@ -186,12 +186,12 @@ fun VaultRoute(
                         Text(
                             text = bucket.bucketName.ifBlank { bucket.relativePath },
                             style = PadlasTheme.type.body,
-                            color = Ink.Paper,
+                            color = Ink.Text,
                         )
                         Text(
                             text = "${Format.count(bucket.itemCount)} · ${Format.bytes(bucket.totalBytes)}",
                             style = PadlasTheme.type.label,
-                            color = Ink.Faded,
+                            color = Ink.TextSecondary,
                         )
                     }
                 }
@@ -259,7 +259,7 @@ private fun Legend(types: List<MediaTypeAggregate>) {
                 Text(
                     text = type.mediaType.hungarian(),
                     style = PadlasTheme.type.micro,
-                    color = Ink.Dust,
+                    color = Ink.TextTertiary,
                 )
             }
         }
@@ -268,7 +268,7 @@ private fun Legend(types: List<MediaTypeAggregate>) {
 
 @Composable
 private fun OneDriveWarning() {
-    PadlasCard(background = Ink.Raised, modifier = Modifier.fillMaxWidth()) {
+    PadlasCard(background = Ink.SurfaceHigh, modifier = Modifier.fillMaxWidth()) {
         Column {
             SectionLabel(text = "FIGYELMEZTETÉS")
             Spacer(Modifier.height(Space.s))
@@ -276,7 +276,7 @@ private fun OneDriveWarning() {
                 text = "A OneDrive szinkron aktívnak tűnik. Ilyenkor a helyi törlés a felhőből is törölhet. " +
                     "Kapcsold ki a Samsung Galéria szinkront, mielőtt bármit kidobsz.",
                 style = PadlasTheme.type.body,
-                color = Ink.Paper,
+                color = Ink.Text,
             )
         }
     }
@@ -296,7 +296,7 @@ private fun AccessRow(
                 Text(
                     text = "A térképhez teljes fájlhozzáférés kell.",
                     style = PadlasTheme.type.body,
-                    color = Ink.Faded,
+                    color = Ink.TextSecondary,
                 )
                 PadlasTextButton(text = "Megadom", onClick = onAllFiles)
             }
@@ -304,7 +304,7 @@ private fun AccessRow(
                 Text(
                     text = "Az app/cache bontáshoz használati hozzáférés kell.",
                     style = PadlasTheme.type.body,
-                    color = Ink.Faded,
+                    color = Ink.TextSecondary,
                 )
                 PadlasTextButton(text = "Megadom", onClick = onUsageStats)
             }
@@ -319,12 +319,12 @@ private fun TrashRow(mediaStoreBytes: Long, samsungBytes: Long, onClick: () -> U
             Text(
                 text = "Kuka · ${Format.bytes(mediaStoreBytes + samsungBytes)}",
                 style = PadlasTheme.type.body,
-                color = Ink.Paper,
+                color = Ink.Text,
             )
             Text(
                 text = "A kukában lévő fájl még helyet foglal.",
                 style = PadlasTheme.type.label,
-                color = Ink.Dust,
+                color = Ink.TextTertiary,
             )
         }
     }

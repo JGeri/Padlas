@@ -114,7 +114,7 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         SectionLabel(text = day.label)
-                        NumericText(text = Format.bytes(day.bytes), color = Ink.Dust)
+                        NumericText(text = Format.bytes(day.bytes), color = Ink.TextTertiary)
                     }
                 }
                 items(
@@ -139,7 +139,7 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
             Text(
                 text = message,
                 style = PadlasTheme.type.label,
-                color = Ink.Faded,
+                color = Ink.TextSecondary,
                 modifier = Modifier.padding(bottom = Space.s),
             )
             LaunchedEffect(message) { viewModel.dismissMessage() }
@@ -159,10 +159,10 @@ private fun LogRow(entry: AuditEntry, onUndo: () -> Unit) {
                 Text(
                     text = entry.action.hungarian(),
                     style = PadlasTheme.type.body,
-                    color = Ink.Paper,
+                    color = Ink.Text,
                 )
                 entry.note?.let { note ->
-                    Text(text = note, style = PadlasTheme.type.micro, color = Ink.Dust)
+                    Text(text = note, style = PadlasTheme.type.micro, color = Ink.TextTertiary)
                 }
             }
             Column(horizontalAlignment = Alignment.End) {

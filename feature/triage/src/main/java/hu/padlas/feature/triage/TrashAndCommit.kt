@@ -64,13 +64,13 @@ private fun TrashRow(title: String, detail: String, bytes: Long) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(text = title, style = PadlasTheme.type.body, color = Ink.Paper)
-            NumericText(text = Format.bytes(bytes), color = Ink.Brass)
+            Text(text = title, style = PadlasTheme.type.body, color = Ink.Text)
+            NumericText(text = Format.bytes(bytes), color = Ink.Accent)
         }
         Text(
             text = detail,
             style = PadlasTheme.type.micro,
-            color = Ink.Dust,
+            color = Ink.TextTertiary,
             modifier = Modifier.padding(top = Space.xs),
         )
     }
@@ -91,7 +91,7 @@ internal fun CommitBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .raisedSurface(background = Ink.Raised)
+            .raisedSurface(background = Ink.SurfaceHigh)
             .padding(horizontal = Space.l, vertical = Space.m),
         verticalArrangement = Arrangement.spacedBy(Space.s),
     ) {
@@ -102,10 +102,10 @@ internal fun CommitBar(
                 "${Format.count(count)} fájl végleges törlése. Nem vonható vissza."
             },
             style = PadlasTheme.type.body,
-            color = Ink.Paper,
+            color = Ink.Text,
         )
         if (count > 0) {
-            NumericText(text = "${Format.bytes(bytes)} szabadul fel", color = Ink.Faded)
+            NumericText(text = "${Format.bytes(bytes)} szabadul fel", color = Ink.TextSecondary)
         }
         HoldToConfirm(
             label = "${Format.count(count)} fájl",

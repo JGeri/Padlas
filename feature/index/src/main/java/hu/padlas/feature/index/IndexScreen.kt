@@ -25,7 +25,6 @@ import hu.padlas.core.design.component.SectionLabel
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
-import hu.padlas.core.design.theme.grain
 
 @Composable
 internal fun IndexScreen(
@@ -36,8 +35,7 @@ internal fun IndexScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Ink.Void)
-            .grain()
+            .background(Ink.Background)
             .padding(horizontal = Space.xl, vertical = Space.xxl),
     ) {
         if (state.error != null) {
@@ -61,13 +59,13 @@ private fun IndexProgress(state: IndexUiState) {
         Text(
             text = if (state.finished) "Kész" else "Beolvasás",
             style = PadlasTheme.type.title,
-            color = Ink.Paper,
+            color = Ink.Text,
         )
         Spacer(Modifier.height(Space.s))
         Text(
             text = subtitle(state),
             style = PadlasTheme.type.body,
-            color = Ink.Faded,
+            color = Ink.TextSecondary,
         )
 
         Spacer(Modifier.weight(1f))
@@ -89,13 +87,13 @@ private fun Tally(state: IndexUiState) {
             RollingNumber(
                 value = Format.count(state.scanned),
                 style = PadlasTheme.type.display,
-                color = Ink.Paper,
+                color = Ink.Text,
             )
             Spacer(Modifier.width(Space.m))
             Text(
                 text = "fájl",
                 style = PadlasTheme.type.label,
-                color = Ink.Dust,
+                color = Ink.TextTertiary,
                 modifier = Modifier.padding(bottom = Space.m),
             )
         }
@@ -103,7 +101,7 @@ private fun Tally(state: IndexUiState) {
         RollingNumber(
             value = Format.bytes(state.bytes),
             style = PadlasTheme.type.numericLarge,
-            color = Ink.Brass,
+            color = Ink.Accent,
         )
     }
 }
@@ -124,15 +122,15 @@ private fun Progress(state: IndexUiState) {
             Text(
                 text = state.bucket.ifEmpty { if (state.finished) "" else "Mappák bejárása" },
                 style = PadlasTheme.type.label,
-                color = Ink.Dust,
+                color = Ink.TextTertiary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
             )
             if (state.finished && state.durationMs > 0L) {
-                NumericText(text = Format.duration(state.durationMs), color = Ink.Dust)
+                NumericText(text = Format.duration(state.durationMs), color = Ink.TextTertiary)
             } else if (state.total > 0) {
-                NumericText(text = Format.count(state.total) + " várható", color = Ink.Dust)
+                NumericText(text = Format.count(state.total) + " várható", color = Ink.TextTertiary)
             }
         }
     }

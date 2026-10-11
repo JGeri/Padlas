@@ -25,7 +25,6 @@ import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.motion.haptics
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.Space
-import hu.padlas.core.design.theme.grain
 import kotlinx.coroutines.delay
 
 /**
@@ -91,7 +90,7 @@ private fun DiscardScreen(
     onRetriage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize().background(Ink.Void).grain()) {
+    Column(modifier = modifier.fillMaxSize().background(Ink.Background)) {
         PadlasTopBar(title = "Kidobó", onBack = onBack)
         when {
             state.loading -> ScreenMessage(message = "Betöltés.")

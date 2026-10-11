@@ -136,13 +136,13 @@ internal fun GroupHeader(
                 } else {
                     "${Format.count(tally.discardCount)} db · ${Format.bytes(tally.discardBytes)}"
                 },
-                color = if (group.locked) Ink.Patina else Ink.Brass,
+                color = if (group.locked) Ink.Success else Ink.Accent,
             )
         }
         Text(
             text = group.hint,
             style = PadlasTheme.type.micro,
-            color = Ink.Dust,
+            color = Ink.TextTertiary,
             modifier = Modifier.padding(top = Space.xs),
         )
         if (group.locked) {
@@ -169,7 +169,7 @@ internal fun ScreenMessage(message: String, modifier: Modifier = Modifier) {
     Text(
         text = message,
         style = PadlasTheme.type.body,
-        color = Ink.Faded,
+        color = Ink.TextSecondary,
         textAlign = TextAlign.Center,
         modifier = modifier.fillMaxWidth().padding(horizontal = Space.l, vertical = Space.s),
     )

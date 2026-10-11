@@ -10,7 +10,6 @@ import androidx.compose.ui.Modifier
 import dagger.hilt.android.AndroidEntryPoint
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
-import hu.padlas.core.design.theme.grain
 import hu.padlas.navigation.PadlasNavHost
 
 @AndroidEntryPoint
@@ -24,8 +23,7 @@ class MainActivity : ComponentActivity() {
                 PadlasNavHost(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Ink.Void)
-                        .grain(),
+                        .background(Ink.Background),
                 )
             }
         }

@@ -122,7 +122,7 @@ private fun DrawScope.drawTile(rect: MapRect, gap: Float, color: Color, alpha: F
         size = Size(width, height),
     )
     drawRect(
-        color = Ink.Void.copy(alpha = 0.35f * alpha),
+        color = Ink.Background.copy(alpha = 0.35f * alpha),
         topLeft = Offset(left, top),
         size = Size(width, height),
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1f),
@@ -141,12 +141,12 @@ private fun DrawScope.drawLabel(
     val padding = gap * 3f
     val name = measurer.measure(
         text = node.label,
-        style = labelStyle.copy(color = Ink.Void.copy(alpha = 0.9f * alpha)),
+        style = labelStyle.copy(color = Ink.Background.copy(alpha = 0.9f * alpha)),
         maxLines = 1,
     )
     val size = measurer.measure(
         text = Format.bytes(node.sizeBytes),
-        style = numberStyle.copy(color = Ink.Void.copy(alpha = 0.7f * alpha)),
+        style = numberStyle.copy(color = Ink.Background.copy(alpha = 0.7f * alpha)),
         maxLines = 1,
     )
     if (name.size.width > rect.width - padding * 2) return

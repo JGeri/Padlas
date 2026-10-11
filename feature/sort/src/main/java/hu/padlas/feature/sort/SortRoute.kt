@@ -106,7 +106,7 @@ fun SortRoute(
             Text(
                 text = message,
                 style = PadlasTheme.type.label,
-                color = Ink.Faded,
+                color = Ink.TextSecondary,
                 modifier = Modifier.padding(vertical = Space.s),
             )
             LaunchedEffect(message) { viewModel.consumeMessage() }
@@ -117,7 +117,7 @@ fun SortRoute(
 @Composable
 private fun SessionHeader(state: SortUiState, session: SortSession) {
     Column(modifier = Modifier.padding(vertical = Space.s)) {
-        Text(text = session.header, style = PadlasTheme.type.title, color = Ink.Paper)
+        Text(text = session.header, style = PadlasTheme.type.title, color = Ink.Text)
         ProgressStrip(
             fraction = if (state.totalCount == 0) 0f else state.decidedCount.toFloat() / state.totalCount,
             label = "${Format.count(state.decidedCount)} / ${Format.count(state.totalCount)}",
@@ -140,7 +140,7 @@ private fun Footer(state: SortUiState, onUndo: () -> Unit, onFinish: () -> Unit)
         if (state.undoDepth > 0) {
             PadlasTextButton(text = "Visszavonás", onClick = onUndo)
         } else {
-            Text(text = "Tartsd nyomva: védett", style = PadlasTheme.type.micro, color = Ink.Dust)
+            Text(text = "Tartsd nyomva: védett", style = PadlasTheme.type.micro, color = Ink.TextTertiary)
         }
 
         if (state.pendingCount > 0) {

@@ -72,7 +72,7 @@ fun MapRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 .padding(vertical = Space.s),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(text = node.label, style = PadlasTheme.type.title, color = Ink.Paper)
+            Text(text = node.label, style = PadlasTheme.type.title, color = Ink.Text)
             NumericText(
                 text = "${Format.bytes(node.sizeBytes)} · ${Format.bytes(map.freeBytes)} szabad",
             )
@@ -165,7 +165,7 @@ private fun CacheTour(
             Text(
                 text = "A cache mérete csak használati hozzáféréssel látszik.",
                 style = PadlasTheme.type.body,
-                color = Ink.Faded,
+                color = Ink.TextSecondary,
             )
             PadlasTextButton(text = "Megadom", onClick = onGrantUsageStats)
             return@Column
@@ -174,7 +174,7 @@ private fun CacheTour(
             Text(
                 text = "Nincs számottevő cache.",
                 style = PadlasTheme.type.body,
-                color = Ink.Faded,
+                color = Ink.TextSecondary,
             )
             return@Column
         }
@@ -186,7 +186,7 @@ private fun CacheTour(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = "Végigmentél a listán.", style = PadlasTheme.type.body, color = Ink.Faded)
+                Text(text = "Végigmentél a listán.", style = PadlasTheme.type.body, color = Ink.TextSecondary)
                 PadlasTextButton(text = "Újra", onClick = onRestart)
             }
             return@Column
@@ -194,7 +194,7 @@ private fun CacheTour(
 
         PadlasCard(modifier = Modifier.fillMaxWidth()) {
             Column {
-                Text(text = current.label, style = PadlasTheme.type.body, color = Ink.Paper)
+                Text(text = current.label, style = PadlasTheme.type.body, color = Ink.Text)
                 NumericText(text = "${Format.bytes(current.cacheBytes)} cache")
                 Row(horizontalArrangement = Arrangement.spacedBy(Space.l)) {
                     PadlasTextButton(text = "Megnyitom", onClick = { onOpen(current.packageName) })
@@ -203,7 +203,7 @@ private fun CacheTour(
                 Text(
                     text = "${Format.count(index + 1)} / ${Format.count(stops.size)} · a cache-t a rendszer üríti, nem az app.",
                     style = PadlasTheme.type.micro,
-                    color = Ink.Dust,
+                    color = Ink.TextTertiary,
                 )
             }
         }

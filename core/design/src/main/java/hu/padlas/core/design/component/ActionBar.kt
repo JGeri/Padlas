@@ -1,31 +1,132 @@
 package hu.padlas.core.design.component
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.CloudUpload
+import androidx.compose.material.icons.rounded.Compress
+import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
+import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
 
 enum class ActionDirection { UP, DOWN, COMPRESS, NONE }
 
+/** A tinted icon on a soft disc of the same colour. */
+@Composable
+fun IconBubble(
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    tint: Color = Ink.Accent,
+    background: Color = tint.copy(alpha = 0.16f),
+    size: Dp = 40.dp,
+    iconSize: Dp = 20.dp,
+    shape: androidx.compose.ui.graphics.Shape = Shapes.tile,
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(shape)
+            .background(background),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(iconSize))
+    }
+}
+
 /**
- * The Vault rows are a priority queue, not a menu: the caller sorts them by how much space
- * they win back. The glyph on the right is the same two directions as the swipe deck, so the
- * gesture is learned once and reused everywhere.
+ * The standard list row: icon, two lines, a value on the right and a chevron when it
+ * leads somewhere.
  */
+@Composable
+fun ListRow(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    icon: ImageVector? = null,
+    iconTint: Color = Ink.Accent,
+    value: String? = null,
+    valueColor: Color = Ink.TextSecondary,
+    onClick: (() -> Unit)? = null,
+    showChevron: Boolean = onClick != null,
+    background: Color = Ink.Surface,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    PadlasCard(
+        modifier = modifier.fillMaxWidth(),
+        onClick = onClick,
+        background = background,
+        contentPadding = Space.m,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (icon != null) {
+                IconBubble(icon = icon, tint = iconTint)
+                Spacer(Modifier.width(Space.m))
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                Text(
+                    text = title,
+                    color = Ink.Text,
+                    style = PadlasTheme.type.bodyStrong,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        color = Ink.TextSecondary,
+                        style = PadlasTheme.type.caption,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            if (value != null) {
+                Spacer(Modifier.width(Space.s))
+                Text(text = value, color = valueColor, style = PadlasTheme.type.numeric, maxLines = 1)
+            }
+            trailing?.let {
+                Spacer(Modifier.width(Space.s))
+                it()
+            }
+            if (showChevron) {
+                Spacer(Modifier.width(Space.xs))
+                Icon(
+                    Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = Ink.TextTertiary,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+        }
+    }
+}
+
+/** A suggestion row on the overview: what can be won back and how. */
 @Composable
 fun ActionBar(
     title: String,
@@ -33,67 +134,20 @@ fun ActionBar(
     direction: ActionDirection,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    index: Int = 0,
+    @Suppress("UNUSED_PARAMETER") index: Int = 0,
 ) {
-    StaggeredColumnItem(index) {
-        PadlasCard(modifier = modifier.fillMaxWidth(), onClick = onClick) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title,
-                        color = Ink.Paper,
-                        style = PadlasTheme.type.body,
-                        maxLines = 1,
-                    )
-                    Spacer(Modifier.height(Space.xs))
-                    NumericText(detail)
-                }
-                Spacer(Modifier.width(Space.m))
-                DirectionGlyph(direction)
-            }
-        }
+    val (icon, tint) = when (direction) {
+        ActionDirection.UP -> Icons.Rounded.CloudUpload to Ink.Info
+        ActionDirection.DOWN -> Icons.Rounded.DeleteSweep to Ink.Danger
+        ActionDirection.COMPRESS -> Icons.Rounded.Compress to Ink.Warning
+        ActionDirection.NONE -> Icons.Rounded.Tune to Ink.Accent
     }
-}
-
-/** Drawn, not typed: an arrow that falls back to a tofu box would be worse than none. */
-@Composable
-private fun DirectionGlyph(direction: ActionDirection, modifier: Modifier = Modifier) {
-    val color = when (direction) {
-        ActionDirection.UP -> Ink.Patina
-        ActionDirection.DOWN -> Ink.Faded
-        ActionDirection.COMPRESS -> Ink.Brass
-        ActionDirection.NONE -> return
-    }
-    Canvas(modifier.size(14.dp)) {
-        val stroke = 1.5.dp.toPx()
-        val centreX = size.width / 2f
-        val centreY = size.height / 2f
-        val wing = size.width * 0.3f
-        when (direction) {
-            ActionDirection.UP, ActionDirection.DOWN -> {
-                val up = direction == ActionDirection.UP
-                val tip = if (up) 0f else size.height
-                val tail = if (up) size.height else 0f
-                val shoulder = if (up) size.height * 0.42f else size.height * 0.58f
-                drawLine(color, Offset(centreX, tail), Offset(centreX, tip), stroke, StrokeCap.Round)
-                drawLine(color, Offset(centreX, tip), Offset(centreX - wing, shoulder), stroke, StrokeCap.Round)
-                drawLine(color, Offset(centreX, tip), Offset(centreX + wing, shoulder), stroke, StrokeCap.Round)
-            }
-            else -> {
-                // Two arrows facing each other: the file shrinks, it does not go anywhere.
-                val top = centreY - size.height * 0.2f
-                val bottom = centreY + size.height * 0.2f
-                val wingY = size.height * 0.16f
-                drawLine(color, Offset(0f, top), Offset(size.width, top), stroke, StrokeCap.Round)
-                drawLine(color, Offset(size.width, top), Offset(size.width - wing, top - wingY), stroke, StrokeCap.Round)
-                drawLine(color, Offset(size.width, top), Offset(size.width - wing, top + wingY), stroke, StrokeCap.Round)
-                drawLine(color, Offset(size.width, bottom), Offset(0f, bottom), stroke, StrokeCap.Round)
-                drawLine(color, Offset(0f, bottom), Offset(wing, bottom - wingY), stroke, StrokeCap.Round)
-                drawLine(color, Offset(0f, bottom), Offset(wing, bottom + wingY), stroke, StrokeCap.Round)
-            }
-        }
-    }
+    ListRow(
+        title = title,
+        subtitle = detail,
+        icon = icon,
+        iconTint = tint,
+        onClick = onClick,
+        modifier = modifier,
+    )
 }

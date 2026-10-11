@@ -89,12 +89,12 @@ private fun DedupSummary(state: DedupUiState) {
             RollingNumber(
                 value = Format.bytesValue(state.reclaimableBytes),
                 style = PadlasTheme.type.display,
-                color = Ink.Paper,
+                color = Ink.Text,
             )
             Text(
                 text = " ${Format.bytesUnit(state.reclaimableBytes)}",
                 style = PadlasTheme.type.title,
-                color = Ink.Faded,
+                color = Ink.TextSecondary,
                 modifier = Modifier.padding(bottom = 6.dp),
             )
         }
@@ -111,13 +111,13 @@ private fun DedupSummary(state: DedupUiState) {
         Text(
             text = DedupCopy.TRASH_NOTICE,
             style = PadlasTheme.type.body,
-            color = Ink.Faded,
+            color = Ink.TextSecondary,
         )
         if (state.trashedBytes > 0) {
             Text(
                 text = DedupCopy.trashedNotice(state.trashedBytes),
                 style = PadlasTheme.type.label,
-                color = Ink.Brass,
+                color = Ink.Accent,
             )
         }
     }
@@ -133,10 +133,10 @@ private fun SectionHead(section: DedupSectionUi) {
         Text(
             text = DedupCopy.sectionLead(section.kind),
             style = PadlasTheme.type.body,
-            color = Ink.Faded,
+            color = Ink.TextSecondary,
         )
         if (section.kind == DupKind.SIMILAR) {
-            Text(text = DedupCopy.PICK_KEEPER, style = PadlasTheme.type.label, color = Ink.Dust)
+            Text(text = DedupCopy.PICK_KEEPER, style = PadlasTheme.type.label, color = Ink.TextTertiary)
         }
         NumericText(text = DedupCopy.sectionTotals(section.loserCount, section.reclaimableBytes))
     }

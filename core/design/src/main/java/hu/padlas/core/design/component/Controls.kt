@@ -1,34 +1,73 @@
 package hu.padlas.core.design.component
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import hu.padlas.core.design.motion.Motion
+import hu.padlas.core.design.motion.haptics
 import hu.padlas.core.design.motion.motionSpec
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
 
-/**
- * Brass on dark. Rust is reserved for confirmations - a destructive button that lives on a
- * list instead of on a confirmation sheet is a bug, not a colour choice.
- */
+enum class ButtonStyle { Primary, Secondary, Destructive, Success, Favorite, Ghost }
+
+enum class ButtonSize(val height: Dp, val horizontal: Dp, val iconSize: Dp) {
+    Large(54.dp, 24.dp, 20.dp),
+    Medium(44.dp, 18.dp, 18.dp),
+    Small(34.dp, 14.dp, 16.dp),
+}
+
+private data class ButtonColors(val fill: Color, val content: Color)
+
+private fun colorsFor(style: ButtonStyle, enabled: Boolean): ButtonColors = when {
+    !enabled -> ButtonColors(Ink.SurfaceHigh, Ink.TextTertiary)
+    style == ButtonStyle.Primary -> ButtonColors(Ink.Accent, Ink.OnAccent)
+    style == ButtonStyle.Secondary -> ButtonColors(Ink.SurfaceHighest, Ink.Text)
+    style == ButtonStyle.Destructive -> ButtonColors(Ink.Danger, Color.White)
+    style == ButtonStyle.Success -> ButtonColors(Ink.Success, Ink.Background)
+    style == ButtonStyle.Favorite -> ButtonColors(Ink.Favorite, Ink.Background)
+    else -> ButtonColors(Color.Transparent, Ink.Accent)
+}
+
+/** Pill button. A press shrinks it a little, there is no ripple. */
 @Composable
 fun PadlasButton(
     text: String,
@@ -36,59 +75,135 @@ fun PadlasButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     destructive: Boolean = false,
+    icon: ImageVector? = null,
+    style: ButtonStyle = if (destructive) ButtonStyle.Destructive else ButtonStyle.Primary,
+    size: ButtonSize = ButtonSize.Large,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed && enabled) 0.985f else 1f,
+        targetValue = if (pressed && enabled) 0.97f else 1f,
         animationSpec = motionSpec(Motion.snapSpring()),
         label = "buttonPress",
     )
-    val fill = when {
-        !enabled -> Ink.Raised
-        destructive -> Ink.Rust
-        else -> Ink.Brass
-    }
-    val label = when {
-        !enabled -> Ink.Dust
-        destructive -> Ink.Paper
-        else -> Ink.Void
-    }
-    Box(
+    val colors = colorsFor(style, enabled)
+    val fill by animateColorAsState(colors.fill, motionSpec(Motion.settle()), label = "buttonFill")
+    val haptic = haptics()
+    Row(
         modifier = modifier
-            .defaultMinSize(minHeight = 52.dp)
+            .defaultMinSize(minHeight = size.height)
             .scale(scale)
-            .raisedSurface(shape = Shapes.card, background = fill)
+            .clip(Shapes.pill)
+            .background(fill)
             .clickable(
                 enabled = enabled,
                 interactionSource = interaction,
                 indication = null,
-                onClick = onClick,
+                role = Role.Button,
+                onClick = {
+                    haptic?.tick(0.2f)
+                    onClick()
+                },
             )
-            .padding(horizontal = Space.xl, vertical = Space.m),
-        contentAlignment = Alignment.Center,
+            .padding(horizontal = size.horizontal),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = text, color = label, style = PadlasTheme.type.label, maxLines = 1)
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = colors.content, modifier = Modifier.size(size.iconSize))
+            Spacer(Modifier.width(Space.s))
+        }
+        Text(
+            text = text,
+            color = colors.content,
+            style = if (size == ButtonSize.Small) PadlasTheme.type.caption else PadlasTheme.type.label,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
 @Composable
-fun PadlasTextButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun PadlasTextButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    color: Color = Ink.Accent,
+    icon: ImageVector? = null,
+    enabled: Boolean = true,
+) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val color by animateColorAsState(
-        targetValue = if (pressed) Ink.BrassDim else Ink.Brass,
+    val alpha by animateFloatAsState(
+        targetValue = if (pressed) 0.55f else 1f,
         animationSpec = motionSpec(Motion.snapSpring()),
         label = "textButtonPress",
     )
+    val tint = if (enabled) color.copy(alpha = color.alpha * alpha) else Ink.TextTertiary
+    Row(
+        modifier = modifier
+            .defaultMinSize(minHeight = 40.dp)
+            .clip(Shapes.pill)
+            .clickable(
+                enabled = enabled,
+                interactionSource = interaction,
+                indication = null,
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .padding(horizontal = Space.m, vertical = Space.s),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+        }
+        Text(text = text, color = tint, style = PadlasTheme.type.label, maxLines = 1)
+    }
+}
+
+/** A round icon button; every toolbar action in the app is one of these. */
+@Composable
+fun PadlasIconButton(
+    icon: ImageVector,
+    contentDescription: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    tint: Color = Ink.Text,
+    background: Color = Ink.SurfaceHigh,
+    size: Dp = 40.dp,
+    iconSize: Dp = 20.dp,
+    enabled: Boolean = true,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed && enabled) 0.9f else 1f,
+        animationSpec = motionSpec(Motion.snapSpring()),
+        label = "iconButtonPress",
+    )
     Box(
         modifier = modifier
-            .defaultMinSize(minHeight = 44.dp)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
-            .padding(horizontal = Space.m, vertical = Space.s),
+            .size(size)
+            .scale(scale)
+            .clip(Shapes.pill)
+            .background(background)
+            .clickable(
+                enabled = enabled,
+                interactionSource = interaction,
+                indication = null,
+                role = Role.Button,
+                onClick = onClick,
+            ),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = text, color = color, style = PadlasTheme.type.label, maxLines = 1)
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = if (enabled) tint else Ink.TextTertiary,
+            modifier = Modifier.size(iconSize),
+        )
     }
 }
 
@@ -98,36 +213,151 @@ fun Chip(
     selected: Boolean = false,
     onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    trailing: String? = null,
 ) {
+    val fill by animateColorAsState(
+        targetValue = if (selected) Ink.AccentSoft else Ink.SurfaceHigh,
+        animationSpec = motionSpec(Motion.settle()),
+        label = "chipFill",
+    )
     val outline by animateColorAsState(
-        targetValue = if (selected) Ink.Brass else Ink.Hairline,
+        targetValue = if (selected) Ink.Accent.copy(alpha = 0.7f) else Ink.Hairline,
         animationSpec = motionSpec(Motion.settle()),
         label = "chipOutline",
     )
+    val content = if (selected) Ink.Text else Ink.TextSecondary
     val interaction = remember { MutableInteractionSource() }
-    Box(
+    Row(
         modifier = modifier
-            .background(if (selected) Ink.Raised else Color.Transparent, Shapes.chip)
-            .hairlineOutline(outline, Shapes.chip)
+            .height(36.dp)
+            .clip(Shapes.pill)
+            .background(fill)
+            .border(1.dp, outline, Shapes.pill)
             .then(
                 if (onClick != null) {
                     Modifier.clickable(
                         interactionSource = interaction,
                         indication = null,
+                        role = Role.Checkbox,
                         onClick = onClick,
                     )
                 } else {
                     Modifier
                 },
             )
-            .padding(horizontal = Space.m, vertical = Space.s),
-        contentAlignment = Alignment.Center,
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = text,
-            color = if (selected) Ink.Paper else Ink.Faded,
-            style = PadlasTheme.type.label,
-            maxLines = 1,
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = if (selected) Ink.Accent else Ink.TextSecondary, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+        }
+        Text(text = text, color = content, style = PadlasTheme.type.label, maxLines = 1)
+        if (trailing != null) {
+            Spacer(Modifier.width(6.dp))
+            Text(text = trailing, color = Ink.TextTertiary, style = PadlasTheme.type.numeric, maxLines = 1)
+        }
+    }
+}
+
+/** iOS-style segmented control with a sliding thumb. */
+@Composable
+fun SegmentedControl(
+    options: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (options.isEmpty()) return
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .clip(Shapes.pill)
+            .background(Ink.SurfaceHigh)
+            .padding(3.dp),
+    ) {
+        val segment = maxWidth / options.size
+        val offset by animateDpAsState(
+            targetValue = segment * selectedIndex.coerceIn(0, options.lastIndex),
+            animationSpec = motionSpec(Motion.settle()),
+            label = "segmentThumb",
         )
+        Box(
+            modifier = Modifier
+                .offset(x = offset)
+                .width(segment)
+                .fillMaxHeight()
+                .clip(Shapes.pill)
+                .background(Ink.SurfaceHighest),
+        )
+        Row(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
+            options.forEachIndexed { index, label ->
+                val interaction = remember { MutableInteractionSource() }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(Shapes.pill)
+                        .clickable(
+                            interactionSource = interaction,
+                            indication = null,
+                            role = Role.Tab,
+                            onClick = { onSelect(index) },
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = label,
+                        style = PadlasTheme.type.label,
+                        color = if (index == selectedIndex) Ink.Text else Ink.TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PadlasSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+    Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = modifier,
+        colors = SwitchDefaults.colors(
+            checkedThumbColor = Color.White,
+            checkedTrackColor = Ink.Accent,
+            checkedBorderColor = Color.Transparent,
+            uncheckedThumbColor = Ink.TextSecondary,
+            uncheckedTrackColor = Ink.SurfaceHighest,
+            uncheckedBorderColor = Color.Transparent,
+        ),
+    )
+}
+
+/** Small coloured pill for status: "Védett", "Videó", "12 MB". */
+@Composable
+fun Pill(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Ink.Text,
+    background: Color = Ink.SurfaceHighest,
+    icon: ImageVector? = null,
+) {
+    Row(
+        modifier = modifier
+            .clip(Shapes.pill)
+            .background(background)
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(12.dp))
+            Spacer(Modifier.width(4.dp))
+        }
+        Text(text = text, color = color, style = PadlasTheme.type.micro, maxLines = 1)
     }
 }

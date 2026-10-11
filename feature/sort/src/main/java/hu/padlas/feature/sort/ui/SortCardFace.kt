@@ -79,7 +79,7 @@ internal fun SortCardFace(
                     if (alpha <= 0f) return@drawWithContent
                     drawOutline(
                         outline = Shapes.card.createOutline(size, layoutDirection, this),
-                        color = Ink.Patina.copy(alpha = alpha),
+                        color = Ink.Success.copy(alpha = alpha),
                         style = Stroke(width = 1f),
                     )
                 },
@@ -96,8 +96,8 @@ private fun CardCaption(card: SortCard, modifier: Modifier = Modifier) {
             .fillMaxWidth()
             .background(
                 Brush.verticalGradient(
-                    0f to Ink.Void.copy(alpha = 0f),
-                    1f to Ink.Void.copy(alpha = 0.78f),
+                    0f to Ink.Background.copy(alpha = 0f),
+                    1f to Ink.Background.copy(alpha = 0.78f),
                 ),
             )
             .padding(horizontal = Space.l, vertical = Space.m),
@@ -107,7 +107,7 @@ private fun CardCaption(card: SortCard, modifier: Modifier = Modifier) {
         Text(
             text = card.displayName,
             style = PadlasTheme.type.label,
-            color = Ink.Paper,
+            color = Ink.Text,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false),
@@ -115,7 +115,7 @@ private fun CardCaption(card: SortCard, modifier: Modifier = Modifier) {
         Text(
             text = listOfNotNull(card.durationLabel, card.sizeLabel).joinToString(" · "),
             style = PadlasTheme.type.numeric,
-            color = Ink.Faded,
+            color = Ink.TextSecondary,
             maxLines = 1,
         )
     }

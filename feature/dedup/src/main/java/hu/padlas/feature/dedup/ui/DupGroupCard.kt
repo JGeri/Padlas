@@ -177,11 +177,11 @@ private fun GroupHeader(group: DupGroupUi) {
         Text(
             text = DedupCopy.groupSummary(group.members.size, group.losers.size),
             style = PadlasTheme.type.label,
-            color = Ink.Faded,
+            color = Ink.TextSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        NumericText(text = Format.bytes(group.reclaimableBytes), color = Ink.Brass)
+        NumericText(text = Format.bytes(group.reclaimableBytes), color = Ink.Accent)
     }
 }
 
@@ -197,12 +197,12 @@ private fun ReclaimedLine(bytes: Long, visible: Boolean) {
         RollingNumber(
             value = Format.bytesValue(bytes),
             style = PadlasTheme.type.numericLarge,
-            color = Ink.Brass,
+            color = Ink.Accent,
         )
         Text(
             text = " ${Format.bytesUnit(bytes)}",
             style = PadlasTheme.type.numeric,
-            color = Ink.Brass,
+            color = Ink.Accent,
         )
     }
 }
@@ -257,12 +257,12 @@ private fun Tile(
     frameAlpha: Float = 0f,
 ) {
     val interaction = remember { MutableInteractionSource() }
-    val frame = if (member.isWinner) Ink.Brass.copy(alpha = 0.35f + 0.65f * frameAlpha) else Ink.Hairline
+    val frame = if (member.isWinner) Ink.Accent.copy(alpha = 0.35f + 0.65f * frameAlpha) else Ink.Hairline
     Box(
         modifier = modifier
             .size(TILE)
             .clip(Shapes.card)
-            .background(Ink.Raised, Shapes.card)
+            .background(Ink.SurfaceHigh, Shapes.card)
             .border(Dp.Hairline, frame, Shapes.card)
             .then(
                 if (pickable) {
@@ -282,7 +282,7 @@ private fun Tile(
             Text(
                 text = DedupCopy.WINNER_BADGE,
                 style = PadlasTheme.type.micro,
-                color = Ink.Brass,
+                color = Ink.Accent,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = Space.xs),
             )
         }

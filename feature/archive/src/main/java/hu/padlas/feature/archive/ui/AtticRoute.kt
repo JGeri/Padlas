@@ -165,7 +165,7 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
             Text(
                 text = message,
                 style = PadlasTheme.type.label,
-                color = Ink.Faded,
+                color = Ink.TextSecondary,
                 modifier = Modifier.padding(bottom = Space.s),
             )
             LaunchedEffect(message) { viewModel.dismissMessage() }
@@ -213,7 +213,7 @@ private fun AuthCard(state: AtticUiState, onConnect: () -> Unit) {
                     text = "Hiányzik a Drive kliensazonosító. A README leírja, hogyan tedd be a " +
                         "drive_web_client_id resource-ba.",
                     style = PadlasTheme.type.body,
-                    color = Ink.Faded,
+                    color = Ink.TextSecondary,
                 )
             }
         }
@@ -221,7 +221,7 @@ private fun AuthCard(state: AtticUiState, onConnect: () -> Unit) {
         is AuthState.Failed -> PadlasCard(modifier = Modifier.fillMaxWidth()) {
             Column {
                 SectionLabel(text = "DRIVE")
-                Text(text = auth.message, style = PadlasTheme.type.body, color = Ink.Paper)
+                Text(text = auth.message, style = PadlasTheme.type.body, color = Ink.Text)
                 PadlasTextButton(text = "Újra", onClick = onConnect)
             }
         }
@@ -232,7 +232,7 @@ private fun AuthCard(state: AtticUiState, onConnect: () -> Unit) {
                 Text(
                     text = "A padlás a te Drive-od. Az app csak azokat a fájlokat látja, amiket ő tett fel.",
                     style = PadlasTheme.type.body,
-                    color = Ink.Faded,
+                    color = Ink.TextSecondary,
                 )
                 PadlasTextButton(text = "Összekötés", onClick = onConnect)
             }
@@ -247,14 +247,14 @@ private fun AuthCard(state: AtticUiState, onConnect: () -> Unit) {
  */
 @Composable
 private fun DesktopNotice(onDismiss: () -> Unit) {
-    PadlasCard(background = Ink.Raised, modifier = Modifier.fillMaxWidth()) {
+    PadlasCard(background = Ink.SurfaceHigh, modifier = Modifier.fillMaxWidth()) {
         Column {
             SectionLabel(text = "ELSŐ FELTÖLTÉS")
             Text(
                 text = "A teljes könyvtárat asztali géppel érdemes felvinni: a rendszer napi hat órára " +
                     "korlátozza a háttérfeltöltést. Az app utána már csak a napi különbséget kezeli.",
                 style = PadlasTheme.type.body,
-                color = Ink.Paper,
+                color = Ink.Text,
             )
             PadlasTextButton(text = "Értem", onClick = onDismiss)
         }

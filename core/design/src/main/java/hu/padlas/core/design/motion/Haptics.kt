@@ -25,22 +25,32 @@ class PadlasHaptics(context: Context) {
         VibrationEffect.Composition.PRIMITIVE_TICK,
         VibrationEffect.Composition.PRIMITIVE_QUICK_RISE,
         VibrationEffect.Composition.PRIMITIVE_THUD,
+        VibrationEffect.Composition.PRIMITIVE_CLICK,
     ) ?: false
 
     /** Drag crossed the commit threshold. */
     fun threshold() = compose { addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, 0.3f) }
 
-    /** The card lands in the bin. */
+    /** The card is marked for deletion. */
     fun binImpact() = compose {
         addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_RISE, 0.4f)
         addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, 0.7f, 120)
     }
 
-    /** Lifted into the attic: quieter, it left rather than landed. */
+    /** Lifted into the cloud archive: quieter, it left rather than landed. */
     fun lift() = compose {
         addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_RISE, 0.5f)
         addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, 0.2f, 90)
     }
+
+    /** Up to the favourites: a light double rise. */
+    fun favorite() = compose {
+        addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_RISE, 0.35f)
+        addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_RISE, 0.6f, 60)
+    }
+
+    /** Kept: a single soft click, the decision costs nothing. */
+    fun keep() = compose { addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, 0.45f) }
 
     fun undo() = compose { addPrimitive(VibrationEffect.Composition.PRIMITIVE_SPIN, 0.4f) }
 

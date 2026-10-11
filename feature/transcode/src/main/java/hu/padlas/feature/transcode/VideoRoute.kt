@@ -33,7 +33,6 @@ import hu.padlas.core.design.component.StaggeredColumnItem
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
-import hu.padlas.core.design.theme.grain
 import hu.padlas.feature.transcode.ui.VideoCard
 
 /**
@@ -59,7 +58,7 @@ fun VideoRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         onPauseOrDispose { }
     }
 
-    Column(modifier = modifier.fillMaxSize().grain()) {
+    Column(modifier = modifier.fillMaxSize()) {
         PadlasTopBar(title = "Videók", onBack = onBack)
         Header(
             state = state,
@@ -102,12 +101,12 @@ private fun Header(
             text = Format.bytes(state.saved.totalBytes) + " · " +
                 Format.count(state.saved.itemCount) + " videó",
             style = PadlasTheme.type.numericLarge,
-            color = Ink.Paper,
+            color = Ink.Text,
         )
         when {
-            state.throttled -> Notice("Szünetel: a készülék meleg.", Ink.Brass)
-            state.running -> Notice("Csak töltőn és feltöltött akkumulátorral halad.", Ink.Faded)
-            state.pendingJobs > 0 -> Notice(Format.count(state.pendingJobs) + " videó vár a sorban.", Ink.Dust)
+            state.throttled -> Notice("Szünetel: a készülék meleg.", Ink.Accent)
+            state.running -> Notice("Csak töltőn és feltöltött akkumulátorral halad.", Ink.TextSecondary)
+            state.pendingJobs > 0 -> Notice(Format.count(state.pendingJobs) + " videó vár a sorban.", Ink.TextTertiary)
             else -> Unit
         }
         if (state.run.running && state.run.fraction > 0f) {
@@ -120,7 +119,7 @@ private fun Header(
         if (state.pendingRemovalIds.isNotEmpty()) {
             Notice(
                 "Az eredetik még " + Format.bytes(state.pendingRemovalBytes) + " helyet foglalnak.",
-                Ink.Faded,
+                Ink.TextSecondary,
             )
         }
         Column(modifier = Modifier.padding(vertical = Space.m)) {

@@ -1,15 +1,24 @@
 package hu.padlas.core.design.component
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CloudDone
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,11 +28,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
+import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.motionSpec
 import hu.padlas.core.design.theme.Ink
@@ -32,12 +40,11 @@ import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
 
 /**
- * In inverse mode everything starts selected, so selected has to be the quiet look and the
- * kept picture the loud one: a selected tile sits back a little behind a brass hairline,
- * while the one you rescued stays at full colour and full size.
+ * A grid tile that can be selected. The selected look is the familiar one from every
+ * gallery: a filled check in the corner and the picture pulled in slightly.
  *
- * The image is a slot rather than a Coil model because core:design does not depend on Coil;
- * feature modules pass an AsyncImage lambda and keep the loader configuration with them.
+ * The image is a slot because core:design does not depend on Coil; feature modules pass an
+ * AsyncImage lambda.
  */
 @Composable
 fun SelectableTile(
@@ -47,15 +54,17 @@ fun SelectableTile(
     modifier: Modifier = Modifier,
     badge: String? = null,
     onLongPress: (() -> Unit)? = null,
+    selectionMode: Boolean = true,
+    selectedTint: Color = Ink.Accent,
     image: @Composable (Modifier) -> Unit = { TilePlaceholder(it) },
 ) {
     val scale by animateFloatAsState(
-        targetValue = if (selected) 0.94f else 1f,
+        targetValue = if (selected) 0.9f else 1f,
         animationSpec = motionSpec(Motion.settle()),
         label = "tileScale",
     )
     val outline by animateColorAsState(
-        targetValue = if (selected) Ink.Brass else Color.Transparent,
+        targetValue = if (selected) selectedTint else Color.Transparent,
         animationSpec = motionSpec(Motion.settle()),
         label = "tileOutline",
     )
@@ -64,9 +73,8 @@ fun SelectableTile(
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .scale(scale)
-            .clip(Shapes.card)
-            .background(Ink.Surface)
+            .clip(Shapes.small)
+            .background(if (selected) selectedTint.copy(alpha = 0.18f) else Color.Transparent)
             .combinedClickable(
                 interactionSource = interaction,
                 indication = null,
@@ -74,34 +82,61 @@ fun SelectableTile(
                 onClick = onToggle,
             ),
     ) {
-        key(model) { image(Modifier.matchParentSize()) }
-        if (selected) {
-            Box(Modifier.matchParentSize().background(Ink.Void.copy(alpha = 0.42f)))
+        Box(
+            Modifier
+                .matchParentSize()
+                .scale(scale)
+                .clip(Shapes.small)
+                .background(Ink.SurfaceHigh)
+                .border(2.dp, outline, Shapes.small),
+        ) {
+            key(model) { image(Modifier.matchParentSize()) }
         }
-        Box(Modifier.matchParentSize().hairlineOutline(outline, Shapes.card))
         if (badge != null) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(Space.s)
-                    .background(Ink.Void.copy(alpha = 0.6f), Shapes.chip)
-                    .padding(horizontal = Space.xs, vertical = 2.dp),
+                    .padding(6.dp)
+                    .clip(Shapes.pill)
+                    .background(Ink.Background.copy(alpha = 0.65f))
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
             ) {
-                Text(
-                    text = badge,
-                    color = Ink.Paper,
-                    style = PadlasTheme.type.micro,
-                    maxLines = 1,
-                )
+                Text(text = badge, color = Ink.Text, style = PadlasTheme.type.micro, maxLines = 1)
             }
+        }
+        if (selectionMode) {
+            SelectionMark(
+                selected = selected,
+                tint = selectedTint,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(6.dp),
+            )
         }
     }
 }
 
-/**
- * What is left behind after a lift. The grid deliberately does not re-flow around it: an
- * archived picture keeps its place so you keep your spatial memory of the screen.
- */
+@Composable
+fun SelectionMark(selected: Boolean, modifier: Modifier = Modifier, tint: Color = Ink.Accent) {
+    Box(
+        modifier = modifier
+            .size(22.dp)
+            .clip(Shapes.pill)
+            .background(if (selected) tint else Ink.Background.copy(alpha = 0.35f))
+            .border(1.5.dp, if (selected) tint else Color.White.copy(alpha = 0.85f), Shapes.pill),
+        contentAlignment = Alignment.Center,
+    ) {
+        AnimatedVisibility(
+            visible = selected,
+            enter = scaleIn(finiteSpec(LocalReducedMotion.current, Motion.snapback())) + fadeIn(),
+            exit = scaleOut() + fadeOut(),
+        ) {
+            Icon(Icons.Rounded.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(15.dp))
+        }
+    }
+}
+
+/** What stays behind once the file only lives in the cloud. */
 @Composable
 fun GhostTile(
     model: Any?,
@@ -111,43 +146,27 @@ fun GhostTile(
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .clip(Shapes.card),
+            .clip(Shapes.small)
+            .background(Ink.SurfaceHigh),
     ) {
         key(model) {
-            Box(Modifier.matchParentSize().graphicsLayer { alpha = 0.08f }) {
+            Box(Modifier.matchParentSize().graphicsLayer { alpha = 0.35f }) {
                 image(Modifier.matchParentSize())
             }
         }
-        Box(Modifier.matchParentSize().hairlineOutline(Ink.Patina, Shapes.card))
-        AtticGlyph(
+        Icon(
+            Icons.Rounded.CloudDone,
+            contentDescription = null,
+            tint = Ink.Info,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(Space.s)
-                .size(12.dp),
+                .size(16.dp),
         )
     }
 }
 
-/** A roof with a hatch under it: the attic, drawn small enough to read as a mark. */
-@Composable
-private fun AtticGlyph(modifier: Modifier = Modifier) {
-    Canvas(modifier) {
-        val stroke = 1f
-        val eaves = size.height * 0.55f
-        drawLine(Ink.Patina, Offset(0f, eaves), Offset(size.width / 2f, 0f), stroke, StrokeCap.Round)
-        drawLine(Ink.Patina, Offset(size.width / 2f, 0f), Offset(size.width, eaves), stroke, StrokeCap.Round)
-        drawLine(
-            Ink.Patina,
-            Offset(size.width * 0.3f, size.height * 0.85f),
-            Offset(size.width * 0.7f, size.height * 0.85f),
-            stroke,
-            StrokeCap.Round,
-        )
-    }
-}
-
-/** Stand-in for the caller's image slot; a flat raised surface, never a shimmer. */
 @Composable
 internal fun TilePlaceholder(modifier: Modifier = Modifier) {
-    Box(modifier.background(Ink.Raised))
+    Box(modifier.background(Ink.SurfaceHigh))
 }

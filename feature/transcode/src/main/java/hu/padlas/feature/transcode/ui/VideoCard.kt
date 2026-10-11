@@ -101,7 +101,7 @@ internal fun VideoCard(
             Text(
                 text = item.displayName,
                 style = PadlasTheme.type.body,
-                color = Ink.Paper,
+                color = Ink.Text,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -127,7 +127,7 @@ private fun SizeColumn(item: VideoItem, done: Boolean, strike: Float) {
                 if (strike <= 0f) return@drawWithContent
                 val y = size.height / 2f
                 drawLine(
-                    color = Ink.Dust,
+                    color = Ink.TextTertiary,
                     start = Offset(0f, y),
                     end = Offset(size.width * strike, y),
                     strokeWidth = 1.5f,
@@ -136,7 +136,7 @@ private fun SizeColumn(item: VideoItem, done: Boolean, strike: Float) {
         ) {
             NumericText(
                 text = Format.bytes(item.originalBytes),
-                color = if (done) Ink.Dust else Ink.Paper,
+                color = if (done) Ink.TextTertiary else Ink.Text,
                 large = !done,
             )
         }
@@ -144,10 +144,10 @@ private fun SizeColumn(item: VideoItem, done: Boolean, strike: Float) {
             RollingNumber(
                 value = Format.bytes(item.resultBytes),
                 style = PadlasTheme.type.numericLarge,
-                color = Ink.Paper,
+                color = Ink.Text,
             )
         } else {
-            NumericText(text = Format.duration(item.durationMs), color = Ink.Dust)
+            NumericText(text = Format.duration(item.durationMs), color = Ink.TextTertiary)
         }
     }
 }
@@ -155,7 +155,7 @@ private fun SizeColumn(item: VideoItem, done: Boolean, strike: Float) {
 @Composable
 private fun DeltaLabel(item: VideoItem, done: Boolean, flash: Float) {
     if (!done) return
-    val color = lerp(Ink.Faded, Ink.Brass, flash)
+    val color = lerp(Ink.TextSecondary, Ink.Accent, flash)
     NumericText(
         text = "-" + Format.bytes(TranscodeMath.savedBytes(item.originalBytes, item.resultBytes)),
         color = color,
@@ -166,18 +166,18 @@ private fun DeltaLabel(item: VideoItem, done: Boolean, flash: Float) {
 @Composable
 private fun StatusLine(item: VideoItem, onRetry: () -> Unit) {
     when (item.state) {
-        JobState.RUNNING -> Label("Tömörítés folyamatban.", Ink.Faded)
-        JobState.PENDING -> Label("Sorban áll.", Ink.Dust)
+        JobState.RUNNING -> Label("Tömörítés folyamatban.", Ink.TextSecondary)
+        JobState.PENDING -> Label("Sorban áll.", Ink.TextTertiary)
         JobState.FAILED -> Row(verticalAlignment = Alignment.CenterVertically) {
-            Label(item.failureReason ?: "A tömörítés megszakadt.", Ink.Rust)
+            Label(item.failureReason ?: "A tömörítés megszakadt.", Ink.Danger)
             PadlasTextButton(text = "Újra", onClick = onRetry)
         }
         JobState.SUCCEEDED -> Label(
             if (item.published) "Kész, az eredeti még helyet foglal." else "Kész, cserére vár.",
-            Ink.Patina,
+            Ink.Success,
         )
-        JobState.CANCELLED -> Label("Megszakítva.", Ink.Dust)
-        null -> Label("Tömöríthető.", Ink.Dust)
+        JobState.CANCELLED -> Label("Megszakítva.", Ink.TextTertiary)
+        null -> Label("Tömöríthető.", Ink.TextTertiary)
     }
 }
 

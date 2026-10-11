@@ -29,7 +29,7 @@ internal fun BinTray(active: Boolean, lid: () -> Float, modifier: Modifier = Mod
         animationSpec = motionSpec(Motion.snapSpring<Float>()),
         label = "binScale",
     )
-    val outline = if (active) Ink.Rust else Ink.Dust
+    val outline = if (active) Ink.Danger else Ink.TextTertiary
 
     Canvas(
         modifier = modifier
@@ -42,7 +42,7 @@ internal fun BinTray(active: Boolean, lid: () -> Float, modifier: Modifier = Mod
         val bodyTop = Offset(0f, height * 0.34f)
         val corner = CornerRadius(7.dp.toPx())
 
-        drawRoundRect(color = Ink.Raised, topLeft = bodyTop, size = body, cornerRadius = corner)
+        drawRoundRect(color = Ink.SurfaceHigh, topLeft = bodyTop, size = body, cornerRadius = corner)
         drawRoundRect(
             color = outline,
             topLeft = bodyTop,
@@ -81,7 +81,7 @@ internal fun AtticHatch(active: Boolean, modifier: Modifier = Modifier) {
         animationSpec = motionSpec(Motion.snapSpring<Float>()),
         label = "hatchScale",
     )
-    val stroke = if (active) Ink.Patina else Ink.Dust
+    val stroke = if (active) Ink.Success else Ink.TextTertiary
 
     Canvas(
         modifier = modifier
@@ -91,7 +91,7 @@ internal fun AtticHatch(active: Boolean, modifier: Modifier = Modifier) {
         val width = size.width
         val height = size.height
         drawRoundRect(
-            color = Ink.Void,
+            color = Ink.Background,
             topLeft = Offset(0f, height * 0.36f),
             size = Size(width, height * 0.30f),
             cornerRadius = CornerRadius(2.dp.toPx()),
@@ -114,7 +114,7 @@ internal fun AtticHatch(active: Boolean, modifier: Modifier = Modifier) {
 /** Keep. A check drawn by hand, because the app owns no icon font. */
 @Composable
 internal fun KeepGlyph(active: Boolean, modifier: Modifier = Modifier) {
-    GlyphCanvas(active, if (active) Ink.Brass else Ink.Dust, modifier) { color ->
+    GlyphCanvas(active, if (active) Ink.Accent else Ink.TextTertiary, modifier) { color ->
         val width = size.width
         val height = size.height
         val path = androidx.compose.ui.graphics.Path().apply {
@@ -129,7 +129,7 @@ internal fun KeepGlyph(active: Boolean, modifier: Modifier = Modifier) {
 /** Decide later: the card is parked, so the glyph points down and stops. */
 @Composable
 internal fun LaterGlyph(active: Boolean, modifier: Modifier = Modifier) {
-    GlyphCanvas(active, if (active) Ink.Paper else Ink.Dust, modifier) { color ->
+    GlyphCanvas(active, if (active) Ink.Text else Ink.TextTertiary, modifier) { color ->
         val width = size.width
         val height = size.height
         val path = androidx.compose.ui.graphics.Path().apply {

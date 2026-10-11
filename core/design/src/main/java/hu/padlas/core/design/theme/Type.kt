@@ -10,93 +10,110 @@ import androidx.compose.ui.unit.sp
 import hu.padlas.core.design.R
 
 /**
- * Three roles, three faces. The serif hero number is the whole luxury argument: a
- * seriffed figure in a storage app borrows the visual language of watchmaking, not of
- * system settings. Everything else stays quiet around it.
- *
- * The faces are bundled rather than pulled through the downloadable-fonts provider: the
- * first screen the user ever sees is the one with the 56sp hero number on it, and a font
- * that arrives a second late would land exactly there.
+ * One family carries the whole app. Instrument Sans has real tabular figures, so byte
+ * counts line up in lists without falling back to a monospaced face.
  */
-val InstrumentSerif = FontFamily(
-    Font(R.font.instrument_serif_regular, FontWeight.Normal),
-)
-
 val InstrumentSans = FontFamily(
     Font(R.font.instrument_sans_regular, FontWeight.Normal),
     Font(R.font.instrument_sans_medium, FontWeight.Medium),
     Font(R.font.instrument_sans_semibold, FontWeight.SemiBold),
+    Font(R.font.instrument_sans_semibold, FontWeight.Bold),
 )
 
-val GeistMono = FontFamily(
-    Font(R.font.geist_mono_regular, FontWeight.Normal),
-    Font(R.font.geist_mono_medium, FontWeight.Medium),
-)
+private const val Tabular = "tnum"
 
-/** Padlas type scale. Sizes are fixed in sp; the app never scales the hero digits. */
 data class PadlasTypography(
+    /** Hero figures: free space, reclaimable bytes. */
     val display: TextStyle = TextStyle(
-        fontFamily = InstrumentSerif,
-        fontSize = 56.sp,
-        lineHeight = 60.sp,
-        fontWeight = FontWeight.Normal,
-        letterSpacing = (-0.01).em,
+        fontFamily = InstrumentSans,
+        fontSize = 46.sp,
+        lineHeight = 50.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = (-0.03).em,
+        fontFeatureSettings = Tabular,
     ),
     val displaySmall: TextStyle = TextStyle(
-        fontFamily = InstrumentSerif,
-        fontSize = 34.sp,
-        lineHeight = 38.sp,
-        fontWeight = FontWeight.Normal,
+        fontFamily = InstrumentSans,
+        fontSize = 32.sp,
+        lineHeight = 36.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = (-0.02).em,
+        fontFeatureSettings = Tabular,
+    ),
+    /** Screen titles. */
+    val headline: TextStyle = TextStyle(
+        fontFamily = InstrumentSans,
+        fontSize = 28.sp,
+        lineHeight = 34.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = (-0.02).em,
     ),
     val title: TextStyle = TextStyle(
         fontFamily = InstrumentSans,
-        fontSize = 24.sp,
-        lineHeight = 30.sp,
-        fontWeight = FontWeight.Medium,
+        fontSize = 19.sp,
+        lineHeight = 24.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = (-0.01).em,
     ),
     val body: TextStyle = TextStyle(
         fontFamily = InstrumentSans,
         fontSize = 15.sp,
-        lineHeight = 22.sp,
+        lineHeight = 21.sp,
         fontWeight = FontWeight.Normal,
+    ),
+    val bodyStrong: TextStyle = TextStyle(
+        fontFamily = InstrumentSans,
+        fontSize = 15.sp,
+        lineHeight = 21.sp,
+        fontWeight = FontWeight.Medium,
     ),
     val label: TextStyle = TextStyle(
         fontFamily = InstrumentSans,
-        fontSize = 13.sp,
+        fontSize = 14.sp,
         lineHeight = 18.sp,
         fontWeight = FontWeight.Medium,
+    ),
+    val caption: TextStyle = TextStyle(
+        fontFamily = InstrumentSans,
+        fontSize = 13.sp,
+        lineHeight = 17.sp,
+        fontWeight = FontWeight.Normal,
     ),
     val micro: TextStyle = TextStyle(
         fontFamily = InstrumentSans,
         fontSize = 11.sp,
         lineHeight = 14.sp,
         fontWeight = FontWeight.Medium,
-        letterSpacing = 0.02.em,
+        letterSpacing = 0.03.em,
     ),
-    /** Tabular figures, always. Every byte count and percentage uses this. */
     val numeric: TextStyle = TextStyle(
-        fontFamily = GeistMono,
+        fontFamily = InstrumentSans,
         fontSize = 14.sp,
         lineHeight = 18.sp,
         fontWeight = FontWeight.Medium,
-        fontFeatureSettings = "tnum",
+        fontFeatureSettings = Tabular,
     ),
     val numericLarge: TextStyle = TextStyle(
-        fontFamily = GeistMono,
-        fontSize = 20.sp,
-        lineHeight = 24.sp,
-        fontWeight = FontWeight.Medium,
-        fontFeatureSettings = "tnum",
+        fontFamily = InstrumentSans,
+        fontSize = 22.sp,
+        lineHeight = 26.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = (-0.01).em,
+        fontFeatureSettings = Tabular,
     ),
 )
 
 internal fun material3Typography(type: PadlasTypography): Typography = Typography(
     displayLarge = type.display,
     displayMedium = type.displaySmall,
+    headlineMedium = type.headline,
     headlineSmall = type.title,
     titleLarge = type.title,
+    titleMedium = type.bodyStrong,
     bodyLarge = type.body,
     bodyMedium = type.body,
+    bodySmall = type.caption,
     labelLarge = type.label,
+    labelMedium = type.caption,
     labelSmall = type.micro,
 )

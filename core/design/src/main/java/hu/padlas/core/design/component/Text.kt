@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,23 +45,18 @@ private const val RollStaggerMs = 40L
 private data class SlotMetrics(val width: Dp, val height: Dp)
 
 /**
- * The signature detail of the app. Instrument Serif figures all have different advance
- * widths, so a slot fixed to the widest digit is the only thing that stops the hero number
- * from shivering as it rolls - and a shivering number makes the whole screen look cheap.
- * Digits swap right to left because that is the direction a figure actually changes in.
+ * Each digit rolls in its own slot, fixed to the widest figure so the number never shivers
+ * while it changes. Digits swap right to left, the direction a figure actually changes in.
  */
 @Composable
 fun RollingNumber(
     value: String,
     style: TextStyle,
     modifier: Modifier = Modifier,
-    color: Color = Ink.Paper,
+    color: Color = Ink.Text,
 ) {
     val measurer = rememberTextMeasurer(cacheSize = 32)
     val density = LocalDensity.current
-    // Deliberately not remembered: the Google font arrives asynchronously and a cached
-    // fallback measurement would leave the serif digits in the wrong slot forever. The
-    // measurer drops its own cache entries when the resolved fonts go stale.
     val digitPair = measurer.measure("00", style, maxLines = 1).size.width
     val slot = with(density) {
         var widest = 0
@@ -162,22 +159,50 @@ private fun rollsDown(from: String, to: String): Boolean {
     }
 }
 
+/** A quiet group heading. Old callers still pass all caps; it is set in sentence case. */
 @Composable
 fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     Text(
-        text = text.uppercase(),
+        text = text.sentenceCase(),
         modifier = modifier,
-        color = Ink.Dust,
-        style = PadlasTheme.type.micro,
+        color = Ink.TextSecondary,
+        style = PadlasTheme.type.label,
         maxLines = 1,
     )
+}
+
+/** Section title with an optional action on the right ("Mind", "Szerkesztés"). */
+@Composable
+fun SectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            color = Ink.Text,
+            style = PadlasTheme.type.title,
+            maxLines = 1,
+            modifier = Modifier.weight(1f),
+        )
+        if (actionLabel != null && onAction != null) {
+            PadlasTextButton(text = actionLabel, onClick = onAction)
+        }
+    }
 }
 
 @Composable
 fun NumericText(
     text: String,
     modifier: Modifier = Modifier,
-    color: Color = Ink.Faded,
+    color: Color = Ink.TextSecondary,
     large: Boolean = false,
 ) {
     Text(
@@ -185,5 +210,6 @@ fun NumericText(
         modifier = modifier,
         color = color,
         style = if (large) PadlasTheme.type.numericLarge else PadlasTheme.type.numeric,
+        maxLines = 1,
     )
 }
