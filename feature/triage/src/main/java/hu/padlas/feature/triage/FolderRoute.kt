@@ -38,11 +38,24 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.design.component.EmptyState
+import hu.padlas.core.design.component.GlassScreen
 import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.PadlasTopBar
+import hu.padlas.core.design.component.PinnedActionBar
+import hu.padlas.core.design.component.ReclaimHero
 import hu.padlas.core.design.component.Toast
+import hu.padlas.core.design.component.ZoomHost
+import hu.padlas.core.design.component.ZoomTarget
+import hu.padlas.core.design.component.navigationBarBottom
+import hu.padlas.core.design.component.rememberZoomState
+import hu.padlas.core.design.component.topBarClearance
 import hu.padlas.core.design.motion.LocalReducedMotion
+import hu.padlas.core.design.motion.entrance
+import hu.padlas.core.design.motion.finite
 import hu.padlas.core.design.motion.haptics
+import hu.padlas.core.design.motion.itemMotion
+import hu.padlas.core.design.motion.popIn
+import hu.padlas.core.design.motion.rememberEntrance
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
@@ -104,6 +117,7 @@ fun FolderRoute(bucketId: Long, onBack: () -> Unit, modifier: Modifier = Modifie
 
     ZoomHost(
         state = zoom,
+        picture = { target, placeholder, pictureModifier -> ZoomPicture(target, placeholder, pictureModifier) },
         modifier = modifier.fillMaxSize(),
         actions = { target ->
             val id = target.key as? Long
@@ -173,7 +187,8 @@ fun FolderRoute(bucketId: Long, onBack: () -> Unit, modifier: Modifier = Modifie
                     item(key = "hero", span = { GridItemSpan(maxLineSpan) }) {
                         ReclaimHero(
                             label = "Felszabadítható",
-                            bytes = state.discardBytes,
+                            value = Format.bytesValue(state.discardBytes),
+                            unit = Format.bytesUnit(state.discardBytes),
                             caption = "Minden ki van jelölve törlésre. Koppints arra, amit megtartanál, " +
                                 "hosszan nyomva pedig nagyban is megnézheted.",
                             modifier = Modifier.entrance(entrance).padding(bottom = Space.m),

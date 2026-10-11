@@ -52,32 +52,53 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import coil3.memory.MemoryCache
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.database.entity.Asset
 import hu.padlas.core.database.entity.AssetState
+import hu.padlas.core.design.component.BarFigures
 import hu.padlas.core.design.component.ButtonSize
 import hu.padlas.core.design.component.ButtonStyle
 import hu.padlas.core.design.component.EmptyState
 import hu.padlas.core.design.component.GhostTile
+import hu.padlas.core.design.component.GlassScreen
 import hu.padlas.core.design.component.IconBubble
 import hu.padlas.core.design.component.ListRow
 import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasCard
 import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.PadlasTopBar
+import hu.padlas.core.design.component.PinnedActionBar
+import hu.padlas.core.design.component.PinnedBarClearance
 import hu.padlas.core.design.component.ProgressRing
 import hu.padlas.core.design.component.ProgressStrip
+import hu.padlas.core.design.component.ReclaimHero
 import hu.padlas.core.design.component.SectionHeader
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.component.Toast
+import hu.padlas.core.design.component.ZoomHost
+import hu.padlas.core.design.component.ZoomTarget
+import hu.padlas.core.design.component.ZoomableImage
+import hu.padlas.core.design.component.navigationBarBottom
+import hu.padlas.core.design.component.rememberZoomState
+import hu.padlas.core.design.component.topBarClearance
 import hu.padlas.core.design.motion.LocalReducedMotion
+import hu.padlas.core.design.motion.entrance
+import hu.padlas.core.design.motion.finite
 import hu.padlas.core.design.motion.haptics
+import hu.padlas.core.design.motion.itemMotion
+import hu.padlas.core.design.motion.popIn
+import hu.padlas.core.design.motion.rememberEntrance
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
@@ -133,6 +154,7 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
     ZoomHost(
         state = zoom,
+        picture = { target, placeholder, pictureModifier -> ZoomPicture(target, placeholder, pictureModifier) },
         modifier = modifier.fillMaxSize(),
         actions = { target ->
             val id = target.key as? Long
@@ -190,7 +212,12 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     ) { active ->
                         Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
                             if (active) {
-                                BarFigures(count = state.selected.size, noun = "kijelölve", bytes = selectedBytes)
+                                BarFigures(
+                                    count = Format.count(state.selected.size),
+                                    noun = "kijelölve",
+                                    value = Format.bytesValue(selectedBytes),
+                                    unit = Format.bytesUnit(selectedBytes),
+                                )
                                 Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
                                     if (selectedPending) {
                                         PadlasButton(
@@ -213,7 +240,12 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                                     )
                                 }
                             } else {
-                                BarFigures(count = freeable, noun = "fájl felszabadítható", bytes = state.reclaimable)
+                                BarFigures(
+                                    count = Format.count(freeable),
+                                    noun = "fájl felszabadítható",
+                                    value = Format.bytesValue(state.reclaimable),
+                                    unit = Format.bytesUnit(state.reclaimable),
+                                )
                                 PadlasButton(
                                     text = "Hely felszabadítása",
                                     onClick = viewModel::freeUpAll,
@@ -259,7 +291,8 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     item(key = "hero", span = { GridItemSpan(maxLineSpan) }) {
                         ReclaimHero(
                             label = "Felszabadítható a telefonon",
-                            bytes = state.reclaimable,
+                            value = Format.bytesValue(state.reclaimable),
+                            unit = Format.bytesUnit(state.reclaimable),
                             caption = "Ezek a fájlok már biztonságban vannak a Drive-on, a telefonról törölhetők. " +
                                 "Helyükön egy kis előnézet marad.",
                             glow = Ink.Info,
@@ -371,7 +404,15 @@ private fun AtticTile(
     modifier: Modifier = Modifier,
 ) {
     val image: @Composable (Modifier) -> Unit = { tileModifier ->
-        ZoomableImage(key = asset.mediaStoreId, model = model, modifier = tileModifier)
+        ZoomableImage(key = asset.mediaStoreId, modifier = tileModifier) { imageModifier, onLoaded ->
+            AsyncImage(
+                model = model,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                onSuccess = { onLoaded(it.painter.intrinsicSize, it.result.memoryCacheKey) },
+                modifier = imageModifier,
+            )
+        }
     }
     Box(modifier = modifier) {
         if (asset.state == AssetState.GHOST) {
@@ -580,6 +621,20 @@ private fun DesktopNotice(onDismiss: () -> Unit, modifier: Modifier = Modifier) 
             }
         }
     }
+}
+
+/** The full picture, on top of the tile's cached thumbnail until it has loaded. */
+@Composable
+private fun ZoomPicture(target: ZoomTarget, placeholder: Any?, modifier: Modifier) {
+    val context = LocalContext.current
+    val request = remember(target.model, placeholder) {
+        ImageRequest.Builder(context)
+            .data(target.model)
+            .placeholderMemoryCacheKey(placeholder as? MemoryCache.Key)
+            .crossfade(true)
+            .build()
+    }
+    AsyncImage(model = request, contentDescription = target.title, contentScale = ContentScale.Crop, modifier = modifier)
 }
 
 private const val GRID_COLUMNS = 4

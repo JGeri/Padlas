@@ -1,9 +1,12 @@
 package hu.padlas.core.design.motion
 
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.compositionLocalOf
@@ -55,6 +58,16 @@ val LocalReducedMotion = compositionLocalOf { false }
 @ReadOnlyComposable
 fun <T> motionSpec(spec: FiniteAnimationSpec<T>): AnimationSpec<T> =
     if (LocalReducedMotion.current) snap() else spec
+
+/**
+ * [motionSpec] for enter/exit transitions and coroutine drivers: those need the finite
+ * type, and they are often built where composition locals cannot be read.
+ */
+fun <T> finite(reduced: Boolean): FiniteAnimationSpec<T> = if (reduced) snap() else Motion.settle()
+
+/** Badges and verdicts arrive with a little overshoot, so a change of state is noticed. */
+fun popIn(reduced: Boolean): EnterTransition =
+    scaleIn(if (reduced) snap() else Motion.bouncy(), initialScale = 0.6f) + fadeIn(finite(reduced))
 
 @Composable
 @ReadOnlyComposable

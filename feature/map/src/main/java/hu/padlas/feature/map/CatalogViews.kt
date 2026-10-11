@@ -47,6 +47,7 @@ import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.SectionHeader
 import hu.padlas.core.design.component.SelectionMark
 import hu.padlas.core.design.motion.Motion
+import hu.padlas.core.design.motion.itemMotion
 import hu.padlas.core.design.theme.CategoryColor
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme

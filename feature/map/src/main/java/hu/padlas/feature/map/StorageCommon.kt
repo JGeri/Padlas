@@ -77,9 +77,12 @@ import hu.padlas.core.design.component.IconBubble
 import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.RollingNumber
+import hu.padlas.core.design.component.frostedPane
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
+import hu.padlas.core.design.motion.finite
 import hu.padlas.core.design.motion.motionSpec
+import hu.padlas.core.design.motion.popIn
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes

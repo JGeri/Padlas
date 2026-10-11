@@ -175,8 +175,19 @@ Components (`component.*`): `PadlasTopBar`, `LargeHeader`, `PadlasButton` (`Butt
 `SelectionMark`, `GhostTile`, `HoldToConfirm`, `Toast`, `ConfirmDialog`, `StatTile`,
 `StaggeredColumnItem`, `Modifier.raisedSurface`, `Modifier.hairlineTop/Bottom`.
 
+Pushed-screen chrome (`component.*`): `GlassScreen` (aurora + list as one blur source under a
+top bar that frosts once scrolled; `overlay` gets the `HazeState`), `PinnedActionBar` (the
+floating frosted primary action), `Modifier.frostedPane`, `topBarClearance()`,
+`navigationBarBottom()`, `PinnedBarClearance`, and the figures `ReclaimHero`, `BigBytes`,
+`BarFigures`, which take strings already formatted through `Format`. `ZoomHost` /
+`ZoomableImage` / `rememberZoomState()` grow a grid tile in place into a full-screen picture
+with the tile's own choice (`actions`) under it; `PhotoViewer` is the dialog variant.
+
 Motion (`motion.*`): springs `snapSpring`, `settle`, `weight`, `snapback`, `drain`,
-`bouncy`, `rest`; `motionSpec` (reduced motion), `LocalReducedMotion`, `haptics()`.
+`bouncy`, `rest`; `motionSpec` (reduced motion), `LocalReducedMotion`, `haptics()`;
+`finite(reduced)` and `popIn(reduced)` for transitions built off composition;
+`rememberEntrance()` + `Modifier.entrance(...)` (open-time stagger) and `itemMotion()` for
+lazy list and grid items.
 
 Shared elements: the navigation host wraps everything in a `SharedTransitionLayout` and
 provides `LocalSharedTransitionScope` and, per destination, `LocalNavAnimatedVisibilityScope`.
@@ -245,6 +256,9 @@ Every state change that touches a file writes an `AuditEntry` (INV-5). Use
 
 - `core:design` does not depend on Coil, so `SelectableTile`/`GhostTile` take a trailing
   `image: @Composable (Modifier) -> Unit` slot; feature modules pass an `AsyncImage`.
+  `ZoomableImage` and `ZoomHost` work the same way, and the module reports the tile's
+  intrinsic size and Coil memory-cache key back so the viewer opens at the right shape
+  over the cached thumbnail.
 - `AtticRoute` lives in `hu.padlas.feature.archive.ui`, not in the module root.
 - The swipe deck (`:feature:sort`) stores decisions in `swipe_decision` (schema 2, Room
   auto-migration). DELETE rows are a pending batch; they leave through one system dialog

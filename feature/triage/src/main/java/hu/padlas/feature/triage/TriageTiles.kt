@@ -36,8 +36,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import coil3.memory.MemoryCache
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.database.entity.ShotKind
 import hu.padlas.core.design.component.ButtonStyle
@@ -47,10 +53,14 @@ import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.Pill
 import hu.padlas.core.design.component.RollingNumber
 import hu.padlas.core.design.component.SelectableTile
+import hu.padlas.core.design.component.ZoomTarget
+import hu.padlas.core.design.component.ZoomableImage
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
+import hu.padlas.core.design.motion.finite
 import hu.padlas.core.design.motion.haptics
 import hu.padlas.core.design.motion.motionSpec
+import hu.padlas.core.design.motion.popIn
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes
@@ -129,7 +139,15 @@ internal fun ShotTile(
                         else -> null
                     },
                     image = { tileModifier ->
-                        ZoomableImage(key = item.id, model = item.model, modifier = tileModifier)
+                        ZoomableImage(key = item.id, modifier = tileModifier) { imageModifier, onLoaded ->
+                            AsyncImage(
+                                model = item.model,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                onSuccess = { onLoaded(it.painter.intrinsicSize, it.result.memoryCacheKey) },
+                                modifier = imageModifier,
+                            )
+                        }
                     },
                 )
                 if (item.locked) {
@@ -280,6 +298,20 @@ internal fun ColumnScope.KeepVerdict(kept: Boolean, locked: Boolean, onToggle: (
             modifier = Modifier.fillMaxWidth(),
         )
     }
+}
+
+/** The full picture, on top of the tile's cached thumbnail until it has loaded. */
+@Composable
+internal fun ZoomPicture(target: ZoomTarget, placeholder: Any?, modifier: Modifier) {
+    val context = LocalContext.current
+    val request = remember(target.model, placeholder) {
+        ImageRequest.Builder(context)
+            .data(target.model)
+            .placeholderMemoryCacheKey(placeholder as? MemoryCache.Key)
+            .crossfade(true)
+            .build()
+    }
+    AsyncImage(model = request, contentDescription = target.title, contentScale = ContentScale.Crop, modifier = modifier)
 }
 
 internal const val KEEP_BADGE = "Marad"

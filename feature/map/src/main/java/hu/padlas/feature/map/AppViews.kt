@@ -46,6 +46,7 @@ import hu.padlas.core.design.component.PadlasCard
 import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.SectionHeader
 import hu.padlas.core.design.component.SegmentBar
+import hu.padlas.core.design.motion.itemMotion
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes

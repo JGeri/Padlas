@@ -43,13 +43,25 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.design.component.EmptyState
+import hu.padlas.core.design.component.GlassScreen
 import hu.padlas.core.design.component.HoldToConfirm
 import hu.padlas.core.design.component.IconBubble
 import hu.padlas.core.design.component.PadlasCard
 import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.PadlasTopBar
+import hu.padlas.core.design.component.PinnedActionBar
+import hu.padlas.core.design.component.ReclaimHero
 import hu.padlas.core.design.component.Toast
+import hu.padlas.core.design.component.ZoomHost
+import hu.padlas.core.design.component.ZoomTarget
+import hu.padlas.core.design.component.navigationBarBottom
+import hu.padlas.core.design.component.rememberZoomState
+import hu.padlas.core.design.component.topBarClearance
+import hu.padlas.core.design.motion.Entrance
+import hu.padlas.core.design.motion.entrance
 import hu.padlas.core.design.motion.haptics
+import hu.padlas.core.design.motion.itemMotion
+import hu.padlas.core.design.motion.rememberEntrance
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
@@ -142,6 +154,7 @@ private fun DiscardScreen(
 
     ZoomHost(
         state = zoom,
+        picture = { target, placeholder, pictureModifier -> ZoomPicture(target, placeholder, pictureModifier) },
         modifier = modifier.fillMaxSize(),
         actions = { target ->
             val id = target.key as? Long
@@ -257,7 +270,8 @@ private fun DiscardGrid(
         item(key = "hero", span = { GridItemSpan(maxLineSpan) }) {
             ReclaimHero(
                 label = "Felszabadítható",
-                bytes = selection.discardBytes,
+                value = Format.bytesValue(selection.discardBytes),
+                unit = Format.bytesUnit(selection.discardBytes),
                 caption = "Képernyőképek és letöltött képek, amikre valószínűleg már nincs szükséged. " +
                     "A felismert csoportok ki vannak jelölve törlésre, koppints arra, amit megtartanál. " +
                     "A még fel nem ismert képeket csak a „Mind törlése” jelöli ki. " +

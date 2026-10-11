@@ -61,7 +61,10 @@ import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.frosted
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
+import hu.padlas.core.design.motion.entrance
 import hu.padlas.core.design.motion.haptics
+import hu.padlas.core.design.motion.itemMotion
+import hu.padlas.core.design.motion.rememberEntrance
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space

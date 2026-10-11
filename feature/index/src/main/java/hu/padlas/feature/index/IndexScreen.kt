@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -67,6 +66,7 @@ import hu.padlas.core.design.component.RollingNumber
 import hu.padlas.core.design.component.StaggeredColumnItem
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
+import hu.padlas.core.design.motion.finite
 import hu.padlas.core.design.motion.haptics
 import hu.padlas.core.design.motion.motionSpec
 import hu.padlas.core.design.theme.Ink
@@ -408,8 +408,6 @@ private fun phase(state: IndexUiState): String = when {
     state.total > 0 -> "${Format.count(state.total)} fájl vár átnézésre"
     else -> "Mappák bejárása…"
 }
-
-private fun <T> finite(reduced: Boolean): FiniteAnimationSpec<T> = if (reduced) snap() else Motion.settle()
 
 private const val BreathMs = 1_800
 private const val SpinMs = 1_100

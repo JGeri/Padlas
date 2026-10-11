@@ -40,24 +40,45 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import coil3.memory.MemoryCache
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.database.entity.DupKind
+import hu.padlas.core.design.component.BarFigures
 import hu.padlas.core.design.component.ButtonStyle
 import hu.padlas.core.design.component.EmptyState
+import hu.padlas.core.design.component.GlassScreen
 import hu.padlas.core.design.component.ListRow
 import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasCard
 import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.Pill
+import hu.padlas.core.design.component.PinnedActionBar
+import hu.padlas.core.design.component.PinnedBarClearance
 import hu.padlas.core.design.component.ProgressRing
 import hu.padlas.core.design.component.ProgressStrip
+import hu.padlas.core.design.component.ReclaimHero
 import hu.padlas.core.design.component.RollingNumber
 import hu.padlas.core.design.component.SectionHeader
+import hu.padlas.core.design.component.ZoomHost
+import hu.padlas.core.design.component.ZoomTarget
+import hu.padlas.core.design.component.navigationBarBottom
+import hu.padlas.core.design.component.rememberZoomState
+import hu.padlas.core.design.component.topBarClearance
 import hu.padlas.core.design.motion.LocalReducedMotion
+import hu.padlas.core.design.motion.entrance
+import hu.padlas.core.design.motion.finite
 import hu.padlas.core.design.motion.haptics
+import hu.padlas.core.design.motion.itemMotion
+import hu.padlas.core.design.motion.popIn
+import hu.padlas.core.design.motion.rememberEntrance
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
@@ -89,6 +110,7 @@ internal fun DedupScreen(
 
     ZoomHost(
         state = zoom,
+        picture = { target, placeholder, pictureModifier -> ZoomPicture(target, placeholder, pictureModifier) },
         modifier = modifier.fillMaxSize(),
         actions = { target -> ZoomVerdict(target = target, state = state, onPickWinner = onPickWinner) },
     ) {
@@ -112,7 +134,12 @@ internal fun DedupScreen(
             },
             overlay = { haze ->
                 PinnedActionBar(visible = showBar, haze = haze, modifier = Modifier.align(Alignment.BottomCenter)) {
-                    BarFigures(count = state.loserCount, noun = DedupCopy.BAR_NOUN, bytes = state.reclaimableBytes)
+                    BarFigures(
+                        count = Format.count(state.loserCount),
+                        noun = DedupCopy.BAR_NOUN,
+                        value = Format.bytesValue(state.reclaimableBytes),
+                        unit = Format.bytesUnit(state.reclaimableBytes),
+                    )
                     PadlasButton(
                         text = DedupCopy.ALL_ACTION,
                         onClick = {
@@ -142,7 +169,8 @@ internal fun DedupScreen(
                     item(key = "hero") {
                         ReclaimHero(
                             label = DedupCopy.RECLAIMABLE,
-                            bytes = state.reclaimableBytes,
+                            value = Format.bytesValue(state.reclaimableBytes),
+                            unit = Format.bytesUnit(state.reclaimableBytes),
                             caption = DedupCopy.heroCaption(state.loserCount, state.groupCount),
                             modifier = Modifier.entrance(entrance).then(itemMotion()),
                         ) {
@@ -291,6 +319,20 @@ private fun ColumnScope.ZoomVerdict(
 }
 
 private enum class Verdict { KEEP, PROTECTED, TRASH }
+
+/** The full picture, on top of the tile's cached thumbnail until it has loaded. */
+@Composable
+private fun ZoomPicture(target: ZoomTarget, placeholder: Any?, modifier: Modifier) {
+    val context = LocalContext.current
+    val request = remember(target.model, placeholder) {
+        ImageRequest.Builder(context)
+            .data(target.model)
+            .placeholderMemoryCacheKey(placeholder as? MemoryCache.Key)
+            .crossfade(true)
+            .build()
+    }
+    AsyncImage(model = request, contentDescription = target.title, contentScale = ContentScale.Crop, modifier = modifier)
+}
 
 /** Scoped to the group: the same picture can sit in more than one group, but flies from one tile. */
 internal data class DedupZoomKey(val groupId: String, val assetId: Long)

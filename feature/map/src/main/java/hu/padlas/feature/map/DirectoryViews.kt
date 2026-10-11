@@ -46,6 +46,9 @@ import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.SelectionMark
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
+import hu.padlas.core.design.motion.finite
+import hu.padlas.core.design.motion.itemMotion
+import hu.padlas.core.design.motion.popIn
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes

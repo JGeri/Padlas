@@ -53,35 +53,35 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.database.entity.JobState
+import hu.padlas.core.design.component.BarFigures
 import hu.padlas.core.design.component.ButtonSize
 import hu.padlas.core.design.component.ButtonStyle
 import hu.padlas.core.design.component.EmptyState
+import hu.padlas.core.design.component.GlassScreen
 import hu.padlas.core.design.component.IconBubble
 import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasCard
 import hu.padlas.core.design.component.PadlasTopBar
+import hu.padlas.core.design.component.PinnedActionBar
+import hu.padlas.core.design.component.PinnedBarClearance
 import hu.padlas.core.design.component.ProgressRing
 import hu.padlas.core.design.component.ProgressStrip
+import hu.padlas.core.design.component.ReclaimHero
 import hu.padlas.core.design.component.SectionHeader
+import hu.padlas.core.design.component.navigationBarBottom
+import hu.padlas.core.design.component.topBarClearance
 import hu.padlas.core.design.motion.LocalReducedMotion
+import hu.padlas.core.design.motion.entrance
+import hu.padlas.core.design.motion.finite
+import hu.padlas.core.design.motion.itemMotion
+import hu.padlas.core.design.motion.rememberEntrance
 import hu.padlas.core.design.theme.CategoryColor
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
 import hu.padlas.feature.transcode.data.TranscodeMath
 import hu.padlas.feature.transcode.data.VideoItem
-import hu.padlas.feature.transcode.ui.BarFigures
-import hu.padlas.feature.transcode.ui.GlassScreen
-import hu.padlas.feature.transcode.ui.PinnedActionBar
-import hu.padlas.feature.transcode.ui.PinnedBarClearance
-import hu.padlas.feature.transcode.ui.ReclaimHero
 import hu.padlas.feature.transcode.ui.VideoCard
-import hu.padlas.feature.transcode.ui.entrance
-import hu.padlas.feature.transcode.ui.finite
-import hu.padlas.feature.transcode.ui.itemMotion
-import hu.padlas.feature.transcode.ui.navigationBarBottom
-import hu.padlas.feature.transcode.ui.rememberEntrance
-import hu.padlas.feature.transcode.ui.topBarClearance
 
 /**
  * The largest videos first. Compression is a night job on the charger; the screen says
@@ -183,10 +183,11 @@ private fun VideoScreen(
                             )
                         } else {
                             BarFigures(
-                                count = waiting.size,
+                                count = Format.count(waiting.size),
                                 noun = "videó",
-                                bytes = waitingEstimate,
-                                bytesPrefix = "kb.",
+                                value = Format.bytesValue(waitingEstimate),
+                                unit = Format.bytesUnit(waitingEstimate),
+                                valuePrefix = "kb.",
                             )
                             PadlasButton(
                                 text = "Tömörítés indítása",
@@ -225,7 +226,8 @@ private fun VideoScreen(
             item(key = "hero") {
                 ReclaimHero(
                     label = "Megspórolható",
-                    bytes = estimate,
+                    value = Format.bytesValue(estimate),
+                    unit = Format.bytesUnit(estimate),
                     caption = "Tömörítve nagyjából feleakkorák lesznek, a minőség szemre alig változik. " +
                         "Csak töltés közben fut, hogy ne merítse a telefont.",
                     glow = CategoryColor.Videos,

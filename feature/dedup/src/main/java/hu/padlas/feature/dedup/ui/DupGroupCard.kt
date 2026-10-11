@@ -42,9 +42,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.database.entity.DupKind
 import hu.padlas.core.design.component.ButtonSize
@@ -52,10 +54,13 @@ import hu.padlas.core.design.component.ButtonStyle
 import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasCard
 import hu.padlas.core.design.component.Pill
+import hu.padlas.core.design.component.ZoomableImage
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
+import hu.padlas.core.design.motion.finite
 import hu.padlas.core.design.motion.haptics
 import hu.padlas.core.design.motion.motionSpec
+import hu.padlas.core.design.motion.popIn
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes
@@ -228,12 +233,15 @@ private fun MemberTile(
                 onClick = if (pickable) onPick else onView,
             ),
     ) {
-        ZoomableImage(
-            key = zoomKey,
-            model = member.uri,
-            contentDescription = member.displayName,
-            modifier = Modifier.matchParentSize(),
-        )
+        ZoomableImage(key = zoomKey, modifier = Modifier.matchParentSize()) { imageModifier, onLoaded ->
+            AsyncImage(
+                model = member.uri,
+                contentDescription = member.displayName,
+                contentScale = ContentScale.Crop,
+                onSuccess = { onLoaded(it.painter.intrinsicSize, it.result.memoryCacheKey) },
+                modifier = imageModifier,
+            )
+        }
         Box(
             Modifier
                 .matchParentSize()
