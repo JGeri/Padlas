@@ -67,6 +67,7 @@ visszafelé ugyanoda zsugorodik. Az élő háttér a Beállításokban kikapcsol
 
 ```bash
 ./gradlew :app:assembleDebug        # telepíthető debug APK
+./gradlew :app:assembleProfile      # release-kód debug csomagnéven, frame-idő méréshez
 ./gradlew testDebugUnitTest         # unit tesztek
 ./gradlew :app:assembleRelease      # release APK (aláírásról lásd lent)
 ```
