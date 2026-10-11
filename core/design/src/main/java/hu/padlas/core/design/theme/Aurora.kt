@@ -1,16 +1,12 @@
 package hu.padlas.core.design.theme
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawBehind
@@ -18,6 +14,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -28,25 +26,37 @@ import kotlin.math.sin
  */
 val LocalAuroraPhase = staticCompositionLocalOf<State<Float>> { mutableFloatStateOf(0.25f) }
 
+/**
+ * The lights drift a couple of pixels a frame at most, so the clock ticks at about 30 Hz
+ * rather than at the display rate: half the frames or fewer on a 60–120 Hz panel, with no
+ * visible difference. It waits on frames, so it stops while the app is in the background.
+ */
 @Composable
 internal fun rememberAuroraPhase(live: Boolean): State<Float> {
-    if (!live) return remember { mutableFloatStateOf(0.25f) }
-    val transition = rememberInfiniteTransition(label = "aurora")
-    return transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(AuroraPeriodMs, easing = LinearEasing), RepeatMode.Restart),
-        label = "auroraPhase",
-    )
+    val phase = remember { mutableFloatStateOf(0.25f) }
+    if (live) {
+        LaunchedEffect(Unit) {
+            val origin = withFrameMillis { it } - (phase.floatValue * AuroraPeriodMs).toLong()
+            while (true) {
+                withFrameMillis { now -> phase.floatValue = ((now - origin) % AuroraPeriodMs) / AuroraPeriodMs.toFloat() }
+                delay(AuroraTickMs)
+            }
+        }
+    }
+    return phase
 }
 
 /**
  * The screen ground: near-black with three soft lights drifting on a long loop. Only the
- * draw phase reads the clock, so a moving background never recomposes anything.
+ * draw phase reads the clock, so a moving background never recomposes anything, and the
+ * lights get a layer of their own above and below: a tick repaints the gradients and
+ * nothing else, while the screen on top keeps its recorded drawing.
  */
 fun Modifier.auroraBackground(intensity: Float = 1f): Modifier = composed {
     val phase = LocalAuroraPhase.current
-    drawBehind { drawAurora(phase.value, intensity) }
+    graphicsLayer {}
+        .drawBehind { drawAurora(phase.value, intensity) }
+        .graphicsLayer {}
 }
 
 fun DrawScope.drawAurora(phase: Float, intensity: Float = 1f) {
@@ -74,3 +84,4 @@ private fun DrawScope.blob(center: Offset, radius: Float, color: Color, alpha: F
 }
 
 private const val AuroraPeriodMs = 28_000
+private const val AuroraTickMs = 24L

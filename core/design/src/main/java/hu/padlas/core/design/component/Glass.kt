@@ -10,12 +10,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toAndroidRectF
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.graphics.Shape
@@ -78,17 +75,24 @@ fun Modifier.glow(
 
 fun DrawScope.drawGlow(shape: Shape, color: Color, radiusPx: Float, alpha: Float) {
     if (alpha <= 0f || radiusPx <= 0f) return
-    val outline = shape.createOutline(size, layoutDirection, this)
     val paint = Paint().asFrameworkPaint().apply {
         isAntiAlias = true
         this.color = color.copy(alpha = alpha.coerceIn(0f, 1f)).toArgb()
         maskFilter = BlurMaskFilter(radiusPx, BlurMaskFilter.Blur.NORMAL)
     }
+    // Under this much blur a squircle and a rounded rectangle cast the same light, and a
+    // blurred rounded rectangle is one the GPU draws analytically; a blurred path is a
+    // mask rasterised again on every frame something else on screen moves.
+    val outline = shape.createOutline(size, layoutDirection, this)
+    val bounds = outline.bounds
+    val corner = when (outline) {
+        is Outline.Rectangle -> 0f
+        is Outline.Rounded -> outline.roundRect.topLeftCornerRadius.x
+        is Outline.Generic -> minOf(bounds.width, bounds.height, GenericCorner.toPx() * 2f) / 2f
+    }
     drawIntoCanvas { canvas ->
-        when (outline) {
-            is Outline.Rectangle -> canvas.nativeCanvas.drawRect(outline.rect.toAndroidRectF(), paint)
-            is Outline.Rounded -> canvas.nativeCanvas.drawPath(Path().apply { addRoundRect(outline.roundRect) }.asAndroidPath(), paint)
-            is Outline.Generic -> canvas.nativeCanvas.drawPath(outline.path.asAndroidPath(), paint)
-        }
+        canvas.nativeCanvas.drawRoundRect(bounds.left, bounds.top, bounds.right, bounds.bottom, corner, corner, paint)
     }
 }
+
+private val GenericCorner = 28.dp

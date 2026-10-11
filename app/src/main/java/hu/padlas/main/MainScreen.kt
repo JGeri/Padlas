@@ -13,6 +13,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +34,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DonutLarge
@@ -51,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -98,6 +101,7 @@ fun MainScreen(
     val haze = rememberHazeState()
     val reduced = LocalReducedMotion.current
     val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val statusInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val contentPadding = PaddingValues(bottom = BarHeight + BarMargin * 2 + navInset)
 
     BackHandler(enabled = tab != MainTab.HOME) { onTabChange(MainTab.HOME) }
@@ -134,6 +138,35 @@ fun MainScreen(
                 }
             }
         }
+
+        // The system bars are transparent; fade the content out under them so lists do not
+        // run on behind the clock or the gesture handle.
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(navInset + BarMargin + BarHeight / 2 + 28.dp)
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color.Transparent,
+                        0.45f to Ink.Background.copy(alpha = 0.78f),
+                        0.7f to Ink.Background,
+                    ),
+                ),
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .height(statusInset + 20.dp)
+                .background(
+                    Brush.verticalGradient(
+                        0f to Ink.Background.copy(alpha = 0.92f),
+                        0.6f to Ink.Background.copy(alpha = 0.6f),
+                        1f to Color.Transparent,
+                    ),
+                ),
+        )
 
         FloatingTabBar(
             selected = tab,
