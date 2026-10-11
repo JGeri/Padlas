@@ -107,12 +107,7 @@ fun PadlasButton(
             }
             .then(
                 if (colors.glow != Color.Transparent && size != ButtonSize.Small) {
-                    Modifier.shadow(
-                        elevation = 18.dp,
-                        shape = Shapes.pill,
-                        ambientColor = colors.glow,
-                        spotColor = colors.glow,
-                    )
+                    Modifier.glow(colors.glow, 20.dp, Shapes.pill, 0.38f)
                 } else {
                     Modifier
                 },

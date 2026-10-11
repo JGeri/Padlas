@@ -60,6 +60,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -90,6 +91,7 @@ import hu.padlas.core.design.component.ProgressStrip
 import hu.padlas.core.design.component.SectionHeader
 import hu.padlas.core.design.component.StaggeredColumnItem
 import hu.padlas.core.design.component.StorageGauge
+import hu.padlas.core.design.component.drawGlow
 import hu.padlas.core.design.component.glass
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
@@ -385,12 +387,10 @@ private fun SwipeHero(state: HomeUiState, onStart: () -> Unit, onPending: () -> 
             .graphicsLayer {
                 scaleX = press
                 scaleY = press
+            }
+            .drawBehind {
                 val b = breath?.value ?: 0.5f
-                shadowElevation = (18 + 18 * b).dp.toPx()
-                shape = Shapes.hero
-                clip = false
-                ambientShadowColor = Ink.Accent
-                spotShadowColor = Ink.Accent
+                drawGlow(Shapes.hero, Ink.Accent, (20 + 18 * b).dp.toPx(), 0.22f + 0.16f * b)
             }
             .glass(Shapes.hero, Color.Transparent, Ink.Accent.copy(alpha = 0.45f))
             .background(Brush.linearGradient(listOf(Ink.Accent.copy(alpha = 0.32f), Ink.AccentCyan.copy(alpha = 0.12f))))

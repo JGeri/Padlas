@@ -43,7 +43,7 @@ fun EmptyState(
             tint = tint,
             size = 72.dp,
             iconSize = 32.dp,
-            modifier = Modifier.shadow(28.dp, Shapes.tile, ambientColor = tint, spotColor = tint),
+            modifier = Modifier.glow(tint, 26.dp, Shapes.tile, 0.35f),
         )
         Spacer(Modifier.height(Space.l))
         if (title != null) {

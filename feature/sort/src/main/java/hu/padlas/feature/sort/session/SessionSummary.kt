@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import hu.padlas.core.design.component.StaggeredColumnItem
 import hu.padlas.core.design.component.glass
+import hu.padlas.core.design.component.glow
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.theme.Shapes
 import kotlinx.coroutines.delay
@@ -229,7 +230,7 @@ private fun DrawnCheck() {
                 scaleY = 0.6f + 0.4f * ring.value
                 alpha = ring.value.coerceIn(0f, 1f)
             }
-            .shadow(36.dp, Shapes.pill, ambientColor = Ink.Success, spotColor = Ink.Success)
+            .glow(Ink.Success, 34.dp, Shapes.pill, 0.38f)
             .glass(Shapes.pill, Ink.SuccessSoft, Ink.Success.copy(alpha = 0.55f)),
         contentAlignment = Alignment.Center,
     ) {

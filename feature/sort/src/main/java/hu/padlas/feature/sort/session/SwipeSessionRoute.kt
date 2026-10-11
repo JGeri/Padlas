@@ -77,6 +77,7 @@ import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.RollingNumber
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.glass
+import hu.padlas.core.design.component.glow
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.haptics
@@ -343,7 +344,7 @@ private fun DeletePill(count: Int, bytes: Long, busy: Boolean, onClick: () -> Un
                 scaleX = bounce.value
                 scaleY = bounce.value
             }
-            .shadow(16.dp, Shapes.pill, ambientColor = Ink.Danger, spotColor = Ink.Danger)
+            .glow(Ink.Danger, 18.dp, Shapes.pill, 0.4f)
             .glass(Shapes.pill, Ink.DangerSoft, Ink.Danger.copy(alpha = 0.6f))
             .clickable(
                 enabled = !busy,
@@ -434,7 +435,7 @@ private fun RoundAction(
             iconSize = size * 0.44f,
             enabled = enabled,
             modifier = if (glow && enabled) {
-                Modifier.shadow(20.dp, Shapes.pill, ambientColor = tint, spotColor = tint)
+                Modifier.glow(tint, 22.dp, Shapes.pill, 0.32f)
             } else {
                 Modifier
             },
