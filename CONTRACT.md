@@ -143,31 +143,48 @@ class OneDriveGuard @Inject constructor(...) {   // spec 4.1
 
 ## core:design — API other modules use
 
-Dark only. Semantic colour tokens in `theme.Ink`: `Background`, `Surface`, `SurfaceHigh`,
-`SurfaceHighest`, `Hairline`, `HairlineStrong`, `Scrim`, `Text`, `TextSecondary`,
-`TextTertiary`, `Accent` (+`AccentDim`, `AccentSoft`, `OnAccent`), and one colour per swipe
-fate: `Success` (keep), `Danger` (delete), `Favorite` (favourite), plus `Warning`, `Info`,
-each with a `…Soft` tint. Storage categories: `theme.CategoryColor` / `theme.Spectrum`
-(photos, videos, apps, system, other, cloud, audio, documents, archives).
-`theme.AccentGradient` is for one hero element per screen.
+**Aurora**: a near-black ground (`Ink.Background`) with three slow lights drifting behind
+it (`Modifier.auroraBackground()`, one shared clock in `LocalAuroraPhase`, switchable in the
+settings) and frosted glass on top. Pushed screens paint `auroraBackground()` on their root;
+tab roots stay transparent because the shell paints it once.
 
-Type (`PadlasTheme.type`): `display`, `displaySmall`, `headline`, `title`, `body`,
-`bodyStrong`, `label`, `caption`, `micro`, `numeric`, `numericLarge` — all Instrument Sans,
-numbers with tabular figures. Spacing `theme.Space` (4dp grid, `page` = 20dp margin),
-shapes `theme.Shapes` (`pill`, `small`, `tile`, `card`, `sheet`, `hero`).
+Colours (`theme.Ink`): glass steps `Surface` / `SurfaceHigh` / `SurfaceHighest` (translucent
+white), opaque overlays `SurfaceSolid` / `SurfaceSolidHigh` (dialogs, menus, toasts),
+`Hairline`, `HairlineStrong`, `Highlight`, `Scrim`, text `Text` / `TextSecondary` /
+`TextTertiary`, `Accent` (+`AccentSoft`, `AccentCyan`), one colour per swipe fate —
+`Success` keep, `Danger` delete, `Favorite` favourite — plus `Warning`, `Info`, each with a
+`…Soft` tint. Brushes `AccentGradient`, `ProgressGradient`, `DangerGradient`. Storage
+categories in `CategoryColor` / `Spectrum`.
 
-Components (`component.*`): `PadlasTopBar`, `LargeHeader`, `PadlasButton` (`ButtonStyle`,
-`ButtonSize`, optional icon), `PadlasTextButton`, `PadlasIconButton`, `Chip`,
+Type (`PadlasTheme.type`): Sora for `display`, `displaySmall`, `headline`, `title`,
+`numericLarge`; Manrope for `body`, `bodyStrong`, `label`, `caption`, `micro`, `numeric`
+(tabular figures). Both are bundled variable fonts. Spacing `theme.Space` (`page` = 20dp),
+shapes `theme.Shapes` (squircles: `tile`, `card`, `sheet`, `hero`; `pill`, `small`).
+
+Surfaces: `Modifier.glass(shape, fill, rim)` (translucent fill, lit rim) and
+`Modifier.frosted(hazeState)` (Haze 1.6 backdrop blur) for anything that floats over moving
+content; the content behind gets `Modifier.hazeSource(state)`.
+
+Components (`component.*`): `PadlasTopBar`, `LargeHeader`, `PadlasButton` (`ButtonStyle`:
+`Primary` gradient with glow, `Destructive` red gradient with glow, `Secondary` glass, …;
+`ButtonSize`), `PadlasTextButton`, `PadlasIconButton` (glass circle), `Chip`,
 `SegmentedControl`, `PadlasSwitch`, `Pill`, `PadlasCard`, `ListRow`, `IconBubble`,
 `ActionBar`, `SectionHeader`, `SectionLabel`, `NumericText`, `RollingNumber`, `EmptyState`,
-`LinearMeter`, `ProgressStrip`, `ProgressRing`, `SegmentBar`, `LegendItem`, `StorageGauge`,
-`SelectableTile`, `SelectionMark`, `GhostTile`, `HoldToConfirm`, `Toast`, `ConfirmDialog`,
-`StatTile`, `StaggeredColumnItem`, `Modifier.raisedSurface`, `Modifier.hairlineTop/Bottom`.
-Icons come from `androidx.compose.material.icons` (Rounded), exposed through `api`.
+`LinearMeter` (optional `brush`), `ProgressStrip`, `ProgressRing`, `SegmentBar`,
+`LegendItem`, `StorageGauge` (glowing segments, `compact` variant), `SelectableTile`,
+`SelectionMark`, `GhostTile`, `HoldToConfirm`, `Toast`, `ConfirmDialog`, `StatTile`,
+`StaggeredColumnItem`, `Modifier.raisedSurface`, `Modifier.hairlineTop/Bottom`.
 
-Motion: `motion.Motion` springs, `motion.motionSpec`, `motion.LocalReducedMotion`,
-`motion.haptics()` (`threshold`, `binImpact`, `keep`, `favorite`, `lift`, `undo`, `commit`,
-`tick`, …). No ripples: press feedback is a small scale or alpha change.
+Motion (`motion.*`): springs `snapSpring`, `settle`, `weight`, `snapback`, `drain`,
+`bouncy`, `rest`; `motionSpec` (reduced motion), `LocalReducedMotion`, `haptics()`.
+
+Shared elements: the navigation host wraps everything in a `SharedTransitionLayout` and
+provides `LocalSharedTransitionScope` and, per destination, `LocalNavAnimatedVisibilityScope`.
+`Modifier.morphBounds(key)` (container transform) and `Modifier.morphElement(key)` match an
+element on one screen with one on the next by key, and are no-ops outside a transition.
+Keys in use: `tool-<TOOL>` and `win-<TOOL>` (overview tiles → screens), `home-pending` and
+`swipe-pending` (→ marked grid), `swipe-month-<yyyy-MM>`, `swipe-folder-<bucketId>`,
+`swipe-start` (→ swipe deck).
 
 ## Feature modules
 

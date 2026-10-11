@@ -7,6 +7,13 @@ Android 14+ (minSdk 34, target 36), sideload terjesztés, Samsung Galaxy S22 Ult
 elsődleges eszköz. A modulhatárok a [`CONTRACT.md`](CONTRACT.md)-ben, az eredeti
 termékspecifikáció a [`padlas-spec.md`](padlas-spec.md)-ben.
 
+## Megjelenés
+
+**Aurora**: majdnem fekete alap, mögötte lassan sodródó ibolya–türkiz–bíbor fények, előtte
+matt üveg-felületek. A mozgás rugós; az elemek egymásba alakulnak (közös-elem átmenet):
+egy eszköz-csempe a megnyíló képernyővé nő, egy hónap borítója a swipe-paklivá, és
+visszafelé ugyanoda zsugorodik. Az élő háttér a Beállításokban kikapcsolható.
+
 ## Három fül
 
 - **Áttekintés** — tárhely-gyűrű (szabad hely, fotók, videók, minden más), a válogatás
