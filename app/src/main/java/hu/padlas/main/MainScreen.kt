@@ -124,7 +124,7 @@ private fun BottomBar(selected: MainTab, onSelect: (MainTab) -> Unit, modifier: 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(Ink.Surface.copy(alpha = 0.97f))
+            .background(Ink.Surface)
             .hairlineTop()
             .navigationBarsPadding()
             .height(BarHeight),

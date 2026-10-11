@@ -39,22 +39,25 @@ class SquircleShape(private val radius: Dp, private val n: Float = 4.2f) : Shape
             corner += sign(cos) * abs(cos).pow(exponent) * r to sign(sin) * abs(sin).pow(exponent) * r
         }
 
+        // corner[i] runs from the side edge (t = 0) to the top or bottom edge (t = pi/2);
+        // walking clockwise means every other corner is read backwards.
         val w = size.width
         val h = size.height
-        path.moveTo(w - r + corner[0].first, r - corner[0].second)
-        for ((x, y) in corner) path.lineTo(w - r + x, r - y)
+        path.moveTo(r, 0f)
+        path.lineTo(w - r, 0f)
+        for (i in corner.indices.reversed()) {
+            val (x, y) = corner[i]
+            path.lineTo(w - r + x, r - y)
+        }
         path.lineTo(w, h - r)
-        for (i in corner.indices.reversed()) {
-            val (x, y) = corner[i]
-            path.lineTo(w - r + x, h - r + y)
-        }
+        for ((x, y) in corner) path.lineTo(w - r + x, h - r + y)
         path.lineTo(r, h)
-        for ((x, y) in corner) path.lineTo(r - x, h - r + y)
-        path.lineTo(0f, r)
         for (i in corner.indices.reversed()) {
             val (x, y) = corner[i]
-            path.lineTo(r - x, r - y)
+            path.lineTo(r - x, h - r + y)
         }
+        path.lineTo(0f, r)
+        for ((x, y) in corner) path.lineTo(r - x, r - y)
         path.close()
         return path
     }

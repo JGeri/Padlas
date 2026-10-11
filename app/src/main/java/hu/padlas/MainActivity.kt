@@ -1,6 +1,8 @@
 package hu.padlas
 
+import android.graphics.Color
 import android.os.Bundle
+import androidx.activity.SystemBarStyle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -16,8 +18,14 @@ import hu.padlas.navigation.PadlasNavHost
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+        // Transparent bars on both ends: the app paints its own bottom bar, and the system's
+        // contrast scrim would otherwise draw a second, darker strip under the gesture area.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+        )
         super.onCreate(savedInstanceState)
+        window.isNavigationBarContrastEnforced = false
         setContent {
             PadlasTheme {
                 PadlasNavHost(
