@@ -7,6 +7,7 @@ import hu.padlas.core.database.entity.DupKind
 import hu.padlas.core.database.entity.JobState
 import hu.padlas.core.database.entity.RuleAction
 import hu.padlas.core.database.entity.ShotKind
+import hu.padlas.core.database.entity.SwipeChoice
 import hu.padlas.core.database.entity.ValueClass
 
 /**
@@ -42,4 +43,8 @@ class Converters {
     @TypeConverter fun auditActionToString(value: AuditAction): String = value.name
 
     @TypeConverter fun stringToAuditAction(value: String): AuditAction = AuditAction.valueOf(value)
+
+    @TypeConverter fun swipeChoiceToString(value: SwipeChoice): String = value.name
+
+    @TypeConverter fun stringToSwipeChoice(value: String): SwipeChoice = SwipeChoice.valueOf(value)
 }

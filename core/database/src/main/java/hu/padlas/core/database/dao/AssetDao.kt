@@ -394,6 +394,9 @@ interface AssetDao {
     )
     suspend fun setProtected(ids: List<Long>, protectedManually: Boolean)
 
+    @Query("UPDATE asset SET isFavorite = :favorite WHERE mediaStoreId IN (:ids)")
+    suspend fun setFavorite(ids: List<Long>, favorite: Boolean)
+
     @Query("UPDATE asset SET state = :state WHERE mediaStoreId IN (:ids)")
     suspend fun setState(ids: List<Long>, state: AssetState)
 

@@ -89,3 +89,7 @@ fun Modifier.hairlineBottom(color: Color = Ink.Hairline): Modifier = drawBehind 
         strokeWidth = 1f,
     )
 }
+
+fun Modifier.hairlineTop(color: Color = Ink.Hairline): Modifier = drawBehind {
+    drawLine(color = color, start = Offset(0f, 0f), end = Offset(size.width, 0f), strokeWidth = 1f)
+}

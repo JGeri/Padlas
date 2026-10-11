@@ -15,6 +15,7 @@ import hu.padlas.core.database.dao.DupDao
 import hu.padlas.core.database.dao.RuleDao
 import hu.padlas.core.database.dao.SearchDao
 import hu.padlas.core.database.dao.StorageDao
+import hu.padlas.core.database.dao.SwipeDao
 import hu.padlas.core.database.dao.TranscodeJobDao
 import hu.padlas.core.database.dao.UploadJobDao
 import javax.inject.Singleton
@@ -48,4 +49,6 @@ object DatabaseModule {
     @Provides fun searchDao(db: PadlasDatabase): SearchDao = db.searchDao()
 
     @Provides fun storageDao(db: PadlasDatabase): StorageDao = db.storageDao()
+
+    @Provides fun swipeDao(db: PadlasDatabase): SwipeDao = db.swipeDao()
 }

@@ -1,295 +1,289 @@
 package hu.padlas.feature.sort.ui
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import hu.padlas.core.design.motion.Motion
+import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.haptics
-import hu.padlas.core.design.motion.motionSpec
-import hu.padlas.core.design.theme.Space
-import hu.padlas.feature.sort.SortCard
-import hu.padlas.feature.sort.SwipeDirection
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
+import hu.padlas.feature.sort.SwipeAction
+import hu.padlas.feature.sort.SwipeCard
+import hu.padlas.feature.sort.session.UndoEvent
+import kotlin.math.abs
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 
-private const val CardWidthFraction = 0.86f
-private const val CardAspect = 0.72f
-private val DepthStep = 12.dp
+/** How far each fate is from the resting card, 0 at rest and 1 at the commit line. */
+@Immutable
+internal data class SwipeOverlay(val delete: Float = 0f, val keep: Float = 0f, val favorite: Float = 0f) {
+    companion object {
+        val None = SwipeOverlay()
 
-/** The card that has already been decided and is on its way out of the deck. */
-private data class Flight(
-    val card: SortCard,
-    val direction: SwipeDirection,
-    val releaseX: Float,
-    val releaseY: Float,
-)
+        fun full(action: SwipeAction) = when (action) {
+            SwipeAction.DELETE -> SwipeOverlay(delete = 1f)
+            SwipeAction.KEEP -> SwipeOverlay(keep = 1f)
+            SwipeAction.FAVORITE -> SwipeOverlay(favorite = 1f)
+        }
+    }
+}
+
+/** Lets the buttons under the deck throw the top card exactly as a finger would. */
+@Stable
+internal class SwipeDeckState {
+    internal val commands = Channel<SwipeAction>(Channel.CONFLATED)
+
+    fun swipe(action: SwipeAction) {
+        commands.trySend(action)
+    }
+}
+
+@Composable
+internal fun rememberSwipeDeckState(): SwipeDeckState = remember { SwipeDeckState() }
+
+private data class Flight(val key: Long, val card: SwipeCard, val action: SwipeAction, val start: Offset, val velocity: Velocity)
+
+private const val HorizontalCommit = 0.26f
+private const val VerticalCommit = 0.16f
+private const val FlingVelocity = 1_600f
+private const val MaxTilt = 14f
+
+internal fun decide(offset: Offset, velocity: Velocity, width: Float, height: Float): SwipeAction? {
+    if (width <= 0f || height <= 0f) return null
+    val upward = offset.y < 0f && -offset.y > abs(offset.x)
+    if (upward && (-offset.y > height * VerticalCommit || velocity.y < -FlingVelocity)) return SwipeAction.FAVORITE
+    if (offset.x > width * HorizontalCommit || (velocity.x > FlingVelocity && offset.x > 0f)) return SwipeAction.KEEP
+    if (offset.x < -width * HorizontalCommit || (velocity.x < -FlingVelocity && offset.x < 0f)) return SwipeAction.DELETE
+    return null
+}
+
+internal fun overlayFor(offset: Offset, width: Float, height: Float): SwipeOverlay {
+    if (width <= 0f || height <= 0f) return SwipeOverlay.None
+    val upward = offset.y < 0f && -offset.y > abs(offset.x)
+    return if (upward) {
+        SwipeOverlay(favorite = (-offset.y / (height * VerticalCommit)).coerceIn(0f, 1f))
+    } else {
+        val fraction = (offset.x / (width * HorizontalCommit)).coerceIn(-1f, 1f)
+        SwipeOverlay(delete = (-fraction).coerceAtLeast(0f), keep = fraction.coerceAtLeast(0f))
+    }
+}
 
 /**
- * At most three cards exist at any moment: the one under the finger, the one growing
- * behind it, and a hint of thickness under that. Everything that moves per frame is read
- * inside a graphicsLayer block, so a 200 card run costs no recomposition at all.
+ * The card under the finger, the two behind it, and any card still flying out. A decided
+ * card leaves as its own "flight", so the next one is usable immediately and fast swipes
+ * never wait for an animation to finish.
  */
 @Composable
 internal fun SwipeDeck(
-    cards: List<SortCard>,
-    undoTicket: Long,
-    undoneDirection: SwipeDirection?,
-    onSwipe: (SortCard, SwipeDirection) -> Unit,
-    onProtect: (SortCard) -> Unit,
+    cards: List<SwipeCard>,
+    state: SwipeDeckState,
+    undo: UndoEvent?,
+    onSwiped: (SwipeCard, SwipeAction) -> Unit,
+    onTap: (SwipeCard) -> Unit,
     modifier: Modifier = Modifier,
+    cardContent: @Composable (card: SwipeCard, isTop: Boolean, overlay: () -> SwipeOverlay, modifier: Modifier) -> Unit,
 ) {
-    val haptics = haptics()
-    val scope = rememberCoroutineScope()
-    val snapSpec = motionSpec(Motion.snapSpring<Float>())
-    val weightSpec = motionSpec(Motion.weight<Float>())
-    val snapbackSpec = motionSpec(Motion.snapback<Float>())
+    BoxWithConstraints(modifier = modifier) {
+        val density = LocalDensity.current
+        val width = with(density) { maxWidth.toPx() }
+        val height = with(density) { maxHeight.toPx() }
+        val depthStep = with(density) { 14.dp.toPx() }
+        val haptics = haptics()
+        val reduced = LocalReducedMotion.current
+        val scope = rememberCoroutineScope()
+        val flights = remember { mutableStateListOf<Flight>() }
+        var flightSeq by remember { mutableLongStateOf(0L) }
+        var handledUndo by remember { mutableLongStateOf(0L) }
+        val swiped = rememberUpdatedState(onSwiped)
 
-    val dragX = remember { Animatable(0f) }
-    val dragY = remember { Animatable(0f) }
-    val lid = remember { Animatable(0f) }
-    val restore = remember { Animatable(0f) }
-    val flightProgress = remember { Animatable(0f) }
-    var flight by remember { mutableStateOf<Flight?>(null) }
-    var crossed by remember { mutableStateOf<SwipeDirection?>(null) }
-    var deckSize by remember { mutableStateOf(IntSize.Zero) }
+        val top = cards.firstOrNull()
 
-    val thresholdPx = deckSize.width * Deck.ThresholdFraction
-    val deckWidth = deckSize.width.toFloat()
-    val deckHeight = deckSize.height.toFloat()
-    val stack = cards.take(3)
-    val top = stack.firstOrNull()
-
-    // Undo replays the commit backwards: the card climbs out of the tray on a snapback.
-    LaunchedEffect(undoTicket) {
-        if (undoTicket == 0L || undoneDirection == null) return@LaunchedEffect
-        restore.snapTo(1f)
-        haptics?.undo()
-        if (undoneDirection == SwipeDirection.LEFT) {
-            launch {
-                lid.animateTo(1f, snapSpec)
-                lid.animateTo(0f, weightSpec)
-            }
+        fun offscreen(action: SwipeAction): Offset = when (action) {
+            SwipeAction.DELETE -> Offset(-width * 1.4f, height * 0.05f)
+            SwipeAction.KEEP -> Offset(width * 1.4f, height * 0.05f)
+            SwipeAction.FAVORITE -> Offset(0f, -height * 1.2f)
         }
-        restore.animateTo(0f, snapbackSpec)
-    }
 
-    suspend fun settleBack() {
-        crossed = null
-        coroutineScope {
-            launch { dragX.animateTo(0f, snapbackSpec) }
-            launch { dragY.animateTo(0f, snapbackSpec) }
+        fun commit(card: SwipeCard, action: SwipeAction, start: Offset, velocity: Velocity) {
+            flights += Flight(++flightSeq, card, action, start, velocity)
+            when (action) {
+                SwipeAction.DELETE -> haptics?.binImpact()
+                SwipeAction.KEEP -> haptics?.keep()
+                SwipeAction.FAVORITE -> haptics?.favorite()
+            }
+            swiped.value(card, action)
         }
-    }
 
-    suspend fun commit(card: SortCard, direction: SwipeDirection) {
-        flightProgress.snapTo(0f)
-        flight = Flight(card, direction, dragX.value, dragY.value)
-        dragX.snapTo(0f)
-        dragY.snapTo(0f)
-        crossed = null
-        // The deck advances underneath immediately; only the decided card is still flying.
-        onSwipe(card, direction)
-        when (direction) {
-            SwipeDirection.LEFT -> {
-                scope.launch { lid.animateTo(1f, snapSpec) }
-                delay(Deck.AnticipationMs)
-                flightProgress.animateTo(1f, weightSpec)
-                haptics?.binImpact()
-                lid.animateTo(0f, weightSpec)
-            }
-
-            SwipeDirection.UP -> {
-                haptics?.lift()
-                flightProgress.animateTo(1f, weightSpec)
-            }
-
-            else -> {
-                haptics?.tick(0.25f)
-                flightProgress.animateTo(1f, weightSpec)
-            }
+        val restoring = undo != null && undo.ticket != handledUndo && undo.cardId == top?.id
+        val offset = remember(top?.id) {
+            Animatable(if (restoring && undo != null) offscreen(undo.action) else Offset.Zero, Offset.VectorConverter)
         }
-        flight = null
-    }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .onSizeChanged { deckSize = it },
-    ) {
-        AtticHatch(
-            active = crossed == SwipeDirection.UP,
-            modifier = Modifier.align(Alignment.TopCenter),
-        )
-        KeepGlyph(
-            active = crossed == SwipeDirection.RIGHT,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = Space.xs),
-        )
-        LaterGlyph(
-            active = crossed == SwipeDirection.DOWN,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = Space.xs, bottom = Space.xl),
-        )
-        BinTray(
-            active = crossed == SwipeDirection.LEFT,
-            lid = { lid.value },
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
+        LaunchedEffect(undo?.ticket, top?.id) {
+            val event = undo ?: return@LaunchedEffect
+            if (event.ticket == handledUndo || event.cardId != top?.id) return@LaunchedEffect
+            handledUndo = event.ticket
+            haptics?.undo()
+            if (reduced) offset.snapTo(Offset.Zero) else offset.animateTo(Offset.Zero, spring(0.75f, Spring.StiffnessMediumLow))
+        }
 
-        for (depth in stack.indices.reversed()) {
-            val card = stack[depth]
+        // One button press throws exactly one card: the effect restarts for the next top.
+        LaunchedEffect(top?.id) {
+            val card = top ?: return@LaunchedEffect
+            val action = state.commands.receive()
+            commit(card, action, offset.value, Velocity.Zero)
+        }
+
+        for (depth in cards.indices.take(3).reversed()) {
+            val card = cards[depth]
             key(card.id) {
+                val baseScale by animateFloatAsState(
+                    targetValue = 1f - 0.06f * depth,
+                    animationSpec = spring(0.8f, Spring.StiffnessMediumLow),
+                    label = "deckScale",
+                )
+                val baseLift by animateFloatAsState(
+                    targetValue = depth.toFloat(),
+                    animationSpec = spring(0.8f, Spring.StiffnessMediumLow),
+                    label = "deckLift",
+                )
                 if (depth == 0) {
-                    TopCard(
-                        card = card,
-                        gesture = Modifier
-                            .pointerInput(card.id) {
-                                detectTapGestures(onLongPress = { onProtect(card) })
+                    val gesture = Modifier
+                        .pointerInput(card.id) {
+                            detectTapGestures(onTap = { onTap(card) })
+                        }
+                        .pointerInput(card.id, width, height) {
+                            val tracker = VelocityTracker()
+                            var drag = Offset.Zero
+                            var crossed: SwipeAction? = null
+                            detectDragGestures(
+                                onDragStart = {
+                                    tracker.resetTracking()
+                                    drag = offset.value
+                                    scope.launch { offset.stop() }
+                                },
+                                onDrag = { change, amount ->
+                                    change.consume()
+                                    drag += amount
+                                    tracker.addPosition(change.uptimeMillis, drag)
+                                    scope.launch { offset.snapTo(drag) }
+                                    val now = decide(drag, Velocity.Zero, width, height)
+                                    if (now != crossed) {
+                                        crossed = now
+                                        if (now != null) haptics?.threshold()
+                                    }
+                                },
+                                onDragEnd = {
+                                    val velocity = tracker.calculateVelocity()
+                                    val action = decide(drag, velocity, width, height)
+                                    crossed = null
+                                    if (action != null) {
+                                        commit(card, action, drag, velocity)
+                                    } else {
+                                        scope.launch { offset.animateTo(Offset.Zero, spring(0.6f, Spring.StiffnessMedium)) }
+                                    }
+                                },
+                                onDragCancel = {
+                                    crossed = null
+                                    scope.launch { offset.animateTo(Offset.Zero, spring(0.6f, Spring.StiffnessMedium)) }
+                                },
+                            )
+                        }
+                    cardContent(
+                        card,
+                        true,
+                        { overlayFor(offset.value, width, height) },
+                        Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                val position = offset.value
+                                translationX = position.x
+                                translationY = position.y
+                                rotationZ = (position.x / width * MaxTilt).coerceIn(-MaxTilt * 1.5f, MaxTilt * 1.5f)
+                                transformOrigin = TransformOrigin(0.5f, 0.9f)
                             }
-                            .pointerInput(card.id, thresholdPx) {
-                                var accumX = 0f
-                                var accumY = 0f
-                                detectDragGestures(
-                                    onDragStart = {
-                                        accumX = 0f
-                                        accumY = 0f
-                                    },
-                                    onDragEnd = {
-                                        val direction = Deck.committedDirection(accumX, accumY, thresholdPx)
-                                        scope.launch {
-                                            if (direction == null) settleBack() else commit(card, direction)
-                                        }
-                                    },
-                                    onDragCancel = { scope.launch { settleBack() } },
-                                    onDrag = { change, delta ->
-                                        change.consume()
-                                        accumX += delta.x
-                                        accumY += delta.y
-                                        scope.launch {
-                                            dragX.snapTo(accumX)
-                                            dragY.snapTo(accumY)
-                                        }
-                                        val direction = Deck.committedDirection(accumX, accumY, thresholdPx)
-                                        if (direction != crossed) {
-                                            crossed = direction
-                                            if (direction != null) haptics?.threshold()
-                                        }
-                                    },
-                                )
-                            },
-                        transform = {
-                            val climbing = restore.value
-                            if (climbing > 0f && undoneDirection != null) {
-                                transformOrigin = TransformOrigin.Center
-                                applyFlight(undoneDirection, climbing, 0f, 0f, deckWidth, deckHeight)
-                            } else {
-                                transformOrigin = TransformOrigin(0.5f, Deck.PivotDepth)
-                                applyDrag(dragX.value, dragY.value, thresholdPx)
-                            }
-                        },
+                            .then(gesture),
                     )
                 } else {
-                    BehindCard(
-                        card = card,
-                        depth = depth,
-                        progress = { Deck.dragProgress(dragX.value, dragY.value, thresholdPx) },
+                    cardContent(
+                        card,
+                        false,
+                        { SwipeOverlay.None },
+                        Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = baseScale
+                                scaleY = baseScale
+                                translationY = baseLift * depthStep
+                                alpha = if (depth >= 2) 0.55f else 1f
+                                transformOrigin = TransformOrigin(0.5f, 1f)
+                            },
                     )
                 }
             }
         }
 
-        flight?.let { inFlight ->
-            SortCardFace(
-                card = inFlight.card,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .fillMaxWidth(CardWidthFraction)
-                    .aspectRatio(CardAspect)
-                    .graphicsLayer {
-                        transformOrigin = TransformOrigin.Center
-                        applyFlight(
-                            direction = inFlight.direction,
-                            progress = flightProgress.value,
-                            releaseX = inFlight.releaseX,
-                            releaseY = inFlight.releaseY,
-                            deckWidth = deckWidth,
-                            deckHeight = deckHeight,
+        flights.forEach { flight ->
+            key("flight-${flight.key}") {
+                val travel = remember { Animatable(flight.start, Offset.VectorConverter) }
+                LaunchedEffect(Unit) {
+                    val target = offscreen(flight.action).let {
+                        if (flight.action == SwipeAction.FAVORITE) it.copy(x = flight.start.x) else it.copy(y = flight.start.y + flight.velocity.y * 0.12f)
+                    }
+                    if (reduced) {
+                        travel.snapTo(target)
+                    } else {
+                        travel.animateTo(
+                            targetValue = target,
+                            animationSpec = spring(1f, Spring.StiffnessLow, visibilityThreshold = Offset(2f, 2f)),
+                            initialVelocity = Offset(flight.velocity.x, flight.velocity.y),
                         )
-                    },
-                wireframe = inFlight.direction == SwipeDirection.UP,
-                colourAlpha = { Deck.colourAlpha(inFlight.direction, flightProgress.value) },
-                outlineAlpha = { Deck.outlineAlpha(inFlight.direction, flightProgress.value) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun BoxScope.TopCard(
-    card: SortCard,
-    gesture: Modifier,
-    transform: androidx.compose.ui.graphics.GraphicsLayerScope.() -> Unit,
-) {
-    SortCardFace(
-        card = card,
-        modifier = Modifier
-            .align(Alignment.Center)
-            .fillMaxWidth(CardWidthFraction)
-            .aspectRatio(CardAspect)
-            .graphicsLayer(transform)
-            .then(gesture),
-    )
-}
-
-@Composable
-private fun BoxScope.BehindCard(card: SortCard, depth: Int, progress: () -> Float) {
-    val offset by animateFloatAsState(
-        targetValue = depth.toFloat(),
-        animationSpec = motionSpec(Motion.settle<Float>()),
-        label = "deckDepth",
-    )
-    SortCardFace(
-        card = card,
-        modifier = Modifier
-            .align(Alignment.Center)
-            .fillMaxWidth(CardWidthFraction)
-            .aspectRatio(CardAspect)
-            .graphicsLayer {
-                // Only the card directly behind grows with the drag; the third is thickness.
-                val grown = if (depth == 1) {
-                    Deck.BehindScale + (1f - Deck.BehindScale) * progress()
-                } else {
-                    Deck.BehindScale
+                    }
+                    flights.remove(flight)
                 }
-                scaleX = grown
-                scaleY = grown
-                translationY = offset * DepthStep.toPx()
-            },
-    )
+                cardContent(
+                    flight.card,
+                    false,
+                    { SwipeOverlay.full(flight.action) },
+                    Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            val position = travel.value
+                            translationX = position.x
+                            translationY = position.y
+                            rotationZ = (position.x / width * MaxTilt).coerceIn(-MaxTilt * 1.5f, MaxTilt * 1.5f)
+                            transformOrigin = TransformOrigin(0.5f, 0.9f)
+                        },
+                )
+            }
+        }
+
+        if (cards.isEmpty() && flights.isEmpty()) Box(Modifier.fillMaxSize())
+    }
 }

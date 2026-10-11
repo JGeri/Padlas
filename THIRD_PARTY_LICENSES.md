@@ -8,16 +8,17 @@ application as long as the fonts themselves are not sold on their own.
 
 | File | Family | Source |
 |---|---|---|
-| `instrument_serif_regular.ttf` | Instrument Serif | https://fonts.google.com/specimen/Instrument+Serif |
 | `instrument_sans_regular.ttf` | Instrument Sans 400 | https://fonts.google.com/specimen/Instrument+Sans |
 | `instrument_sans_medium.ttf` | Instrument Sans 500 | https://fonts.google.com/specimen/Instrument+Sans |
 | `instrument_sans_semibold.ttf` | Instrument Sans 600 | https://fonts.google.com/specimen/Instrument+Sans |
-| `geist_mono_regular.ttf` | Geist Mono 400 | https://fonts.google.com/specimen/Geist+Mono |
-| `geist_mono_medium.ttf` | Geist Mono 500 | https://fonts.google.com/specimen/Geist+Mono |
 
-They are bundled rather than fetched through the downloadable-fonts provider because the
-first screen the app ever shows is the one with the 56sp hero number on it; a face that
-arrives a second late would land exactly there.
+They are bundled rather than fetched through the downloadable-fonts provider so the first
+screen never renders in a fallback face. Instrument Sans carries real tabular figures,
+which is why it is the only family the app needs.
+
+## Icons
+
+Material Symbols (`androidx.compose.material:material-icons-extended`), Apache-2.0.
 
 Full licence text: https://openfontlicense.org/open-font-license-official-text/
 

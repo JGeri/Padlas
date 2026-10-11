@@ -88,3 +88,42 @@ data class SizeAndCount(
     val itemCount: Int,
     val totalBytes: Long,
 )
+
+data class SwipeMonthStat(
+    /** "2024-07", local time. */
+    val month: String,
+    val itemCount: Int,
+    val totalBytes: Long,
+    val reviewedCount: Int,
+    val videoCount: Int,
+)
+
+data class SwipeBucketStat(
+    val bucketId: Long,
+    val bucketName: String,
+    val relativePath: String,
+    val itemCount: Int,
+    val totalBytes: Long,
+    val reviewedCount: Int,
+    val latestTaken: Long,
+    val coverId: Long?,
+    val coverMime: String?,
+)
+
+/** What the swipe deck needs from a row, and nothing else. */
+data class SwipeCandidate(
+    val mediaStoreId: Long,
+    val uri: String,
+    val displayName: String,
+    val mimeType: String,
+    val relativePath: String,
+    val bucketName: String,
+    val sizeBytes: Long,
+    val dateTaken: Long,
+    val width: Int,
+    val height: Int,
+    val durationMs: Long?,
+    val isFavorite: Boolean,
+    val protectedManually: Boolean,
+    val choice: String?,
+)
