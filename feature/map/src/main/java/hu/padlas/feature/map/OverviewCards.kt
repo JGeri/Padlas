@@ -1,5 +1,11 @@
 package hu.padlas.feature.map
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,9 +29,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
@@ -40,7 +50,8 @@ import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.Pill
 import hu.padlas.core.design.component.ProgressRing
 import hu.padlas.core.design.component.RollingNumber
-import hu.padlas.core.design.component.SegmentBar
+import hu.padlas.core.design.component.StaggeredColumnItem
+import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.theme.CategoryColor
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
@@ -163,8 +174,10 @@ internal fun ScanProgressCard(
     PadlasCard(modifier = modifier.fillMaxWidth(), contentPadding = 20.dp) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                ProgressRing(fraction = scanFraction(progress), size = 60.dp, stroke = 5.dp) {
-                    Icon(Icons.Rounded.TravelExplore, contentDescription = null, tint = Ink.Accent, modifier = Modifier.size(24.dp))
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.breathingHalo(Ink.Accent)) {
+                    ProgressRing(fraction = scanFraction(progress), size = 64.dp, stroke = 5.dp) {
+                        Icon(Icons.Rounded.TravelExplore, contentDescription = null, tint = Ink.Accent, modifier = Modifier.size(24.dp))
+                    }
                 }
                 Spacer(Modifier.width(Space.l))
                 Column(modifier = Modifier.weight(1f)) {
@@ -173,11 +186,12 @@ internal fun ScanProgressCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         RollingNumber(value = Format.count(progress.files), style = PadlasTheme.type.numeric, color = Ink.Text)
                         Text(
-                            text = " fájl · ${Format.bytes(progress.bytes)}",
+                            text = " fájl · ",
                             style = PadlasTheme.type.numeric,
                             color = Ink.TextSecondary,
                             maxLines = 1,
                         )
+                        RollingNumber(value = Format.bytes(progress.bytes), style = PadlasTheme.type.numeric, color = Ink.TextSecondary)
                     }
                 }
             }
@@ -190,7 +204,7 @@ internal fun ScanProgressCard(
                 overflow = TextOverflow.MiddleEllipsis,
             )
             Spacer(Modifier.height(Space.m))
-            SegmentBar(
+            GlowSegmentBar(
                 segments = FileCategory.all.map { progress.categoryBytes.getOrElse(it.ordinal) { 0L } to it.color },
                 total = progress.bytes.coerceAtLeast(1L),
                 height = 8.dp,
@@ -223,6 +237,39 @@ private fun scanFraction(progress: ScanProgress): Float {
 }
 
 private const val UNKNOWN_SCALE = 24.0 * 1024 * 1024 * 1024
+
+/** The legend arrives after the bar has started growing, not on top of it. */
+private const val LegendDelaySlots = 3
+
+/** A soft light behind the ring that breathes while the walk is running. */
+@Composable
+private fun Modifier.breathingHalo(color: Color): Modifier {
+    val reduced = LocalReducedMotion.current
+    val breath = if (reduced) {
+        remember { mutableFloatStateOf(0.7f) }
+    } else {
+        rememberInfiniteTransition(label = "halo").animateFloat(
+            initialValue = 0.45f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(HaloMs, easing = LinearEasing), RepeatMode.Reverse),
+            label = "haloBreath",
+        )
+    }
+    return drawBehind {
+        val radius = size.minDimension * 0.85f
+        drawCircle(
+            brush = Brush.radialGradient(
+                0f to color.copy(alpha = 0.34f * breath.value),
+                1f to Color.Transparent,
+                center = center,
+                radius = radius,
+            ),
+            radius = radius,
+        )
+    }
+}
+
+private const val HaloMs = 1_600
 
 @Composable
 internal fun SummaryCard(summary: SummaryUi, modifier: Modifier = Modifier) {
@@ -257,20 +304,24 @@ internal fun SummaryCard(summary: SummaryUi, modifier: Modifier = Modifier) {
                     modifier = Modifier.padding(bottom = 4.dp),
                 )
             }
-            Spacer(Modifier.height(Space.l))
-            SegmentBar(
+            Spacer(Modifier.height(Space.m))
+            GlowSegmentBar(
                 segments = summary.slices.map { it.bytes to it.color },
                 total = summary.totalBytes,
                 height = 14.dp,
             )
-            Spacer(Modifier.height(Space.l))
+            Spacer(Modifier.height(Space.m))
             val legend = summary.slices.map { Triple(it.label, it.bytes, it.color) } +
                 Triple("Szabad", summary.freeBytes, Ink.SurfaceHighest)
             Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
-                legend.chunked(2).forEach { pair ->
+                legend.chunked(2).forEachIndexed { row, pair ->
                     Row(horizontalArrangement = Arrangement.spacedBy(Space.l)) {
-                        pair.forEach { (label, bytes, color) ->
-                            LegendCell(label = label, value = Format.bytes(bytes), color = color, modifier = Modifier.weight(1f))
+                        pair.forEachIndexed { column, (label, bytes, color) ->
+                            Box(modifier = Modifier.weight(1f)) {
+                                StaggeredColumnItem(index = row * 2 + column + LegendDelaySlots) {
+                                    LegendCell(label = label, value = Format.bytes(bytes), color = color)
+                                }
+                            }
                         }
                         if (pair.size == 1) Spacer(Modifier.weight(1f))
                     }

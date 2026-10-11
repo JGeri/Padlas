@@ -1,10 +1,22 @@
 package hu.padlas.feature.map
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +27,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -34,7 +47,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +63,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -59,13 +76,18 @@ import hu.padlas.core.design.component.Chip
 import hu.padlas.core.design.component.IconBubble
 import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasIconButton
+import hu.padlas.core.design.component.RollingNumber
+import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.motionSpec
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
+import dev.chrisbanes.haze.HazeState
 import java.io.File
+import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 private val GroupRadius = 18.dp
 
@@ -198,53 +220,111 @@ internal fun Breadcrumbs(crumbs: List<Crumb>, onJump: (String) -> Unit, modifier
             .padding(horizontal = Space.page),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        val reduced = LocalReducedMotion.current
         crumbs.forEachIndexed { index, crumb ->
-            if (index > 0) {
-                Icon(
-                    Icons.Rounded.ChevronRight,
-                    contentDescription = null,
-                    tint = Ink.TextTertiary,
-                    modifier = Modifier
-                        .padding(horizontal = 2.dp)
-                        .size(18.dp),
-                )
+            key(crumb.path) {
+                // A level that was already there stays put; only the one just opened pops in.
+                val shown = remember { MutableTransitionState(false).apply { targetState = true } }
+                AnimatedVisibility(visibleState = shown, enter = popIn(reduced)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (index > 0) {
+                            Icon(
+                                Icons.Rounded.ChevronRight,
+                                contentDescription = null,
+                                tint = Ink.TextTertiary,
+                                modifier = Modifier
+                                    .padding(horizontal = 2.dp)
+                                    .size(18.dp),
+                            )
+                        }
+                        Chip(
+                            text = crumb.label,
+                            selected = index == crumbs.lastIndex,
+                            onClick = { onJump(crumb.path) },
+                            icon = if (index == 0) Icons.Rounded.PhoneAndroid else null,
+                        )
+                    }
+                }
             }
-            Chip(
-                text = crumb.label,
-                selected = index == crumbs.lastIndex,
-                onClick = { onJump(crumb.path) },
-                icon = if (index == 0) Icons.Rounded.PhoneAndroid else null,
-            )
         }
     }
 }
 
-/** The detail sheet for whatever is selected on the map or in a list. */
+/**
+ * The detail sheet for whatever is selected on the map or in a list: frosted glass over the
+ * list, with a grabber that means what it shows. Pulled down far enough, it lets go.
+ */
 @Composable
 internal fun FocusPanel(
     focus: Focus,
     rootPath: String,
     hint: String?,
+    haze: HazeState,
     onOpen: (StorageItem) -> Unit,
     onDelete: (StorageItem) -> Unit,
     onShowAll: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val reduced = LocalReducedMotion.current
+    val scope = rememberCoroutineScope()
+    val pull = remember { Animatable(0f) }
+    val dismissAt = with(LocalDensity.current) { SheetDismiss.toPx() }
+    val close by rememberUpdatedState(onClose)
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(Shapes.sheet)
-            .background(Ink.SurfaceHigh)
-            .border(1.dp, Ink.HairlineStrong, Shapes.sheet)
-            .padding(Space.l),
+            .offset { IntOffset(0, pull.value.roundToInt()) }
+            .draggable(
+                orientation = Orientation.Vertical,
+                state = rememberDraggableState { delta ->
+                    scope.launch { pull.snapTo((pull.value + delta).coerceAtLeast(0f)) }
+                },
+                onDragStopped = { velocity ->
+                    if (pull.value > dismissAt || velocity > SheetFlingVelocity) {
+                        close()
+                    } else {
+                        pull.animateTo(0f, if (reduced) snap() else Motion.snapback())
+                    }
+                },
+            )
+            .frostedPane(haze, Shapes.sheet)
+            .padding(start = Space.l, end = Space.l, bottom = Space.l, top = Space.s),
     ) {
-        when (focus) {
-            is Focus.Item -> ItemDetails(focus, rootPath, hint, onOpen, onDelete, onClose)
-            is Focus.Rest -> RestDetails(focus, onShowAll, onClose)
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .size(width = 36.dp, height = 4.dp)
+                .clip(Shapes.pill)
+                .background(Ink.HairlineStrong),
+        )
+        Spacer(Modifier.height(Space.m))
+        AnimatedContent(
+            targetState = focus,
+            contentKey = { current ->
+                when (current) {
+                    is Focus.Item -> current.item.path
+                    is Focus.Rest -> REST_KEY
+                }
+            },
+            transitionSpec = {
+                (fadeIn(finite(reduced)) + slideInHorizontally(finite(reduced)) { it / 6 }) togetherWith
+                    fadeOut(finite(reduced)) using SizeTransform(clip = false)
+            },
+            label = "focusDetails",
+        ) { shown ->
+            Column {
+                when (shown) {
+                    is Focus.Item -> ItemDetails(shown, rootPath, hint, onOpen, onDelete, onClose)
+                    is Focus.Rest -> RestDetails(shown, onShowAll, onClose)
+                }
+            }
         }
     }
 }
+
+private val SheetDismiss = 96.dp
+private const val SheetFlingVelocity = 1_800f
 
 @Composable
 private fun ItemDetails(
@@ -378,27 +458,29 @@ private fun DetailStat(label: String, value: String, modifier: Modifier = Modifi
     }
 }
 
-/** "3 fájl törlése · 4,2 GB": the button says what will happen and what it is worth. */
+/**
+ * What is selected and what it is worth, on a floating pane of glass. Both figures roll,
+ * so every tick in the list visibly moves the batch.
+ */
 @Composable
 internal fun SelectionBar(
     selection: SelectionUi,
+    haze: HazeState,
     onDelete: () -> Unit,
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val dirs = selection.items.values.count { it.isDirectory }
     val files = selection.count - dirs
-    val what = when {
-        dirs == 0 -> "${Format.count(files)} fájl"
-        files == 0 -> "${Format.count(dirs)} mappa"
-        else -> "${Format.count(selection.count)} elem"
+    val (count, noun) = when {
+        dirs == 0 -> files to "fájl"
+        files == 0 -> dirs to "mappa"
+        else -> selection.count to "elem"
     }
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(Shapes.pill)
-            .background(Ink.SurfaceHigh)
-            .border(1.dp, Ink.HairlineStrong, Shapes.pill)
+            .frostedPane(haze, Shapes.pill)
             .padding(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -409,25 +491,30 @@ internal fun SelectionBar(
             background = Ink.SurfaceHighest,
             size = 44.dp,
         )
+        Spacer(Modifier.width(Space.m))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                RollingNumber(value = Format.count(count), style = PadlasTheme.type.bodyStrong, color = Ink.Text)
+                Text(text = " $noun", style = PadlasTheme.type.bodyStrong, color = Ink.Text, maxLines = 1)
+            }
+            RollingNumber(value = Format.bytes(selection.bytes), style = PadlasTheme.type.caption, color = Ink.TextSecondary)
+        }
         Spacer(Modifier.width(Space.s))
         PadlasButton(
-            text = "$what törlése · ${Format.bytes(selection.bytes)}",
+            text = "Törlés",
             onClick = onDelete,
             icon = Icons.Rounded.DeleteOutline,
             style = ButtonStyle.Destructive,
             size = ButtonSize.Medium,
-            modifier = Modifier.weight(1f),
         )
     }
 }
 
 @Composable
-internal fun BusyPill(text: String, modifier: Modifier = Modifier) {
+internal fun BusyPill(text: String, haze: HazeState, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
-            .clip(Shapes.pill)
-            .background(Ink.SurfaceHighest)
-            .border(1.dp, Ink.HairlineStrong, Shapes.pill)
+            .frostedPane(haze, Shapes.pill)
             .padding(horizontal = Space.l, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

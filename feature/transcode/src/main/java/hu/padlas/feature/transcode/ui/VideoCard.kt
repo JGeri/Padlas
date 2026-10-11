@@ -39,6 +39,7 @@ import hu.padlas.core.database.entity.JobState
 import hu.padlas.core.design.component.LinearMeter
 import hu.padlas.core.design.component.PadlasCard
 import hu.padlas.core.design.component.PadlasTextButton
+import hu.padlas.core.design.component.RollingNumber
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.haptics
@@ -46,6 +47,7 @@ import hu.padlas.core.design.motion.motionSpec
 import hu.padlas.core.design.theme.CategoryColor
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
+import hu.padlas.core.design.theme.ProgressGradient
 import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
 import hu.padlas.feature.transcode.data.TranscodeMath
@@ -129,6 +131,7 @@ internal fun VideoCard(
                     else -> CategoryColor.Videos.copy(alpha = 0.8f)
                 },
                 height = 4.dp,
+                brush = if (item.state == JobState.RUNNING) ProgressGradient else null,
             )
             if (item.state == JobState.FAILED) {
                 Row(
@@ -226,11 +229,10 @@ private fun Saving(item: VideoItem, done: Boolean, flash: Float) {
     }
     val color = if (done) lerp(Ink.Success, Color.White, flash * 0.6f) else Ink.TextSecondary
     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Space.xxs)) {
-        Text(
-            text = "−" + Format.bytes(saved),
+        RollingNumber(
+            value = "−" + Format.bytes(saved),
             style = PadlasTheme.type.numeric,
             color = color,
-            maxLines = 1,
         )
         Text(
             text = if (done) "megspórolva" else "várható",

@@ -1,9 +1,14 @@
 package hu.padlas.feature.triage
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,7 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ConfirmationNumber
+import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.material.icons.rounded.Image
@@ -29,15 +36,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.database.entity.ShotKind
+import hu.padlas.core.design.component.ButtonStyle
 import hu.padlas.core.design.component.IconBubble
+import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasTextButton
+import hu.padlas.core.design.component.Pill
+import hu.padlas.core.design.component.RollingNumber
 import hu.padlas.core.design.component.SelectableTile
+import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.haptics
 import hu.padlas.core.design.motion.motionSpec
@@ -84,6 +94,7 @@ internal fun ShotTile(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
     onUnlock: (() -> Unit)? = null,
+    onView: (() -> Unit)? = null,
 ) {
     val haptics = haptics()
     Box(modifier = modifier) {
@@ -100,21 +111,25 @@ internal fun ShotTile(
                     selectionMode = !item.locked,
                     selectedTint = Ink.Danger,
                     badge = if (kept && !item.locked) KEEP_BADGE else null,
-                    onLongPress = if (item.locked && onUnlock != null) {
-                        {
-                            haptics?.threshold()
-                            onUnlock()
+                    // A tap already decides, so the closer look sits on the long press; a
+                    // locked shot keeps the long press for lifting its protection.
+                    onLongPress = when {
+                        item.locked && onUnlock != null -> {
+                            {
+                                haptics?.threshold()
+                                onUnlock()
+                            }
                         }
-                    } else {
-                        null
+                        onView != null -> {
+                            {
+                                haptics?.tick(0.2f)
+                                onView()
+                            }
+                        }
+                        else -> null
                     },
                     image = { tileModifier ->
-                        AsyncImage(
-                            model = item.model,
-                            contentDescription = null,
-                            modifier = tileModifier,
-                            contentScale = ContentScale.Crop,
-                        )
+                        ZoomableImage(key = item.id, model = item.model, modifier = tileModifier)
                     },
                 )
                 if (item.locked) {
@@ -161,13 +176,21 @@ internal fun GroupHeader(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    text = tallyLine(group, tally),
-                    style = PadlasTheme.type.numeric,
-                    color = Ink.TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RollingNumber(
+                        value = Format.count(tally.discardCount),
+                        style = PadlasTheme.type.numeric,
+                        color = if (tally.discardCount > 0) Ink.Danger else Ink.TextSecondary,
+                    )
+                    Text(
+                        text = " / ${Format.count(group.items.size)} törlésre · ${Format.bytes(tally.discardBytes)}",
+                        style = PadlasTheme.type.numeric,
+                        color = Ink.TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                }
             }
             if (tally.discardCount > 0) {
                 PadlasTextButton(text = "Mind marad", onClick = onKeepAll)
@@ -183,10 +206,6 @@ internal fun GroupHeader(
         )
     }
 }
-
-private fun tallyLine(group: TriageGroup, tally: GroupTally): String =
-    "${Format.count(tally.discardCount)} / ${Format.count(group.items.size)} törlésre · " +
-        Format.bytes(tally.discardBytes)
 
 internal fun kindIcon(kind: ShotKind?): ImageVector = when (kind) {
     ShotKind.SECRET -> Icons.Rounded.Lock
@@ -206,6 +225,61 @@ internal fun kindTint(kind: ShotKind?): Color = when (kind) {
     ShotKind.CHAT -> Ink.Accent
     ShotKind.OTHER -> Ink.Warning
     null -> Ink.TextSecondary
+}
+
+private enum class Verdict { PROTECTED, KEEP, DELETE }
+
+/** Under the enlarged picture: where it stands now, and the same choice the tile offers. */
+@Composable
+internal fun ColumnScope.KeepVerdict(kept: Boolean, locked: Boolean, onToggle: () -> Unit) {
+    val reduced = LocalReducedMotion.current
+    val haptics = haptics()
+    val verdict = when {
+        locked -> Verdict.PROTECTED
+        kept -> Verdict.KEEP
+        else -> Verdict.DELETE
+    }
+    AnimatedContent(
+        targetState = verdict,
+        transitionSpec = {
+            (popIn(reduced) togetherWith fadeOut(finite(reduced))).using(SizeTransform(clip = false))
+        },
+        label = "keepVerdict",
+        modifier = Modifier.align(Alignment.CenterHorizontally),
+    ) { shown ->
+        when (shown) {
+            Verdict.PROTECTED -> Pill(
+                text = "Védett",
+                icon = Icons.Rounded.Lock,
+                color = Ink.Text,
+                background = Ink.Info.copy(alpha = 0.85f),
+            )
+            Verdict.KEEP -> Pill(
+                text = KEEP_BADGE,
+                icon = Icons.Rounded.Check,
+                color = Ink.Background,
+                background = Ink.Success,
+            )
+            Verdict.DELETE -> Pill(
+                text = "Törlésre jelölve",
+                icon = Icons.Rounded.DeleteOutline,
+                color = Ink.Text,
+                background = Ink.Danger.copy(alpha = 0.85f),
+            )
+        }
+    }
+    if (!locked) {
+        PadlasButton(
+            text = if (kept) "Mégis törlöm" else "Megtartom",
+            onClick = {
+                if (kept) haptics?.tick() else haptics?.keep()
+                onToggle()
+            },
+            icon = if (kept) Icons.Rounded.DeleteOutline else Icons.Rounded.Check,
+            style = if (kept) ButtonStyle.Secondary else ButtonStyle.Success,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 internal const val KEEP_BADGE = "Marad"

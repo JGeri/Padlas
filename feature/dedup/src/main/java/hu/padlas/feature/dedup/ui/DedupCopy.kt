@@ -12,7 +12,11 @@ internal object DedupCopy {
     const val RECLAIMABLE = "Felszabadítható"
     const val KEEP_BADGE = "Marad"
     const val PROTECTED_BADGE = "Védett"
-    const val PICK_KEEPER = "Koppints arra a képre, amelyiket megtartanád."
+    const val PICK_KEEPER = "Koppints arra a képre, amelyiket megtartanád. Hosszan nyomva nagyban is megnézheted."
+    const val VIEW_KEEP = "Ezt tartom meg"
+    const val WILL_TRASH = "Kukába kerül"
+    const val ALL_ACTION = "Mind kukába"
+    const val BAR_NOUN = "felesleges fájl"
     const val GROUP_ACTION = "Kukába"
     const val SECTION_ACTION = "Mind kukába"
     const val RESCAN = "Keresés újra"
@@ -51,10 +55,7 @@ internal object DedupCopy {
 
     fun heroCaption(loserCount: Int, groupCount: Int): String =
         "${Format.count(loserCount)} felesleges másolat ${Format.count(groupCount)} csoportban. " +
-            "A „$KEEP_BADGE” jelölésű képek megmaradnak."
-
-    fun primaryAction(loserCount: Int, bytes: Long): String =
-        "${Format.count(loserCount)} fájl kukába · ${Format.bytes(bytes)}"
+            "A „$KEEP_BADGE” jelölésű képek megmaradnak, és bármelyiket megnézheted nagyban."
 
     fun trashedValue(bytes: Long): String = Format.bytes(bytes)
 

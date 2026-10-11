@@ -63,7 +63,7 @@ internal fun LazyListScope.appsSection(
 ) {
     if (!apps.hasAccess) {
         item(key = "apps-gate") {
-            UsageGate(onGrant = onGrant, modifier = Modifier.padding(horizontal = Space.page, vertical = Space.s))
+            UsageGate(onGrant = onGrant, modifier = Modifier.then(itemMotion()).padding(horizontal = Space.page, vertical = Space.s))
         }
         return
     }
@@ -78,6 +78,7 @@ internal fun LazyListScope.appsSection(
                 },
                 icon = Icons.Rounded.Schedule,
                 tint = Ink.TextSecondary,
+                modifier = Modifier.then(itemMotion()),
             )
         }
         return
@@ -90,12 +91,12 @@ internal fun LazyListScope.appsSection(
                 onOpen = onOpenApp,
                 onNext = onNextStop,
                 onRestart = onRestartTour,
-                modifier = Modifier.padding(horizontal = Space.page, vertical = Space.s),
+                modifier = Modifier.then(itemMotion()).padding(horizontal = Space.page, vertical = Space.s),
             )
         }
     }
     item(key = "apps-head") {
-        Column(modifier = Modifier.padding(start = Space.page, end = Space.page, top = Space.l, bottom = Space.m)) {
+        Column(modifier = Modifier.then(itemMotion()).padding(start = Space.page, end = Space.page, top = Space.l, bottom = Space.m)) {
             SectionHeader(title = "Appok méret szerint")
             Text(
                 text = "${Format.count(apps.apps.size)} app · ${Format.bytes(apps.apps.sumOf { it.totalBytes })}",
@@ -115,7 +116,7 @@ internal fun LazyListScope.appsSection(
             index = index,
             count = apps.apps.size,
             onClick = { onOpenApp(app.packageName) },
-            modifier = Modifier.padding(horizontal = Space.page),
+            modifier = Modifier.then(itemMotion()).padding(horizontal = Space.page),
         ) {
             AppIcon(app.packageName, iconLoader, 40.dp)
             Spacer(Modifier.width(Space.m))
