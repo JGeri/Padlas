@@ -100,25 +100,31 @@ internal class SwipeSessionViewModel @Inject constructor(
     }
 
     fun load() {
-        viewModelScope.launch {
-            val filter = preferences.lastFilter ?: SwipeFilter()
-            val hero = preferences.heroKey
-            _state.update { SessionUiState(pending = it.pending, deleteMode = it.deleteMode, heroKey = hero) }
-            history.clear()
-            sessionFavorites.clear()
-            autoDeleteDone = false
-            val cards = repository.deck(filter)
-            _state.update {
-                it.copy(
-                    loading = false,
-                    title = titleOf(filter),
-                    cards = cards,
-                    index = 0,
-                    showHint = !preferences.hintSeen && cards.isNotEmpty(),
-                    skipsSystemDialog = repository.canSkipSystemDialog(),
-                )
-            }
+        val filter = preferences.lastFilter ?: SwipeFilter()
+        val hero = preferences.heroKey
+        _state.update { SessionUiState(pending = it.pending, deleteMode = it.deleteMode, heroKey = hero) }
+        history.clear()
+        sessionFavorites.clear()
+        autoDeleteDone = false
+        // Read ahead by the screen that opened the deck: set synchronously, so the very first
+        // frame already shows the cards the tapped tile grows into.
+        val prepared = repository.takePrepared(filter)
+        if (prepared != null) {
+            dealt(filter, prepared)
+            return
         }
+        viewModelScope.launch { dealt(filter, repository.deck(filter)) }
+    }
+
+    private fun dealt(filter: SwipeFilter, cards: List<SwipeCard>) = _state.update {
+        it.copy(
+            loading = false,
+            title = titleOf(filter),
+            cards = cards,
+            index = 0,
+            showHint = !preferences.hintSeen && cards.isNotEmpty(),
+            skipsSystemDialog = repository.canSkipSystemDialog(),
+        )
     }
 
     fun dismissHint() {

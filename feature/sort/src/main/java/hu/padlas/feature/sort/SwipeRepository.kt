@@ -76,6 +76,20 @@ class SwipeRepository @Inject constructor(
         swipeDao.candidates(SimpleSQLiteQuery(query.sql, query.args.toTypedArray())).map { it.toCard() }
     }
 
+    /**
+     * A deck read by the screen that opens it, before it navigates, so the session's first
+     * frame already holds cards for the tapped tile to grow into. Taken once.
+     */
+    @Volatile
+    private var prepared: Pair<SwipeFilter, List<SwipeCard>>? = null
+
+    suspend fun prepare(filter: SwipeFilter) {
+        prepared = filter to deck(filter)
+    }
+
+    fun takePrepared(filter: SwipeFilter): List<SwipeCard>? =
+        prepared?.also { prepared = null }?.takeIf { it.first == filter }?.second
+
     suspend fun record(cardId: Long, action: SwipeAction) = write {
         swipeDao.upsert(SwipeDecisionEntity(cardId, action.choice, System.currentTimeMillis()))
     }

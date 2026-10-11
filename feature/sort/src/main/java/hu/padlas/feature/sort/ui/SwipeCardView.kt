@@ -48,6 +48,7 @@ import hu.padlas.core.database.entity.SwipeChoice
 import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.Pill
 import hu.padlas.core.design.component.glass
+import hu.padlas.core.design.motion.morphElement
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes
@@ -81,6 +82,7 @@ internal fun SwipeCardView(
     modifier: Modifier = Modifier,
 ) {
     val fills = fillsCard(card)
+    val context = LocalPlatformContext.current
     Box(modifier = modifier.padding(horizontal = Space.m, vertical = 6.dp)) {
         Box(
             modifier = Modifier
@@ -103,15 +105,23 @@ internal fun SwipeCardView(
                 .background(Ink.SurfaceSolid)
                 .border(1.dp, Ink.HairlineStrong, Shapes.hero),
         ) {
+            val picture = remember(card.uri) {
+                ImageRequest.Builder(context)
+                    .data(if (card.isVideo) MediaThumb(card.uri, 1024) else card.uri)
+                    .placeholderMemoryCacheKey(Cover.cacheKey(card.uri))
+                    .build()
+            }
+            val pictureModifier = Modifier
+                .fillMaxSize()
+                .let { if (isTop) it.morphElement(Cover.morphKey(card.uri)) else it }
             if (fills) {
                 AsyncImage(
-                    model = if (card.isVideo) MediaThumb(card.uri, 1024) else card.uri,
+                    model = picture,
                     contentDescription = card.displayName,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = pictureModifier,
                 )
             } else {
-                val context = LocalPlatformContext.current
                 AsyncImage(
                     model = remember(card.uri) {
                         ImageRequest.Builder(context).data(MediaThumb(card.uri, 128)).transformations(SoftBlur).build()
@@ -123,10 +133,10 @@ internal fun SwipeCardView(
                 )
                 Box(Modifier.fillMaxSize().background(Ink.Background.copy(alpha = 0.45f)))
                 AsyncImage(
-                    model = if (card.isVideo) MediaThumb(card.uri, 1024) else card.uri,
+                    model = picture,
                     contentDescription = card.displayName,
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = pictureModifier,
                 )
             }
             if (card.isVideo && isTop && player != null) {

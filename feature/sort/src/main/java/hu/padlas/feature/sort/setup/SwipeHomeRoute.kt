@@ -69,6 +69,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import hu.padlas.core.common.format.Format
@@ -91,12 +93,14 @@ import hu.padlas.core.design.component.frosted
 import hu.padlas.core.design.component.glass
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.morphBounds
+import hu.padlas.core.design.motion.morphElement
 import hu.padlas.core.design.motion.motionSpec
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
 import hu.padlas.core.media.MediaThumb
+import hu.padlas.feature.sort.ui.Cover
 import hu.padlas.feature.sort.MediaFilter
 import hu.padlas.feature.sort.SwipeOrder
 import hu.padlas.feature.sort.ui.rememberSystemRequest
@@ -222,10 +226,7 @@ fun SwipeHomeRoute(
                                             MonthTile(
                                                 cell = cell,
                                                 selecting = state.selecting,
-                                                onOpen = {
-                                                    viewModel.openMonth(cell)
-                                                    onStartSession()
-                                                },
+                                                onOpen = { viewModel.openMonth(cell, then = onStartSession) },
                                                 onToggle = { viewModel.toggleMonth(cell.key) },
                                                 onLongPress = { viewModel.startSelecting(month = cell.key) },
                                                 modifier = Modifier.weight(1f),
@@ -242,10 +243,7 @@ fun SwipeHomeRoute(
                         FolderRow(
                             folder = folder,
                             selecting = state.selecting,
-                            onOpen = {
-                                viewModel.openFolder(folder)
-                                onStartSession()
-                            },
+                            onOpen = { viewModel.openFolder(folder, then = onStartSession) },
                             onToggle = { viewModel.toggleBucket(folder.bucketId) },
                             onLongPress = { viewModel.startSelecting(bucketId = folder.bucketId) },
                             modifier = Modifier.animateItem(),
@@ -268,10 +266,7 @@ fun SwipeHomeRoute(
                 count = state.preview?.itemCount,
                 bytes = state.preview?.totalBytes ?: 0L,
                 onClear = viewModel::clearSelection,
-                onStart = {
-                    viewModel.startSelection()
-                    onStartSession()
-                },
+                onStart = { viewModel.startSelection(then = onStartSession) },
                 modifier = Modifier
                     .padding(horizontal = 12.dp, vertical = 8.dp)
                     .clip(Shapes.sheet)
@@ -508,11 +503,19 @@ private fun MonthTile(
                 .background(Ink.SurfaceHigh),
         ) {
             if (cell.cover != null) {
+                val context = LocalPlatformContext.current
                 AsyncImage(
-                    model = MediaThumb(cell.cover, 384),
+                    model = remember(cell.cover) {
+                        ImageRequest.Builder(context)
+                            .data(MediaThumb(cell.cover, 384))
+                            .memoryCacheKey(Cover.cacheKey(cell.cover))
+                            .build()
+                    },
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .morphElement(Cover.morphKey(cell.cover)),
                 )
             }
             if (selecting) {

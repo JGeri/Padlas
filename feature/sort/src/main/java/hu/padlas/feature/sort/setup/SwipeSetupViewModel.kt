@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 internal enum class SetupTab { MONTHS, FOLDERS }
 
@@ -201,25 +202,38 @@ internal class SwipeSetupViewModel @Inject constructor(
      * One tap, one deck: the month alone, whatever else was selected. A month that is
      * already fully reviewed opens with its old decisions shown, instead of opening empty.
      */
-    fun openMonth(cell: MonthCell) = open(
+    fun openMonth(cell: MonthCell, then: () -> Unit) = open(
         filter.value.copy(months = setOf(cell.key), buckets = emptySet(), onlyUnreviewed = filter.value.onlyUnreviewed && !cell.complete),
         heroKey = "swipe-month-${cell.key}",
+        then = then,
     )
 
-    fun openFolder(folder: FolderItem) = open(
+    fun openFolder(folder: FolderItem, then: () -> Unit) = open(
         filter.value.copy(buckets = setOf(folder.bucketId), months = emptySet(), onlyUnreviewed = filter.value.onlyUnreviewed && folder.reviewedFraction < 1f),
         heroKey = "swipe-folder-${folder.bucketId}",
+        then = then,
     )
 
-    fun startSelection() {
-        preferences.heroKey = HERO_START
-        preferences.lastFilter = filter.value
-    }
+    fun startSelection(then: () -> Unit) = open(filter.value, heroKey = HERO_START, then = then)
 
-    private fun open(target: SwipeFilter, heroKey: String) {
+    /**
+     * The deck is read before the screen changes, so the tile grows into cards rather than
+     * into an empty frame that fills in halfway through. A slow read only waits a moment:
+     * past [PREPARE_BUDGET_MS] the session loads it itself, as it would without this.
+     */
+    private fun open(target: SwipeFilter, heroKey: String, then: () -> Unit) {
+        if (opening) return
+        opening = true
         preferences.heroKey = heroKey
         preferences.lastFilter = target
+        viewModelScope.launch {
+            withTimeoutOrNull(PREPARE_BUDGET_MS) { runCatching { repository.prepare(target) } }
+            opening = false
+            then()
+        }
     }
+
+    private var opening = false
 
 
     fun deleteNow() {
@@ -307,5 +321,6 @@ internal class SwipeSetupViewModel @Inject constructor(
 
     companion object {
         const val HERO_START = "swipe-start"
+        private const val PREPARE_BUDGET_MS = 300L
     }
 }

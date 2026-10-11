@@ -184,7 +184,10 @@ provides `LocalSharedTransitionScope` and, per destination, `LocalNavAnimatedVis
 element on one screen with one on the next by key, and are no-ops outside a transition.
 Keys in use: `tool-<TOOL>` and `win-<TOOL>` (overview tiles → screens), `home-pending` and
 `swipe-pending` (→ marked grid), `swipe-month-<yyyy-MM>`, `swipe-folder-<bucketId>`,
-`swipe-start` (→ swipe deck).
+`swipe-start` (→ swipe deck), and `swipe-cover-<uri>` (a month's cover → the deck's top card,
+which shows the cover's cached thumbnail until its full image loads). The swipe tab reads the
+deck before it navigates (`SwipeRepository.prepare`, at most 300 ms), so the session's first
+frame already has cards to morph into.
 
 ## Feature modules
 
