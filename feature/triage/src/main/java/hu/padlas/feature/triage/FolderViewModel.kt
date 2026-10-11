@@ -102,7 +102,7 @@ internal class FolderViewModel @Inject constructor(
         _state.update { it.copy(request = null) }
         if (batch == null) return
         if (!confirmed) {
-            _state.update { it.copy(committing = false, message = "Nem történt törlés.") }
+            _state.update { it.copy(committing = false, message = "Nem töröltünk semmit.") }
             return
         }
         viewModelScope.launch {

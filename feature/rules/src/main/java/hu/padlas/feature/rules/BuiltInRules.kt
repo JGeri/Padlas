@@ -12,7 +12,7 @@ object BuiltInRules {
 
     fun all(): List<RuleEntity> = listOf(
         rule(
-            name = "Régi WhatsApp a padlásra",
+            name = "Régi WhatsApp-képek a felhőbe",
             action = RuleAction.ARCHIVE,
             predicate = Predicate.And(
                 listOf(
@@ -22,7 +22,7 @@ object BuiltInRules {
             ),
         ),
         rule(
-            name = "Egy évnél régebbi kamerafotó a padlásra",
+            name = "Egy évnél régebbi fotók a felhőbe",
             action = RuleAction.ARCHIVE,
             predicate = Predicate.And(
                 listOf(
@@ -33,7 +33,7 @@ object BuiltInRules {
             ),
         ),
         rule(
-            name = "Nagy videók tömörítésre",
+            name = "Nagy videók tömörítése",
             action = RuleAction.TRANSCODE,
             predicate = Predicate.And(
                 listOf(
@@ -43,7 +43,7 @@ object BuiltInRules {
             ),
         ),
         rule(
-            name = "Fél évnél régebbi efemer a Kidobóba",
+            name = "Régi képernyőképek az eldobhatók közé",
             action = RuleAction.TRASH,
             predicate = Predicate.And(
                 listOf(

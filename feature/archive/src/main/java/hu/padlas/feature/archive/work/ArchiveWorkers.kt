@@ -35,7 +35,7 @@ class UploadWorker @AssistedInject constructor(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        setForegroundSafely("Feltöltés a padlásra")
+        setForegroundSafely("Feltöltés a Google Drive-ra")
         return runCatching { repository.drainQueue() }
             .fold(
                 onSuccess = { Result.success() },

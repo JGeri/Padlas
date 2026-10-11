@@ -43,6 +43,7 @@ fun DedupRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
             val section = state.sections.firstOrNull { it.kind == kind }
             viewModel.requestTrash(section?.groups.orEmpty().map { it.id })
         },
+        onResolveAll = { viewModel.requestTrash(state.allGroupIds) },
         onPickWinner = viewModel::pickWinner,
         onRescan = viewModel::rescan,
         modifier = modifier,

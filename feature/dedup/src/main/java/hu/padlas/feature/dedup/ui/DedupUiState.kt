@@ -51,8 +51,11 @@ internal data class DedupUiState(
     /** MediaStore trash: already thrown away, still occupying space (INV-2). */
     val trashedBytes: Long = 0,
     val lastScanAt: Long = 0,
-    /** Bumped when the system dialog came back cancelled, so the cards fan out again. */
-    val resetToken: Int = 0,
+    /**
+     * Groups whose losers sit behind the system dialog. The cards fold their losers away
+     * while it is open and unfold them again if the user cancels.
+     */
+    val pendingGroupIds: Set<String> = emptySet(),
 ) {
     val sections: List<DedupSectionUi> get() = listOf(exact, burst, similar)
 
@@ -61,4 +64,8 @@ internal data class DedupUiState(
     val reclaimableBytes: Long get() = sections.sumOf { it.reclaimableBytes }
 
     val loserCount: Int get() = sections.sumOf { it.loserCount }
+
+    val groupCount: Int get() = sections.sumOf { it.groups.size }
+
+    val allGroupIds: List<String> get() = sections.flatMap { section -> section.groups.map { it.id } }
 }

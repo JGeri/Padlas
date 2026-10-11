@@ -1,37 +1,49 @@
 package hu.padlas.feature.triage
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ConfirmationNumber
+import androidx.compose.material.icons.rounded.Forum
+import androidx.compose.material.icons.rounded.HourglassEmpty
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Place
+import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import coil3.compose.AsyncImage
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.Text
+import coil3.compose.AsyncImage
 import hu.padlas.core.common.format.Format
-import hu.padlas.core.design.component.HoldToConfirm
-import hu.padlas.core.design.component.NumericText
+import hu.padlas.core.database.entity.ShotKind
+import hu.padlas.core.design.component.IconBubble
 import hu.padlas.core.design.component.PadlasTextButton
-import hu.padlas.core.design.component.SectionLabel
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.haptics
 import hu.padlas.core.design.motion.motionSpec
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
+import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
 import kotlinx.coroutines.delay
 import kotlin.random.Random
@@ -60,124 +72,145 @@ internal fun FallAway(falling: Boolean, content: @Composable () -> Unit) {
     }
 }
 
+/**
+ * Inverse mode: a ticked tile is on its way out, an empty circle stays. Red is the colour
+ * of deleting everywhere in the app, so the tick here is red too.
+ */
 @Composable
 internal fun ShotTile(
     item: ShotItem,
     kept: Boolean,
     falling: Boolean,
     onToggle: () -> Unit,
-    onUnlock: () -> Unit,
     modifier: Modifier = Modifier,
+    onUnlock: (() -> Unit)? = null,
 ) {
     val haptics = haptics()
-    val dim by animateFloatAsState(
-        targetValue = if (kept || item.locked) 1f else DISCARD_ALPHA,
-        animationSpec = motionSpec(Motion.settle()),
-        label = "keepDim",
-    )
     Box(modifier = modifier) {
         FallAway(falling) {
-            SelectableTile(
-                model = item.model,
-                // Inverse mode: what is going gets the quiet look, what you rescued stays
-                // at full colour. Selected here means "still in the delete batch".
-                selected = !kept && !item.locked,
-                onToggle = {
-                    if (item.locked) return@SelectableTile
-                    haptics?.tick()
-                    onToggle()
-                },
-                modifier = Modifier.alpha(dim),
-                badge = when {
-                    item.locked -> "Védett"
-                    kept -> "Marad"
-                    else -> null
-                },
-                onLongPress = if (item.locked) {
-                    {
-                        haptics?.threshold()
-                        onUnlock()
+            Box {
+                SelectableTile(
+                    model = item.model,
+                    selected = !kept && !item.locked,
+                    onToggle = {
+                        if (item.locked) return@SelectableTile
+                        haptics?.tick()
+                        onToggle()
+                    },
+                    selectionMode = !item.locked,
+                    selectedTint = Ink.Danger,
+                    badge = if (kept && !item.locked) KEEP_BADGE else null,
+                    onLongPress = if (item.locked && onUnlock != null) {
+                        {
+                            haptics?.threshold()
+                            onUnlock()
+                        }
+                    } else {
+                        null
+                    },
+                    image = { tileModifier ->
+                        AsyncImage(
+                            model = item.model,
+                            contentDescription = null,
+                            modifier = tileModifier,
+                            contentScale = ContentScale.Crop,
+                        )
+                    },
+                )
+                if (item.locked) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(6.dp)
+                            .size(22.dp)
+                            .clip(Shapes.pill)
+                            .background(Ink.Background.copy(alpha = 0.6f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Lock,
+                            contentDescription = "Védett",
+                            tint = Ink.Text,
+                            modifier = Modifier.size(13.dp),
+                        )
                     }
-                } else {
-                    null
-                },
-                image = { tileModifier ->
-                    AsyncImage(
-                        model = item.model,
-                        contentDescription = null,
-                        modifier = tileModifier,
-                        contentScale = ContentScale.Crop,
-                    )
-                },
-            )
+                }
+            }
         }
     }
 }
 
+/** One kind of picture: what it is, why it is here, and how much of it is going. */
 @Composable
 internal fun GroupHeader(
     group: TriageGroup,
     tally: GroupTally,
     onKeepAll: () -> Unit,
     onDiscardAll: () -> Unit,
-    onUnlockAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(top = Space.xl, bottom = Space.s)) {
-        SectionLabel(text = group.title)
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = Space.xs),
-            horizontalArrangement = Arrangement.spacedBy(Space.s),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            NumericText(
-                text = if (group.locked) {
-                    "${Format.count(group.items.size)} db · védett"
-                } else {
-                    "${Format.count(tally.discardCount)} db · ${Format.bytes(tally.discardBytes)}"
-                },
-                color = if (group.locked) Ink.Success else Ink.Accent,
-            )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconBubble(icon = kindIcon(group.kind), tint = kindTint(group.kind), size = 40.dp)
+            Spacer(Modifier.width(Space.m))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = group.title,
+                    style = PadlasTheme.type.title,
+                    color = Ink.Text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = tallyLine(group, tally),
+                    style = PadlasTheme.type.numeric,
+                    color = Ink.TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (tally.discardCount > 0) {
+                PadlasTextButton(text = "Mind marad", onClick = onKeepAll)
+            } else {
+                PadlasTextButton(text = "Mind törlése", onClick = onDiscardAll, color = Ink.Danger)
+            }
         }
         Text(
             text = group.hint,
-            style = PadlasTheme.type.micro,
+            style = PadlasTheme.type.caption,
             color = Ink.TextTertiary,
-            modifier = Modifier.padding(top = Space.xs),
+            modifier = Modifier.padding(top = Space.s),
         )
-        if (group.locked) {
-            HoldToConfirm(
-                label = "Védelem feloldása",
-                onConfirm = onUnlockAll,
-                holdMillis = UNLOCK_HOLD_MS,
-                modifier = Modifier.padding(top = Space.s),
-            )
-        } else {
-            Row(
-                modifier = Modifier.padding(top = Space.xs),
-                horizontalArrangement = Arrangement.spacedBy(Space.m),
-            ) {
-                PadlasTextButton(text = "Mindet megtartom", onClick = onKeepAll)
-                PadlasTextButton(text = "Mindet kidobom", onClick = onDiscardAll)
-            }
-        }
     }
 }
 
-@Composable
-internal fun ScreenMessage(message: String, modifier: Modifier = Modifier) {
-    Text(
-        text = message,
-        style = PadlasTheme.type.body,
-        color = Ink.TextSecondary,
-        textAlign = TextAlign.Center,
-        modifier = modifier.fillMaxWidth().padding(horizontal = Space.l, vertical = Space.s),
-    )
+private fun tallyLine(group: TriageGroup, tally: GroupTally): String =
+    "${Format.count(tally.discardCount)} / ${Format.count(group.items.size)} törlésre · " +
+        Format.bytes(tally.discardBytes)
+
+internal fun kindIcon(kind: ShotKind?): ImageVector = when (kind) {
+    ShotKind.SECRET -> Icons.Rounded.Lock
+    ShotKind.TICKET -> Icons.Rounded.ConfirmationNumber
+    ShotKind.RECEIPT -> Icons.AutoMirrored.Rounded.ReceiptLong
+    ShotKind.PLACE -> Icons.Rounded.Place
+    ShotKind.CHAT -> Icons.Rounded.Forum
+    ShotKind.OTHER -> Icons.Rounded.Image
+    null -> Icons.Rounded.HourglassEmpty
 }
 
-private const val DISCARD_ALPHA = 0.5f
+internal fun kindTint(kind: ShotKind?): Color = when (kind) {
+    ShotKind.SECRET -> Ink.Success
+    ShotKind.TICKET -> Ink.Info
+    ShotKind.RECEIPT -> Ink.Favorite
+    ShotKind.PLACE -> Ink.Success
+    ShotKind.CHAT -> Ink.Accent
+    ShotKind.OTHER -> Ink.Warning
+    null -> Ink.TextSecondary
+}
+
+internal const val KEEP_BADGE = "Marad"
 private const val SCATTER_MS = 40
 private const val FALL_DISTANCE_PX = 220f
-private const val UNLOCK_HOLD_MS = 1_500
 internal const val FALL_AWAY_MS = 520L
-internal val TileSize = 104.dp
+internal val TileSpacing = 3.dp
+internal const val GRID_COLUMNS = 4

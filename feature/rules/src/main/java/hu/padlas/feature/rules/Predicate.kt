@@ -142,5 +142,5 @@ fun Predicate.describe(): String = when (this) {
 private fun ValueClass.hungarian(): String = when (this) {
     ValueClass.IRREPLACEABLE -> "pótolhatatlan"
     ValueClass.REPLACEABLE -> "pótolható"
-    ValueClass.EPHEMERAL -> "efemer"
+    ValueClass.EPHEMERAL -> "eldobható"
 }

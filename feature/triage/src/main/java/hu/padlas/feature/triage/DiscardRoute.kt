@@ -1,36 +1,64 @@
 package hu.padlas.feature.triage
 
 import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import hu.padlas.core.common.format.Format
 import hu.padlas.core.design.component.EmptyState
+import hu.padlas.core.design.component.HoldToConfirm
+import hu.padlas.core.design.component.IconBubble
+import hu.padlas.core.design.component.PadlasCard
+import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.PadlasTopBar
+import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.motion.haptics
 import hu.padlas.core.design.theme.Ink
+import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
 import kotlinx.coroutines.delay
 
 /**
- * The Kidobó (spec M9). Not a swipe deck: the ephemeral set arrives grouped and already
- * selected for deletion, and the user only taps the survivors. 19 left swipes per right
- * one is the wrong interaction; a grid of 4 000 tiles is two or three minutes.
+ * The discard pile (spec M9). Not a swipe deck: the ephemeral set arrives grouped and
+ * already selected for deletion, and the user only taps the survivors. 19 left swipes per
+ * right one is the wrong interaction; a grid of 4 000 tiles is two or three minutes.
  */
 @Composable
 fun DiscardRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
@@ -40,11 +68,23 @@ fun DiscardRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val haptics = haptics()
 
+    // The fall-away timer and the back button can both fire; popping twice would take the
+    // overview with it.
+    var left by remember { mutableStateOf(false) }
+    val leave = {
+        if (!left) {
+            left = true
+            onBack()
+        }
+    }
+
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult(),
     ) { result ->
         viewModel.onDeleteResult(result.resultCode == Activity.RESULT_OK)
     }
+
+    BackHandler { leave() }
 
     LaunchedEffect(viewModel, launcher) {
         viewModel.events.collect { event ->
@@ -55,24 +95,25 @@ fun DiscardRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         }
     }
 
-    // Two beats, not one: the grid falls here, the meter drains on the Vault.
+    // Two beats, not one: the grid falls here, the meter drains on the overview.
     LaunchedEffect(state.falling) {
         if (!state.falling) return@LaunchedEffect
         haptics?.commit()
         delay(FALL_AWAY_MS)
-        onBack()
+        leave()
     }
 
     DiscardScreen(
         state = state,
         selection = selection,
-        onBack = onBack,
+        onBack = leave,
         onToggle = viewModel::toggleKeep,
         onKeepAll = viewModel::keepAll,
         onDiscardAll = viewModel::discardAll,
         onUnlock = viewModel::unlock,
         onConfirm = viewModel::requestDelete,
         onRetriage = { TriageScheduler.enqueueTriage(context) },
+        onMessageShown = viewModel::dismissMessage,
         modifier = modifier,
     )
 }
@@ -88,34 +129,65 @@ private fun DiscardScreen(
     onUnlock: (List<Long>) -> Unit,
     onConfirm: () -> Unit,
     onRetriage: () -> Unit,
+    onMessageShown: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize().background(Ink.Background)) {
-        PadlasTopBar(title = "Kidobó", onBack = onBack)
-        when {
-            state.loading -> ScreenMessage(message = "Betöltés.")
-            state.groups.isEmpty() -> EmptyState(
-                text = "Nincs kidobható képernyőkép. A triázs nem talált semmit. Újra?",
-                actionLabel = "Triázs indítása",
-                onAction = onRetriage,
-            )
+    val hasContent = !state.loading && state.groups.isNotEmpty()
+    val navBottom = navigationBarBottom()
 
-            else -> DiscardGrid(
-                state = state,
-                selection = selection,
-                onToggle = onToggle,
-                onKeepAll = onKeepAll,
-                onDiscardAll = onDiscardAll,
-                onUnlock = onUnlock,
-                modifier = Modifier.weight(1f),
+    Box(modifier = modifier.fillMaxSize().background(Ink.Background)) {
+        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+            PadlasTopBar(
+                title = "Eldobható képek",
+                onBack = onBack,
+                subtitle = if (hasContent) {
+                    "${Format.count(selection.discardCount)} kijelölve · ${Format.bytes(selection.discardBytes)}"
+                } else {
+                    null
+                },
+            )
+            when {
+                state.loading -> Unit
+                state.groups.isEmpty() -> EmptyState(
+                    title = "Nincs eldobható kép",
+                    text = "Nem találtunk képernyőképet vagy letöltött képet, amire már nincs szükség.",
+                    icon = Icons.Rounded.CheckCircle,
+                    tint = Ink.Success,
+                    actionLabel = "Átnézés újra",
+                    onAction = onRetriage,
+                    modifier = Modifier.padding(top = Space.xxl),
+                )
+
+                else -> DiscardGrid(
+                    state = state,
+                    selection = selection,
+                    onToggle = onToggle,
+                    onKeepAll = onKeepAll,
+                    onDiscardAll = onDiscardAll,
+                    onUnlock = onUnlock,
+                    bottomPadding = navBottom + CommitBarClearance,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        PinnedActionBar(visible = hasContent, modifier = Modifier.align(Alignment.BottomCenter)) {
+            CommitBar(
+                count = selection.discardCount,
+                bytes = selection.discardBytes,
+                busy = state.committing || state.falling,
+                onConfirm = onConfirm,
             )
         }
-        state.message?.let { ScreenMessage(message = it) }
-        CommitBar(
-            count = selection.discardCount,
-            bytes = selection.discardBytes,
-            busy = state.committing || state.falling,
-            onConfirm = onConfirm,
+
+        Toast(
+            message = state.message,
+            onShown = onMessageShown,
+            icon = Icons.Rounded.Info,
+            tint = Ink.Info,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = navBottom + if (hasContent) CommitBarClearance else Space.l),
         )
     }
 }
@@ -128,23 +200,35 @@ private fun DiscardGrid(
     onKeepAll: (String) -> Unit,
     onDiscardAll: (String) -> Unit,
     onUnlock: (List<Long>) -> Unit,
+    bottomPadding: Dp,
     modifier: Modifier = Modifier,
 ) {
+    var showProtected by rememberSaveable { mutableStateOf(false) }
+    val open = state.groups.filterNot { it.locked }
+    val protectedGroups = state.groups.filter { it.locked }
+
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(TileSize),
-        modifier = modifier,
-        contentPadding = PaddingValues(horizontal = Space.l, vertical = Space.s),
-        horizontalArrangement = Arrangement.spacedBy(Space.s),
-        verticalArrangement = Arrangement.spacedBy(Space.s),
+        columns = GridCells.Fixed(GRID_COLUMNS),
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(start = Space.page, end = Space.page, top = Space.s, bottom = bottomPadding),
+        horizontalArrangement = Arrangement.spacedBy(TileSpacing),
+        verticalArrangement = Arrangement.spacedBy(TileSpacing),
     ) {
-        state.groups.forEach { group ->
-            item(key = "fejlec-${group.key}", span = { GridItemSpan(maxLineSpan) }) {
+        item(key = "hero", span = { GridItemSpan(maxLineSpan) }) {
+            ReclaimHero(
+                label = "Felszabadítható",
+                bytes = selection.discardBytes,
+                caption = "Képernyőképek és letöltött képek, amikre valószínűleg már nincs szükséged. " +
+                    "Minden ki van jelölve törlésre: koppints arra, amit megtartanál.",
+            )
+        }
+        open.forEach { group ->
+            item(key = "header-${group.key}", span = { GridItemSpan(maxLineSpan) }) {
                 GroupHeader(
                     group = group,
                     tally = selection.tally(group.key),
                     onKeepAll = { onKeepAll(group.key) },
                     onDiscardAll = { onDiscardAll(group.key) },
-                    onUnlockAll = { onUnlock(group.items.filter { it.locked }.map { it.id }) },
                 )
             }
             items(items = group.items, key = { it.id }) { item ->
@@ -153,9 +237,19 @@ private fun DiscardGrid(
                     kept = item.id in selection.kept,
                     falling = state.falling,
                     onToggle = { onToggle(item.id) },
-                    onUnlock = { onUnlock(listOf(item.id)) },
                 )
             }
+        }
+        protectedGroups.forEach { group ->
+            protectedSection(
+                group = group,
+                expanded = showProtected,
+                onExpand = { showProtected = !showProtected },
+                keptIds = selection.kept,
+                falling = state.falling,
+                onToggle = onToggle,
+                onUnlock = onUnlock,
+            )
         }
         item(key = "kuka", span = { GridItemSpan(maxLineSpan) }) {
             TrashSection(
@@ -166,3 +260,84 @@ private fun DiscardGrid(
         }
     }
 }
+
+/**
+ * INV-1c: SECRET shots are never part of the batch. They are folded away by default and
+ * only a long, deliberate hold lifts the protection; even then they arrive kept, so a
+ * second tap is needed before any of them is deleted.
+ */
+private fun LazyGridScope.protectedSection(
+    group: TriageGroup,
+    expanded: Boolean,
+    onExpand: () -> Unit,
+    keptIds: Set<Long>,
+    falling: Boolean,
+    onToggle: (Long) -> Unit,
+    onUnlock: (List<Long>) -> Unit,
+) {
+    item(key = "protected-${group.key}", span = { GridItemSpan(maxLineSpan) }) {
+        PadlasCard(modifier = Modifier.fillMaxWidth().padding(top = Space.xl, bottom = Space.s)) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconBubble(icon = kindIcon(group.kind), tint = kindTint(group.kind))
+                    Spacer(Modifier.width(Space.m))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = group.title,
+                            style = PadlasTheme.type.bodyStrong,
+                            color = Ink.Text,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = "${Format.count(group.items.size)} kép · nem kerül törlésre",
+                            style = PadlasTheme.type.caption,
+                            color = Ink.TextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    PadlasTextButton(text = if (expanded) "Elrejtés" else "Megnézem", onClick = onExpand)
+                }
+                Text(
+                    text = group.hint,
+                    style = PadlasTheme.type.caption,
+                    color = Ink.TextTertiary,
+                    modifier = Modifier.padding(top = Space.s),
+                )
+            }
+        }
+    }
+    if (!expanded) return
+    items(items = group.items, key = { it.id }) { item ->
+        ShotTile(
+            item = item,
+            kept = item.id in keptIds,
+            falling = falling,
+            onToggle = { onToggle(item.id) },
+            onUnlock = { onUnlock(listOf(item.id)) },
+        )
+    }
+    val locked = group.items.filter { it.locked }.map { it.id }
+    if (locked.isNotEmpty()) {
+        item(key = "unlock-${group.key}", span = { GridItemSpan(maxLineSpan) }) {
+            Column(modifier = Modifier.fillMaxWidth().padding(top = Space.m)) {
+                HoldToConfirm(
+                    label = "Tartsd lenyomva a feloldáshoz",
+                    onConfirm = { onUnlock(locked) },
+                    holdMillis = UNLOCK_HOLD_MS,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = "Feloldás után is megmaradnak, amíg egyenként ki nem jelölöd őket.",
+                    style = PadlasTheme.type.caption,
+                    color = Ink.TextTertiary,
+                    modifier = Modifier.padding(top = Space.s),
+                )
+            }
+        }
+    }
+}
+
+private const val UNLOCK_HOLD_MS = 1_500
+internal val CommitBarClearance = 132.dp

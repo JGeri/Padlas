@@ -35,7 +35,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -50,7 +49,7 @@ internal class DedupViewModel @Inject constructor(
     hashPipeline: HashPipeline,
 ) : ViewModel() {
 
-    private val resetToken = MutableStateFlow(0)
+    private val pendingGroups = MutableStateFlow<Set<String>>(emptySet())
     private val trashedBytes = MutableStateFlow(0L)
 
     /** The batch waiting behind the system dialog. Written only from the main thread. */
@@ -67,14 +66,14 @@ internal class DedupViewModel @Inject constructor(
         .map { entries -> entries.firstOrNull { it.action == AuditAction.HASHED }?.timestamp ?: 0L }
         .flowOn(io)
 
-    private val local: Flow<Pair<Long, Int>> = combine(trashedBytes, resetToken, ::Pair)
+    private val local: Flow<Pair<Long, Set<String>>> = combine(trashedBytes, pendingGroups, ::Pair)
 
     private val scanning: Flow<Boolean> = DedupScheduler.observeScan(context)
         .catch { emit(false) }
 
     val state: StateFlow<DedupUiState> =
         combine(groups, hashPipeline.progress, scanning, lastScanAt, local) { open, progress, running, scannedAt, session ->
-            val (trashed, token) = session
+            val (trashed, waiting) = session
             DedupUiState(
                 loading = false,
                 scanning = running || progress.running,
@@ -84,7 +83,7 @@ internal class DedupViewModel @Inject constructor(
                 similar = DedupSectionUi(DupKind.SIMILAR, open.filter { it.kind == DupKind.SIMILAR }),
                 trashedBytes = trashed,
                 lastScanAt = scannedAt,
-                resetToken = token,
+                pendingGroupIds = waiting,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), DedupUiState())
 
@@ -114,6 +113,7 @@ internal class DedupViewModel @Inject constructor(
             if (losers.isEmpty()) return@launch
             val sender = withContext(io) { mediaOps.trashRequest(losers.map { it.uri }) }
             pending = PendingTrash(open.map { it.id }, losers.map { it.assetId to it.sizeBytes })
+            pendingGroups.value = open.map { it.id }.toSet()
             _trashRequests.emit(sender)
         }
     }
@@ -122,7 +122,7 @@ internal class DedupViewModel @Inject constructor(
         val batch = pending ?: return
         pending = null
         if (!accepted) {
-            resetToken.update { it + 1 }
+            pendingGroups.value = emptySet()
             return
         }
         viewModelScope.launch(io) {

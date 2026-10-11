@@ -63,25 +63,25 @@ sealed interface DiscardEvent {
     data class Confirm(val intentSender: IntentSender) : DiscardEvent
 }
 
-/** Group titles. A kind the user never asked for still has to read as a shelf label. */
+/** Group titles: what the pictures are, in the words a person would use for them. */
 internal fun kindTitle(kind: ShotKind?): String = when (kind) {
-    ShotKind.SECRET -> "Titkos"
-    ShotKind.TICKET -> "Jegyek"
-    ShotKind.RECEIPT -> "Nyugták"
-    ShotKind.PLACE -> "Helyek"
-    ShotKind.CHAT -> "Beszélgetések"
-    ShotKind.OTHER -> "Egyéb"
-    null -> "Átnézetlen"
+    ShotKind.SECRET -> "Védett képek"
+    ShotKind.TICKET -> "Jegyek és kódok"
+    ShotKind.RECEIPT -> "Nyugták és számlák"
+    ShotKind.PLACE -> "Címek és térképek"
+    ShotKind.CHAT -> "Chatek"
+    ShotKind.OTHER -> "Egyéb képernyőképek"
+    null -> "Még át nem nézett képek"
 }
 
 internal fun kindHint(kind: ShotKind?): String = when (kind) {
-    ShotKind.SECRET -> "Védett. Külön kell feloldani, mielőtt kidobható lenne."
-    ShotKind.TICKET -> "Kód és dátum. A lejárt mehet, a jövőbeli maradjon."
-    ShotKind.RECEIPT -> "Számla, nyugta, bankszámlaszám."
-    ShotKind.PLACE -> "Cím, irányítószám, útvonal."
-    ShotKind.CHAT -> "Üzenetek képernyőképe."
-    ShotKind.OTHER -> "Kevés szöveg, semmi támpont."
-    null -> "Még nem futott rajtuk a felismerés."
+    ShotKind.SECRET -> "Jelszót, kódot vagy bankadatot tartalmazhatnak, ezért nem ajánljuk fel őket törlésre."
+    ShotKind.TICKET -> "Beszállókártyák, belépők, QR-kódok. A lejártakra már nincs szükség."
+    ShotKind.RECEIPT -> "Vásárlások, utalások és számlák képernyőképei."
+    ShotKind.PLACE -> "Címek, útvonalak és térképrészletek."
+    ShotKind.CHAT -> "Beszélgetésekről készült képernyőképek."
+    ShotKind.OTHER -> "Kevés szöveg, semmi fontos nem látszik rajtuk."
+    null -> "A felismerés még nem futott le rajtuk, de eldobhatónak tűnnek."
 }
 
 internal fun groupKey(kind: ShotKind?): String = kind?.name ?: "UNTRIAGED"

@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import hu.padlas.core.common.format.Format
 import hu.padlas.core.common.result.Outcome
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.UploadJobDao
@@ -59,6 +60,7 @@ internal class AtticViewModel @Inject constructor(
             desktopNoticeRead = noticeRead,
             ghostRequest = localState.request,
             message = localState.message,
+            messageOk = localState.messageOk,
             busy = localState.busy,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AtticUiState())
@@ -93,9 +95,22 @@ internal class AtticViewModel @Inject constructor(
             local.update { it.copy(busy = true) }
             repository.enqueue(ids)
             selection.value = emptySet()
-            local.update { it.copy(busy = false, message = "${ids.size} elem sorba állt.") }
+            local.update {
+                it.copy(busy = false, message = "${Format.count(ids.size)} fájl vár feltöltésre.", messageOk = true)
+            }
             onQueued(ids)
         }
+    }
+
+    /**
+     * Every archived file at once: the same verified-copies-only path as a hand-picked
+     * selection, just without making the user tick three hundred tiles first.
+     */
+    fun freeUpAll() {
+        val ids = state.value.assets.filter { it.state == AssetState.ARCHIVED }.map { it.mediaStoreId }
+        if (ids.isEmpty()) return
+        selection.value = ids.toSet()
+        requestGhosting()
     }
 
     /** INV-1: only verified copies can free local bytes, and only through one dialog. */
@@ -111,7 +126,7 @@ internal class AtticViewModel @Inject constructor(
                 }
 
                 is Outcome.Failure -> local.update {
-                    it.copy(busy = false, message = outcome.message)
+                    it.copy(busy = false, message = outcome.message, messageOk = false)
                 }
             }
         }
@@ -123,7 +138,9 @@ internal class AtticViewModel @Inject constructor(
         local.update { it.copy(request = null) }
         if (batch == null) return
         if (!confirmed) {
-            local.update { it.copy(busy = false, message = "A helyi fájlok megmaradtak.") }
+            local.update {
+                it.copy(busy = false, message = "Nem töröltünk semmit, minden a helyén maradt.", messageOk = false)
+            }
             return
         }
         viewModelScope.launch {
@@ -132,7 +149,8 @@ internal class AtticViewModel @Inject constructor(
             local.update {
                 it.copy(
                     busy = false,
-                    message = "${hu.padlas.core.common.format.Format.bytes(bytes)} szabadult fel.",
+                    message = "${Format.bytes(bytes)} felszabadult a telefonon.",
+                    messageOk = true,
                 )
             }
         }
@@ -146,6 +164,7 @@ internal class AtticViewModel @Inject constructor(
         val busy: Boolean = false,
         val request: GhostBatch? = null,
         val message: String? = null,
+        val messageOk: Boolean = true,
     )
 
     private companion object {
@@ -163,6 +182,8 @@ internal data class AtticUiState(
     val desktopNoticeRead: Boolean = true,
     val ghostRequest: GhostBatch? = null,
     val message: String? = null,
+    /** False for a cancel or a failure, so the toast does not wear a success tick. */
+    val messageOk: Boolean = true,
     val busy: Boolean = false,
 ) {
     val ghosts: Int get() = assets.count { it.state == AssetState.GHOST }

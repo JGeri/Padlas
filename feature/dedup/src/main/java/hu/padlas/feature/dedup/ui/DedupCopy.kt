@@ -10,14 +10,20 @@ internal object DedupCopy {
 
     const val TITLE = "Duplikátumok"
     const val RECLAIMABLE = "Felszabadítható"
-    const val WINNER_BADGE = "Marad"
-    const val PICK_KEEPER = "Koppints arra, amelyik marad."
-    const val RESCAN = "Újra"
-    const val FIRST_SCAN = "Beolvasás"
+    const val KEEP_BADGE = "Marad"
+    const val PROTECTED_BADGE = "Védett"
+    const val PICK_KEEPER = "Koppints arra a képre, amelyiket megtartanád."
+    const val GROUP_ACTION = "Kukába"
+    const val SECTION_ACTION = "Mind kukába"
+    const val RESCAN = "Keresés újra"
+    const val FIRST_SCAN = "Keresés indítása"
+    const val EMPTY_TITLE = "Nincs duplikátum"
+    const val SCANNING_TITLE = "Duplikátumok keresése"
+    const val SCANNING_TEXT = "Átnézzük a galériát. Ez néhány percig is eltarthat, közben nyugodtan bezárhatod."
 
     /** INV-2 said out loud: this is the lie every other cleaner tells. */
-    const val TRASH_NOTICE =
-        "A kukába tett fájlok a rendszer kukájában maradnak, és 30 napig helyet foglalnak."
+    const val TRASH_TITLE = "A kuka is helyet foglal"
+    const val TRASH_TEXT = "A kukába tett fájlok még 30 napig a telefonon maradnak, utána a rendszer törli őket."
 
     fun sectionTitle(kind: DupKind): String = when (kind) {
         DupKind.EXACT -> "Azonos"
@@ -26,53 +32,60 @@ internal object DedupCopy {
     }
 
     fun sectionLead(kind: DupKind): String = when (kind) {
-        DupKind.EXACT -> "Bájtra egyezik. Csak megerősítés kell."
-        DupKind.BURST -> "Sorozatfelvétel. A legélesebb marad, egy koppintás elfogadja."
-        DupKind.SIMILAR -> "Hasonló kompozíció. Csoportonként egy döntés."
+        DupKind.EXACT -> "Bájtra egyező másolatok. Egy példány marad, a többi nyugodtan mehet."
+        DupKind.BURST -> "Sorozatfelvételek. A legélesebb kép marad."
+        DupKind.SIMILAR -> "Hasonló, de nem egyforma képek. Csoportonként te döntöd el, melyik marad."
     }
 
-    fun groupAction(kind: DupKind): String = when (kind) {
-        DupKind.EXACT -> "Megerősítem"
-        DupKind.BURST -> "Elfogadom"
-        DupKind.SIMILAR -> "A többi a kukába"
+    fun groupTitle(kind: DupKind, memberCount: Int): String = when (kind) {
+        DupKind.EXACT -> "${Format.count(memberCount)} egyforma fájl"
+        DupKind.BURST -> "${Format.count(memberCount)} képes sorozat"
+        DupKind.SIMILAR -> "${Format.count(memberCount)} hasonló kép"
     }
 
-    fun groupSummary(memberCount: Int, loserCount: Int): String =
-        "${Format.count(memberCount)} fájl, ${Format.count(loserCount)} vesztes"
+    fun groupSubtitle(loserCount: Int, bytes: Long): String =
+        "${Format.count(loserCount)} felesleges · ${Format.bytes(bytes)}"
 
-    fun batchAction(loserCount: Int): String = "Mind a ${Format.count(loserCount)} vesztes a kukába"
+    fun sectionTotals(groupCount: Int, loserCount: Int, bytes: Long): String =
+        "${Format.count(groupCount)} csoport · ${Format.count(loserCount)} fájl · ${Format.bytes(bytes)}"
 
-    fun sectionTotals(loserCount: Int, bytes: Long): String =
-        "${Format.count(loserCount)} vesztes · ${Format.bytes(bytes)}"
+    fun heroCaption(loserCount: Int, groupCount: Int): String =
+        "${Format.count(loserCount)} felesleges másolat ${Format.count(groupCount)} csoportban. " +
+            "A „$KEEP_BADGE” jelölésű képek megmaradnak."
 
-    fun trashedNotice(bytes: Long): String =
-        "A kukában ${Format.bytes(bytes)} vár az ürítésre."
+    fun primaryAction(loserCount: Int, bytes: Long): String =
+        "${Format.count(loserCount)} fájl kukába · ${Format.bytes(bytes)}"
+
+    fun trashedValue(bytes: Long): String = Format.bytes(bytes)
+
+    fun topSubtitle(state: DedupUiState, now: Long): String = when {
+        state.scanning -> "Keresés folyamatban"
+        state.isEmpty -> lastScanSentence(state.lastScanAt, now)
+        else -> "${Format.count(state.groupCount)} csoport · ${Format.bytes(state.reclaimableBytes)}"
+    }
 
     fun scanProgress(progress: HashProgress): String {
         val phase = when (progress.phase) {
-            HashPhase.QUICK -> "Gyors ujjlenyomat"
-            HashPhase.FULL -> "Teljes ellenőrzés"
-            HashPhase.PERCEPTUAL -> "Képi ujjlenyomat"
-            HashPhase.IDLE -> "Beolvasás indul"
+            HashPhase.QUICK -> "Gyors összevetés"
+            HashPhase.FULL -> "Pontos ellenőrzés"
+            HashPhase.PERCEPTUAL -> "Hasonló képek keresése"
+            HashPhase.IDLE -> "Keresés indul"
             HashPhase.DONE -> "Csoportosítás"
         }
         if (progress.total <= 0) return phase
         return "$phase · ${Format.count(progress.done)} / ${Format.count(progress.total)}"
     }
 
-    /** Empty state is an instruction, not a mood. */
-    fun emptyState(lastScanAt: Long, now: Long): String = buildString {
-        append("Nincs duplikátum. ")
-        append(lastScanSentence(lastScanAt, now))
-    }
+    fun emptyText(lastScanAt: Long, now: Long): String =
+        "Nem találtunk egyforma vagy nagyon hasonló képeket. ${lastScanSentence(lastScanAt, now)}"
 
     fun lastScanSentence(lastScanAt: Long, now: Long): String {
-        if (lastScanAt <= 0L) return "A beolvasás még nem futott."
+        if (lastScanAt <= 0L) return "Még nem kerestünk."
         val days = (now - lastScanAt) / DAY_MILLIS
         return when {
-            days <= 0L -> "A beolvasás ma futott."
-            days == 1L -> "A beolvasás tegnap futott."
-            else -> "A beolvasás ${Format.count(days)} napja futott."
+            days <= 0L -> "Utoljára ma kerestünk."
+            days == 1L -> "Utoljára tegnap kerestünk."
+            else -> "Utoljára ${Format.count(days)} napja kerestünk."
         }
     }
 

@@ -50,7 +50,7 @@ class DupWorker @AssistedInject constructor(
                     assetId = null,
                     sizeBytes = grouping.reclaimableBytes,
                     reversible = false,
-                    note = "${grouping.groups.size} csoport, ${grouping.loserCount} vesztes",
+                    note = "${grouping.groups.size} csoport, ${grouping.loserCount} felesleges másolat",
                 ),
             )
             Result.success()
