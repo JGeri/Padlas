@@ -7,7 +7,17 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,13 +29,16 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.Rule
 import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
@@ -36,31 +49,38 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Screenshot
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Swipe
 import androidx.compose.material.icons.rounded.VideoLibrary
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.design.component.ButtonSize
 import hu.padlas.core.design.component.ButtonStyle
 import hu.padlas.core.design.component.GaugeSegment
 import hu.padlas.core.design.component.IconBubble
 import hu.padlas.core.design.component.LargeHeader
-import hu.padlas.core.design.component.LegendItem
 import hu.padlas.core.design.component.LinearMeter
 import hu.padlas.core.design.component.ListRow
 import hu.padlas.core.design.component.PadlasButton
@@ -68,13 +88,20 @@ import hu.padlas.core.design.component.PadlasCard
 import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.ProgressStrip
 import hu.padlas.core.design.component.SectionHeader
+import hu.padlas.core.design.component.StaggeredColumnItem
 import hu.padlas.core.design.component.StorageGauge
-import hu.padlas.core.design.theme.AccentGradient
+import hu.padlas.core.design.component.glass
+import hu.padlas.core.design.motion.LocalReducedMotion
+import hu.padlas.core.design.motion.Motion
+import hu.padlas.core.design.motion.morphBounds
+import hu.padlas.core.design.motion.motionSpec
 import hu.padlas.core.design.theme.CategoryColor
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
+import hu.padlas.core.design.theme.ProgressGradient
 import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
+import hu.padlas.core.media.MediaThumb
 import hu.padlas.feature.index.IndexScheduler
 import hu.padlas.feature.index.IndexState
 import hu.padlas.work.PadlasBootstrap
@@ -83,7 +110,7 @@ enum class Tool { SWIPE, STORAGE, PENDING, DUPLICATES, VIDEOS, DISCARD, BROWSE, 
 
 @Composable
 fun HomeRoute(
-    onOpen: (Tool) -> Unit,
+    onOpen: (Tool, String?) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     viewModel: HomeViewModel = hiltViewModel(),
@@ -121,29 +148,32 @@ fun HomeRoute(
     }
 
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val wins = winsOf(state)
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = Space.page,
             end = Space.page,
-            top = top,
-            bottom = contentPadding.calculateBottomPadding() + Space.xl,
+            top = top + Space.s,
+            bottom = contentPadding.calculateBottomPadding() + Space.l,
         ),
-        verticalArrangement = Arrangement.spacedBy(Space.m),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item(key = "header") {
-            LargeHeader(
-                title = "Padlás",
-                subtitle = headerLine(state),
-                actions = {
-                    PadlasIconButton(
-                        icon = Icons.Rounded.Settings,
-                        contentDescription = "Beállítások",
-                        onClick = { onOpen(Tool.SETTINGS) },
-                        background = Ink.Surface,
-                    )
-                },
-            )
+            StaggeredColumnItem(0) {
+                LargeHeader(
+                    title = "Padlás",
+                    subtitle = headerLine(state),
+                    actions = {
+                        PadlasIconButton(
+                            icon = Icons.Rounded.Settings,
+                            contentDescription = "Beállítások",
+                            onClick = { onOpen(Tool.SETTINGS, "tool-SETTINGS") },
+                            modifier = Modifier.morphBounds("tool-SETTINGS"),
+                        )
+                    },
+                )
+            }
         }
 
         if (!state.device.mediaAccess && !state.loading) {
@@ -160,11 +190,13 @@ fun HomeRoute(
             }
         }
 
-        item(key = "storage") { StorageHero(state = state, onAnalyze = { onOpen(Tool.STORAGE) }) }
+        item(key = "storage") {
+            StaggeredColumnItem(1) { StorageHero(state = state, onAnalyze = { onOpen(Tool.STORAGE, null) }) }
+        }
 
         (state.index as? IndexState.Scanning)?.let { scanning ->
             item(key = "indexing") {
-                PadlasCard(modifier = Modifier.fillMaxWidth()) {
+                PadlasCard(modifier = Modifier.fillMaxWidth().animateItem()) {
                     ProgressStrip(
                         fraction = scanning.fraction,
                         label = "Galéria beolvasása · ${Format.count(scanning.scanned)} / ${Format.count(scanning.total)}",
@@ -174,39 +206,27 @@ fun HomeRoute(
         }
 
         item(key = "swipe") {
-            SwipeCard(
-                reviewed = state.reviewed,
-                reviewable = state.reviewable,
-                pendingCount = state.pending.itemCount,
-                pendingBytes = state.pending.totalBytes,
-                onStart = { onOpen(Tool.SWIPE) },
-                onPending = { onOpen(Tool.PENDING) },
-            )
-        }
-
-        item(key = "suggestions-title") { SectionHeader(title = "Javaslatok") }
-        val suggestions = suggestionsOf(state)
-        if (suggestions.isEmpty()) {
-            item(key = "all-good") {
-                ListRow(
-                    title = "Minden rendben",
-                    subtitle = if (state.indexedCount == 0) "A beolvasás után itt jelennek meg a javaslatok." else "Most nincs gyors nyereség. Válogass vagy nézd meg a tárhelyet.",
-                    icon = Icons.Rounded.CheckCircle,
-                    iconTint = Ink.Success,
+            StaggeredColumnItem(2) {
+                SwipeHero(
+                    state = state,
+                    onStart = { onOpen(Tool.SWIPE, null) },
+                    onPending = { onOpen(Tool.PENDING, "home-pending") },
                 )
             }
-        } else {
-            suggestions.forEach { suggestion ->
-                item(key = "suggestion-${suggestion.tool}") {
-                    ListRow(
-                        title = suggestion.title,
-                        subtitle = suggestion.subtitle,
-                        icon = suggestion.icon,
-                        iconTint = suggestion.tint,
-                        value = suggestion.value,
-                        valueColor = Ink.Text,
-                        onClick = { onOpen(suggestion.tool) },
-                    )
+        }
+
+        if (wins.isNotEmpty()) {
+            item(key = "wins-title") { StaggeredColumnItem(3) { SectionHeader(title = "Gyors nyereség") } }
+            wins.chunked(2).forEachIndexed { index, row ->
+                item(key = "wins-$index") {
+                    StaggeredColumnItem(4 + index) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            row.forEach { win ->
+                                WinTile(win = win, onClick = { onOpen(win.tool, "win-${win.tool}") }, modifier = Modifier.weight(1f))
+                            }
+                            if (row.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                    }
                 }
             }
         }
@@ -223,14 +243,16 @@ fun HomeRoute(
             }
         }
 
-        item(key = "tools-title") { SectionHeader(title = "Eszközök") }
+        item(key = "tools-title") { StaggeredColumnItem(7) { SectionHeader(title = "Eszközök") } }
         tools.chunked(2).forEachIndexed { index, row ->
             item(key = "tools-$index") {
-                Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
-                    row.forEach { tool ->
-                        ToolTile(tool = tool, onClick = { onOpen(tool.tool) }, modifier = Modifier.weight(1f))
+                StaggeredColumnItem(8 + index) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        row.forEach { tool ->
+                            ToolTile(tool = tool, onClick = { onOpen(tool.tool, "tool-${tool.tool}") }, modifier = Modifier.weight(1f))
+                        }
+                        if (row.size == 1) Spacer(Modifier.weight(1f))
                     }
-                    if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
         }
@@ -238,14 +260,13 @@ fun HomeRoute(
 }
 
 private fun headerLine(state: HomeUiState): String {
-    val volume = state.device.volume
-    if (volume.totalBytes <= 0L) return "Tárhely és galéria egy helyen"
-    return "${Format.bytes(volume.freeBytes)} szabad · ${Format.bytes(volume.totalBytes)} összesen"
+    val total = state.photoCount + state.videoCount
+    return if (total > 0) "${Format.count(total)} fotó és videó" else "Tárhely és galéria egy helyen"
 }
 
 @Composable
 private fun AccessHero(partial: Boolean, onGrant: () -> Unit, onOpenSettings: () -> Unit) {
-    PadlasCard(modifier = Modifier.fillMaxWidth(), border = Ink.Accent.copy(alpha = 0.4f)) {
+    PadlasCard(modifier = Modifier.fillMaxWidth(), border = Ink.Accent.copy(alpha = 0.45f)) {
         Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
             IconBubble(icon = Icons.Rounded.PhotoLibrary, tint = Ink.Accent, size = 48.dp, iconSize = 24.dp)
             Text(
@@ -255,7 +276,7 @@ private fun AccessHero(partial: Boolean, onGrant: () -> Unit, onOpenSettings: ()
             )
             Text(
                 text = if (partial) {
-                    "Most csak a kiválasztott képekhez férek hozzá. A teljes válogatáshoz és a tárhely-javaslatokhoz minden fotó és videó kell."
+                    "Most csak a kiválasztott képekhez férek hozzá. A teljes válogatáshoz és a javaslatokhoz minden fotó és videó kell."
                 } else {
                     "A válogatáshoz és a takarítási javaslatokhoz látnom kell a fotóidat és videóidat. Semmi nem hagyja el a telefont."
                 },
@@ -282,205 +303,227 @@ private fun StorageHero(state: HomeUiState, onAnalyze: () -> Unit) {
     val segments = listOf(
         GaugeSegment("Fotók", state.photoBytes, CategoryColor.Photos),
         GaugeSegment("Videók", state.videoBytes, CategoryColor.Videos),
-        GaugeSegment("Minden más", state.otherBytes, CategoryColor.Other),
+        GaugeSegment("Minden más", state.otherBytes, CategoryColor.Apps),
     )
-    PadlasCard(modifier = Modifier.fillMaxWidth(), contentPadding = Space.xl) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            StorageGauge(
-                segments = segments,
-                freeBytes = volume.freeBytes,
-                totalBytes = volume.totalBytes,
-            )
-            Spacer(Modifier.height(Space.l))
-            Column(verticalArrangement = Arrangement.spacedBy(Space.s), modifier = Modifier.fillMaxWidth()) {
-                LegendItem(
-                    label = "Fotók · ${Format.count(state.photoCount)} db",
-                    value = Format.bytes(state.photoBytes),
-                    color = CategoryColor.Photos,
-                    modifier = Modifier.fillMaxWidth(),
+    PadlasCard(modifier = Modifier.fillMaxWidth(), onClick = onAnalyze, contentPadding = 18.dp, shape = Shapes.hero) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StorageGauge(
+                    segments = segments,
+                    freeBytes = volume.freeBytes,
+                    totalBytes = volume.totalBytes,
+                    diameter = 148.dp,
+                    thickness = 13.dp,
+                    compact = true,
                 )
-                LegendItem(
-                    label = "Videók · ${Format.count(state.videoCount)} db",
-                    value = Format.bytes(state.videoBytes),
-                    color = CategoryColor.Videos,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                LegendItem(
-                    label = "Appok, rendszer és egyéb",
-                    value = Format.bytes(state.otherBytes),
-                    color = CategoryColor.Other,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                Spacer(Modifier.width(18.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
+                    LegendLine("Fotók", Format.bytes(state.photoBytes), CategoryColor.Photos)
+                    LegendLine("Videók", Format.bytes(state.videoBytes), CategoryColor.Videos)
+                    LegendLine("Minden más", Format.bytes(state.otherBytes), CategoryColor.Apps)
+                    LegendLine("Összesen", Format.bytes(volume.totalBytes), Ink.TextTertiary)
+                }
             }
-            Spacer(Modifier.height(Space.l))
-            PadlasButton(
-                text = "Tárhely elemzése",
-                onClick = onAnalyze,
-                style = ButtonStyle.Secondary,
-                size = ButtonSize.Medium,
-                icon = Icons.Rounded.DonutLarge,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Spacer(Modifier.height(Space.m))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = if (volume.totalBytes > 0) "${(volume.usedBytes * 100 / volume.totalBytes)}% foglalt" else "Mérés…",
+                    style = PadlasTheme.type.caption,
+                    color = Ink.TextSecondary,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(text = "Tárhely elemzése", style = PadlasTheme.type.label, color = Ink.Accent)
+                Spacer(Modifier.width(4.dp))
+                Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, tint = Ink.Accent, modifier = Modifier.size(16.dp))
+            }
         }
     }
 }
 
 @Composable
-private fun SwipeCard(
-    reviewed: Int,
-    reviewable: Int,
-    pendingCount: Int,
-    pendingBytes: Long,
-    onStart: () -> Unit,
-    onPending: () -> Unit,
-) {
-    Box(
+private fun LegendLine(label: String, value: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier
+                .size(9.dp)
+                .clip(Shapes.pill)
+                .background(color),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(text = label, style = PadlasTheme.type.caption, color = Ink.TextSecondary, modifier = Modifier.weight(1f), maxLines = 1)
+        Text(text = value, style = PadlasTheme.type.numeric, color = Ink.Text, maxLines = 1)
+    }
+}
+
+/**
+ * The one lit element of the overview. It breathes a little, slowly: the place the app
+ * wants your thumb to go next.
+ */
+@Composable
+private fun SwipeHero(state: HomeUiState, onStart: () -> Unit, onPending: () -> Unit) {
+    val reduced = LocalReducedMotion.current
+    val breath = if (reduced) {
+        null
+    } else {
+        rememberInfiniteTransition(label = "breath").animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(2600, easing = LinearEasing), RepeatMode.Reverse),
+            label = "breathValue",
+        )
+    }
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val press by animateFloatAsState(
+        targetValue = if (pressed) 0.97f else 1f,
+        animationSpec = motionSpec(Motion.rest()),
+        label = "heroPress",
+    )
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(Shapes.card)
-            .background(AccentGradient)
-            .padding(Space.xl),
+            .graphicsLayer {
+                scaleX = press
+                scaleY = press
+                val b = breath?.value ?: 0.5f
+                shadowElevation = (18 + 18 * b).dp.toPx()
+                shape = Shapes.hero
+                clip = false
+                ambientShadowColor = Ink.Accent
+                spotShadowColor = Ink.Accent
+            }
+            .glass(Shapes.hero, Color.Transparent, Ink.Accent.copy(alpha = 0.45f))
+            .background(Brush.linearGradient(listOf(Ink.Accent.copy(alpha = 0.32f), Ink.AccentCyan.copy(alpha = 0.12f))))
+            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onStart)
+            .padding(20.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconBubble(
-                    icon = Icons.Rounded.Swipe,
-                    tint = Color.White,
-                    background = Color.White.copy(alpha = 0.18f),
-                )
-                Column(Modifier.padding(start = Space.m).weight(1f)) {
-                    Text(text = "Válogass swipe-pal", style = PadlasTheme.type.title, color = Color.White)
-                    Text(
-                        text = if (reviewable > 0) {
-                            "${Format.count(reviewed)} / ${Format.count(reviewable)} elem átnézve"
-                        } else {
-                            "Balra törlés, jobbra megtartás, felfelé kedvenc"
-                        },
-                        style = PadlasTheme.type.caption,
-                        color = Color.White.copy(alpha = 0.8f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            if (reviewable > 0) {
-                LinearMeter(
-                    fraction = reviewed.toFloat() / reviewable,
-                    color = Color.White,
-                    track = Color.White.copy(alpha = 0.22f),
-                    height = 5.dp,
-                )
-            }
-            Spacer(Modifier.height(Space.xs))
-            Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
-                PadlasButton(
-                    text = "Hónap vagy mappa",
-                    onClick = onStart,
-                    style = ButtonStyle.Secondary,
-                    size = ButtonSize.Medium,
-                    modifier = Modifier.weight(1f),
-                )
-                if (pendingCount > 0) {
-                    PadlasButton(
-                        text = "${Format.count(pendingCount)} törlésre",
-                        onClick = onPending,
-                        style = ButtonStyle.Destructive,
-                        size = ButtonSize.Medium,
-                        icon = Icons.Rounded.Delete,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-            if (pendingCount > 0) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PhotoFan(state.newest.map { MediaThumb(Uri.parse(it.uri), 256) })
+            Spacer(Modifier.width(18.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "Válogass swipe-pal", style = PadlasTheme.type.title, color = Ink.Text)
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "${Format.bytes(pendingBytes)} vár törlésre",
-                    style = PadlasTheme.type.micro,
-                    color = Color.White.copy(alpha = 0.75f),
+                    text = "Balra törlés, jobbra marad, felfelé kedvenc",
+                    style = PadlasTheme.type.caption,
+                    color = Ink.TextSecondary,
                 )
+                Spacer(Modifier.height(12.dp))
+                LinearMeter(
+                    fraction = if (state.reviewable > 0) state.reviewed.toFloat() / state.reviewable else 0f,
+                    brush = ProgressGradient,
+                    track = Color.White.copy(alpha = 0.12f),
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = if (state.reviewable > 0) {
+                        "${Format.count(state.reviewed)} / ${Format.count(state.reviewable)} átnézve"
+                    } else {
+                        "Még nincs mit átnézni"
+                    },
+                    style = PadlasTheme.type.micro,
+                    color = Ink.TextSecondary,
+                )
+            }
+        }
+        if (state.pending.itemCount > 0) {
+            Spacer(Modifier.height(14.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .morphBounds("home-pending")
+                    .glass(Shapes.pill, Ink.DangerSoft, Ink.Danger.copy(alpha = 0.5f))
+                    .clickable(onClick = onPending)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Rounded.Delete, contentDescription = null, tint = Ink.Danger, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "${Format.count(state.pending.itemCount)} elem vár törlésre · ${Format.bytes(state.pending.totalBytes)}",
+                    style = PadlasTheme.type.label,
+                    color = Ink.Text,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, tint = Ink.Danger, modifier = Modifier.size(16.dp))
             }
         }
     }
 }
 
-private data class Suggestion(
+/** Three of the newest photos, fanned like a hand of cards: the deck you are about to hold. */
+@Composable
+private fun PhotoFan(thumbs: List<MediaThumb>) {
+    Box(modifier = Modifier.size(width = 78.dp, height = 92.dp)) {
+        val angles = listOf(-12f, 7f, 0f)
+        val shifts = listOf(-4.dp, 8.dp, 2.dp)
+        angles.forEachIndexed { index, angle ->
+            val model = thumbs.getOrNull(index)
+            Box(
+                modifier = Modifier
+                    .offset(x = 8.dp + shifts[index], y = 6.dp)
+                    .size(width = 56.dp, height = 76.dp)
+                    .rotate(angle)
+                    .shadow(if (index == 2) 14.dp else 4.dp, Shapes.small)
+                    .clip(Shapes.small)
+                    .background(Ink.SurfaceHighest),
+            ) {
+                if (model != null) {
+                    AsyncImage(
+                        model = model,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class Win(
     val tool: Tool,
-    val title: String,
-    val subtitle: String,
     val value: String,
+    val label: String,
     val icon: ImageVector,
     val tint: Color,
+    val weight: Long,
 )
 
-private fun suggestionsOf(state: HomeUiState): List<Suggestion> = buildList {
+private fun winsOf(state: HomeUiState): List<Win> = buildList {
     if (state.duplicates.itemCount > 0) {
-        add(
-            Suggestion(
-                Tool.DUPLICATES,
-                "${Format.count(state.duplicates.itemCount)} duplikátum",
-                "Azonos és nagyon hasonló képek",
-                Format.bytes(state.duplicates.totalBytes),
-                Icons.Rounded.ContentCopy,
-                Ink.Accent,
-            ),
-        )
-    }
-    if (state.largeVideos.itemCount > 0) {
-        add(
-            Suggestion(
-                Tool.VIDEOS,
-                "${Format.count(state.largeVideos.itemCount)} nagy videó",
-                "Tömörítéssel nagyjából a fele visszanyerhető",
-                Format.bytes(state.largeVideos.totalBytes),
-                Icons.Rounded.VideoLibrary,
-                CategoryColor.Videos,
-            ),
-        )
+        add(Win(Tool.DUPLICATES, Format.bytes(state.duplicates.totalBytes), "${Format.count(state.duplicates.itemCount)} duplikátum", Icons.Rounded.ContentCopy, Ink.Accent, state.duplicates.totalBytes))
     }
     if (state.discardable.itemCount > 0) {
-        add(
-            Suggestion(
-                Tool.DISCARD,
-                "${Format.count(state.discardable.itemCount)} eldobható kép",
-                "Képernyőképek, letöltött és chatképek",
-                Format.bytes(state.discardable.totalBytes),
-                Icons.Rounded.Screenshot,
-                Ink.Warning,
-            ),
-        )
+        add(Win(Tool.DISCARD, Format.bytes(state.discardable.totalBytes), "${Format.count(state.discardable.itemCount)} eldobható kép", Icons.Rounded.Screenshot, Ink.Warning, state.discardable.totalBytes))
+    }
+    if (state.largeVideos.itemCount > 0) {
+        add(Win(Tool.VIDEOS, Format.bytes(state.largeVideos.totalBytes), "${Format.count(state.largeVideos.itemCount)} nagy videó", Icons.Rounded.VideoLibrary, CategoryColor.Videos, state.largeVideos.totalBytes / 2))
     }
     if (state.trashTotal > 0) {
-        add(
-            Suggestion(
-                Tool.TRASH,
-                "Kuka",
-                "Ami a kukában van, még mindig helyet foglal",
-                Format.bytes(state.trashTotal),
-                Icons.Rounded.DeleteSweep,
-                Ink.Danger,
-            ),
-        )
+        add(Win(Tool.TRASH, Format.bytes(state.trashTotal), "a kukában", Icons.Rounded.DeleteSweep, Ink.Danger, state.trashTotal))
     }
     if (state.oldPhotos.itemCount > 0) {
-        add(
-            Suggestion(
-                Tool.OLD_PHOTOS,
-                "${Format.count(state.oldPhotos.itemCount)} egy évnél régebbi fotó",
-                "Nézd át mappánként vagy mentsd a felhőbe",
-                Format.bytes(state.oldPhotos.totalBytes),
-                Icons.Rounded.CalendarMonth,
-                Ink.Info,
-            ),
-        )
+        add(Win(Tool.OLD_PHOTOS, Format.bytes(state.oldPhotos.totalBytes), "${Format.count(state.oldPhotos.itemCount)} régi fotó", Icons.Rounded.CalendarMonth, Ink.Info, state.oldPhotos.totalBytes / 4))
     }
-}.sortedByDescending { suggestionWeight(it, state) }
+}.sortedByDescending { it.weight }
 
-private fun suggestionWeight(suggestion: Suggestion, state: HomeUiState): Long = when (suggestion.tool) {
-    Tool.DUPLICATES -> state.duplicates.totalBytes
-    Tool.VIDEOS -> state.largeVideos.totalBytes / 2
-    Tool.DISCARD -> state.discardable.totalBytes
-    Tool.TRASH -> state.trashTotal
-    Tool.OLD_PHOTOS -> state.oldPhotos.totalBytes / 4
-    else -> 0L
+@Composable
+private fun WinTile(win: Win, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    PadlasCard(
+        modifier = modifier.morphBounds("win-${win.tool}"),
+        onClick = onClick,
+        contentPadding = 16.dp,
+    ) {
+        Column {
+            IconBubble(icon = win.icon, tint = win.tint, size = 38.dp, iconSize = 19.dp)
+            Spacer(Modifier.height(12.dp))
+            Text(text = win.value, style = PadlasTheme.type.numericLarge, color = Ink.Text, maxLines = 1)
+            Text(text = win.label, style = PadlasTheme.type.caption, color = Ink.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
 }
 
 private data class ToolEntry(val tool: Tool, val title: String, val subtitle: String, val icon: ImageVector, val tint: Color)
@@ -499,10 +542,14 @@ private val tools = listOf(
 
 @Composable
 private fun ToolTile(tool: ToolEntry, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    PadlasCard(modifier = modifier, onClick = onClick, contentPadding = Space.l) {
+    PadlasCard(
+        modifier = modifier.morphBounds("tool-${tool.tool}"),
+        onClick = onClick,
+        contentPadding = 16.dp,
+    ) {
         Column {
             IconBubble(icon = tool.icon, tint = tool.tint, size = 40.dp)
-            Spacer(Modifier.height(Space.m))
+            Spacer(Modifier.height(12.dp))
             Text(text = tool.title, style = PadlasTheme.type.bodyStrong, color = Ink.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(text = tool.subtitle, style = PadlasTheme.type.caption, color = Ink.TextSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }

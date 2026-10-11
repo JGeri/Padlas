@@ -107,6 +107,7 @@ internal fun SwipeDeck(
     onSwiped: (SwipeCard, SwipeAction) -> Unit,
     onTap: (SwipeCard) -> Unit,
     modifier: Modifier = Modifier,
+    dealIn: Boolean = true,
     cardContent: @Composable (card: SwipeCard, isTop: Boolean, overlay: () -> SwipeOverlay, modifier: Modifier) -> Unit,
 ) {
     BoxWithConstraints(modifier = modifier) {
@@ -123,6 +124,13 @@ internal fun SwipeDeck(
         val swiped = rememberUpdatedState(onSwiped)
 
         val top = cards.firstOrNull()
+
+        // The first cards are dealt onto the table one after another, from below.
+        val deal = remember { Animatable(if (dealIn && !reduced) 0f else 1f) }
+        LaunchedEffect(Unit) {
+            if (deal.value < 1f) deal.animateTo(1f, spring(0.8f, Spring.StiffnessVeryLow * 2.5f))
+        }
+        fun dealt(depth: Int): Float = ((deal.value - depth * 0.14f) / 0.72f).coerceIn(0f, 1f)
 
         fun offscreen(action: SwipeAction): Offset = when (action) {
             SwipeAction.DELETE -> Offset(-width * 1.4f, height * 0.05f)
@@ -223,9 +231,11 @@ internal fun SwipeDeck(
                             .fillMaxSize()
                             .graphicsLayer {
                                 val position = offset.value
+                                val arrive = dealt(0)
                                 translationX = position.x
-                                translationY = position.y
-                                rotationZ = (position.x / width * MaxTilt).coerceIn(-MaxTilt * 1.5f, MaxTilt * 1.5f)
+                                translationY = position.y + (1f - arrive) * height * 0.7f
+                                rotationZ = (position.x / width * MaxTilt).coerceIn(-MaxTilt * 1.5f, MaxTilt * 1.5f) + (1f - arrive) * 8f
+                                alpha = arrive
                                 transformOrigin = TransformOrigin(0.5f, 0.9f)
                             }
                             .then(gesture),
@@ -238,10 +248,12 @@ internal fun SwipeDeck(
                         Modifier
                             .fillMaxSize()
                             .graphicsLayer {
+                                val arrive = dealt(depth)
                                 scaleX = baseScale
                                 scaleY = baseScale
-                                translationY = baseLift * depthStep
-                                alpha = if (depth >= 2) 0.55f else 1f
+                                translationY = baseLift * depthStep + (1f - arrive) * height * 0.7f
+                                rotationZ = (1f - arrive) * (if (depth == 1) -6f else 5f)
+                                alpha = (if (depth >= 2) 0.55f else 1f) * arrive
                                 transformOrigin = TransformOrigin(0.5f, 1f)
                             },
                     )

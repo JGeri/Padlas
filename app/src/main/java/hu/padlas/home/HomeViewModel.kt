@@ -11,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import hu.padlas.core.common.di.IoDispatcher
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.DupDao
+import hu.padlas.core.database.entity.Asset
 import hu.padlas.core.database.model.MediaTypeAggregate
 import hu.padlas.core.database.model.SizeAndCount
 import hu.padlas.core.media.MediaOps
@@ -45,6 +46,7 @@ data class HomeUiState(
     val largeVideos: SizeAndCount = SizeAndCount(0, 0),
     val discardable: SizeAndCount = SizeAndCount(0, 0),
     val oldPhotos: SizeAndCount = SizeAndCount(0, 0),
+    val newest: List<Asset> = emptyList(),
 ) {
     val photoBytes: Long get() = media.firstOrNull { it.mediaType == "image" }?.totalBytes ?: 0L
     val videoBytes: Long get() = media.firstOrNull { it.mediaType == "video" }?.totalBytes ?: 0L
@@ -87,7 +89,7 @@ class HomeViewModel @Inject constructor(
 
     val state: StateFlow<HomeUiState> = combine(
         combine(assetDao.observeByMediaType(), assetDao.observeCount(), indexStatus.state, ::Triple),
-        combine(swipeRepository.pending, review, ::Pair),
+        combine(swipeRepository.pending, review, assetDao.observeNewestPhotos(3), ::Triple),
         combine(
             dupDao.observeOpenTotals(),
             assetDao.observeTranscodeCandidates(LARGE_VIDEO_BYTES),
@@ -95,7 +97,7 @@ class HomeViewModel @Inject constructor(
             assetDao.observeArchiveCandidates(System.currentTimeMillis() - YEAR_MS),
         ) { dups, videos, discard, old -> Suggestions(dups, videos, discard, old) },
         device,
-    ) { (media, count, index), (pending, reviewPair), suggestions, deviceState ->
+    ) { (media, count, index), (pending, reviewPair, newest), suggestions, deviceState ->
         HomeUiState(
             loading = false,
             device = deviceState,
@@ -109,6 +111,7 @@ class HomeViewModel @Inject constructor(
             largeVideos = suggestions.videos,
             discardable = suggestions.discardable,
             oldPhotos = suggestions.old,
+            newest = newest,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 

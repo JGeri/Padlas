@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DoneAll
@@ -102,6 +103,7 @@ data class Access(
 
 @Immutable
 data class SettingsUiState(
+    val liveBackground: Boolean = true,
     val deleteMode: DeleteMode = DeleteMode.TRASH,
     val deleteAtEnd: Boolean = true,
     val access: Access = Access(),
@@ -111,6 +113,7 @@ data class SettingsUiState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val preferences: SwipePreferences,
+    private val appearance: AppearancePreferences,
     private val swipeRepository: SwipeRepository,
     private val storageProbe: StorageProbe,
     private val mediaOps: MediaOps,
@@ -121,12 +124,11 @@ class SettingsViewModel @Inject constructor(
     private val message = MutableStateFlow<String?>(null)
 
     val state: StateFlow<SettingsUiState> = combine(
-        preferences.deleteMode,
-        preferences.deleteAtEnd,
+        combine(preferences.deleteMode, preferences.deleteAtEnd, appearance.liveBackground, ::Triple),
         access,
         message,
-    ) { mode, atEnd, currentAccess, text ->
-        SettingsUiState(mode, atEnd, currentAccess, text)
+    ) { (mode, atEnd, live), currentAccess, text ->
+        SettingsUiState(live, mode, atEnd, currentAccess, text)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
     fun refresh() {
@@ -134,6 +136,8 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun setDeleteMode(mode: DeleteMode) = preferences.setDeleteMode(mode)
+
+    fun setLiveBackground(enabled: Boolean) = appearance.setLiveBackground(enabled)
 
     fun setDeleteAtEnd(enabled: Boolean) = preferences.setDeleteAtEnd(enabled)
 
@@ -188,6 +192,18 @@ fun SettingsRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: 
                 contentPadding = PaddingValues(start = Space.page, end = Space.page, bottom = Space.xxl),
                 verticalArrangement = Arrangement.spacedBy(Space.s),
             ) {
+                item { SectionHeader(title = "Megjelenés") }
+                item {
+                    ListRow(
+                        title = "Élő háttér",
+                        subtitle = "A háttér színei lassan mozognak. Kikapcsolva állóképes, és kíméli az akkut.",
+                        icon = Icons.Rounded.AutoAwesome,
+                        onClick = { viewModel.setLiveBackground(!state.liveBackground) },
+                        showChevron = false,
+                        trailing = { PadlasSwitch(checked = state.liveBackground, onCheckedChange = viewModel::setLiveBackground) },
+                    )
+                }
+
                 item { SectionHeader(title = "Törlés") }
                 item {
                     ModeOption(

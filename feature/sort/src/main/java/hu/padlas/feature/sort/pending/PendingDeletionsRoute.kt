@@ -44,6 +44,10 @@ import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.component.Toast
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import hu.padlas.core.design.component.frosted
+import hu.padlas.core.design.component.hairlineTop
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.Space
@@ -162,6 +166,7 @@ fun PendingDeletionsRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val launch = rememberSystemRequest(viewModel::onResult)
     LaunchedEffect(viewModel) { viewModel.requests.collect { launch(it.intentSender) } }
     var confirm by remember { mutableStateOf(false) }
+    val haze = rememberHazeState()
 
     Box(modifier = modifier.fillMaxSize().auroraBackground().systemBarsPadding()) {
         Column(Modifier.fillMaxSize()) {
@@ -183,13 +188,14 @@ fun PendingDeletionsRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
                 else -> LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 108.dp),
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().hazeSource(haze),
                     contentPadding = PaddingValues(start = Space.l, end = Space.l, bottom = 120.dp),
                     horizontalArrangement = Arrangement.spacedBy(3.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
                     items(state.items, key = { it.asset.mediaStoreId }) { item ->
                         SelectableTile(
+                            modifier = Modifier.animateItem(),
                             model = item.thumb,
                             selected = item.marked,
                             onToggle = { viewModel.toggle(item) },
@@ -214,7 +220,8 @@ fun PendingDeletionsRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color.Transparent, Ink.Background)))
+                    .frosted(haze)
+                    .hairlineTop(Ink.HairlineStrong)
                     .padding(start = Space.page, end = Space.page, top = Space.xl, bottom = Space.l),
             ) {
                 PadlasButton(

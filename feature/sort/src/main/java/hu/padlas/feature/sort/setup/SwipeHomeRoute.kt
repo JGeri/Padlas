@@ -1,10 +1,19 @@
 package hu.padlas.feature.sort.setup
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +34,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.GridView
@@ -33,11 +43,11 @@ import androidx.compose.material.icons.rounded.Photo
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SwapVert
+import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,16 +58,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.design.component.ButtonSize
 import hu.padlas.core.design.component.ButtonStyle
@@ -69,11 +82,15 @@ import hu.padlas.core.design.component.LargeHeader
 import hu.padlas.core.design.component.LinearMeter
 import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasCard
-import hu.padlas.core.design.component.PadlasTextButton
+import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.SegmentedControl
 import hu.padlas.core.design.component.SelectionMark
+import hu.padlas.core.design.component.StaggeredColumnItem
 import hu.padlas.core.design.component.Toast
+import hu.padlas.core.design.component.frosted
+import hu.padlas.core.design.component.glass
 import hu.padlas.core.design.motion.Motion
+import hu.padlas.core.design.motion.morphBounds
 import hu.padlas.core.design.motion.motionSpec
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
@@ -84,9 +101,12 @@ import hu.padlas.feature.sort.MediaFilter
 import hu.padlas.feature.sort.SwipeOrder
 import hu.padlas.feature.sort.ui.rememberSystemRequest
 
+private val RiseSpring = spring<IntOffset>(dampingRatio = 0.78f, stiffness = Spring.StiffnessMediumLow)
+
 /**
- * The "Válogatás" tab: pick months and folders, see how much is still unreviewed in each,
- * and start a deck. Whatever is already marked for deletion waits at the top.
+ * The "Válogatás" tab. A tap on a month or a folder opens its deck straight away, the tile
+ * growing into the first card; a long press switches to picking several, and the start
+ * bar rises from the bottom. Whatever is already marked for deletion waits on top.
  */
 @Composable
 fun SwipeHomeRoute(
@@ -102,25 +122,30 @@ fun SwipeHomeRoute(
         viewModel.deleteRequests.collect { batch -> launch(batch.intentSender) }
     }
     var confirmDelete by remember { mutableStateOf(false) }
+    val haze = rememberHazeState()
     val bottom = contentPadding.calculateBottomPadding()
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(haze),
             contentPadding = PaddingValues(
                 start = Space.page,
                 end = Space.page,
-                top = top,
-                bottom = bottom + 180.dp,
+                top = top + Space.s,
+                bottom = bottom + if (state.selecting) 160.dp else Space.l,
             ),
-            verticalArrangement = Arrangement.spacedBy(Space.m),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item(key = "header") {
-                LargeHeader(
-                    title = "Válogatás",
-                    subtitle = "Húzd balra, ami mehet, jobbra, ami marad, felfelé a kedvenceket.",
-                )
+                StaggeredColumnItem(0) {
+                    LargeHeader(
+                        title = "Válogatás",
+                        subtitle = "Koppints egy hónapra, és jöhetnek a kártyák.",
+                    )
+                }
             }
 
             if (state.pending.itemCount > 0) {
@@ -131,6 +156,7 @@ fun SwipeHomeRoute(
                         busy = state.busy,
                         onReview = onOpenPending,
                         onDelete = { if (viewModel.skipsSystemDialog()) confirmDelete = true else viewModel.deleteNow() },
+                        modifier = Modifier.animateItem(),
                     )
                 }
             }
@@ -145,53 +171,112 @@ fun SwipeHomeRoute(
                 }
             } else {
                 item(key = "tabs") {
-                    SegmentedControl(
-                        options = listOf("Hónapok", "Mappák"),
-                        selectedIndex = state.tab.ordinal,
-                        onSelect = { viewModel.setTab(SetupTab.entries[it]) },
-                    )
+                    StaggeredColumnItem(1) {
+                        SegmentedControl(
+                            options = listOf("Hónapok", "Mappák"),
+                            selectedIndex = state.tab.ordinal,
+                            onSelect = { viewModel.setTab(SetupTab.entries[it]) },
+                        )
+                    }
                 }
                 item(key = "filters") {
-                    FilterRow(
-                        media = state.filter.media,
-                        onlyUnreviewed = state.filter.onlyUnreviewed,
-                        order = state.filter.order,
-                        onMedia = viewModel::setMedia,
-                        onOnlyUnreviewed = viewModel::setOnlyUnreviewed,
-                        onOrder = viewModel::setOrder,
-                    )
+                    StaggeredColumnItem(2) {
+                        FilterRow(
+                            media = state.filter.media,
+                            onlyUnreviewed = state.filter.onlyUnreviewed,
+                            order = state.filter.order,
+                            onMedia = viewModel::setMedia,
+                            onOnlyUnreviewed = viewModel::setOnlyUnreviewed,
+                            onOrder = viewModel::setOrder,
+                        )
+                    }
+                }
+                if (!state.selecting) {
+                    item(key = "hint") {
+                        Row(
+                            modifier = Modifier.animateItem(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Rounded.TouchApp, contentDescription = null, tint = Ink.TextTertiary, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "Hosszan nyomva többet is kijelölhetsz.",
+                                style = PadlasTheme.type.caption,
+                                color = Ink.TextTertiary,
+                            )
+                        }
+                    }
                 }
                 if (state.tab == SetupTab.MONTHS) {
-                    state.years.forEach { year ->
+                    state.years.forEachIndexed { yearIndex, year ->
                         item(key = "year-${year.year}") {
-                            YearHeader(year = year, onToggle = { viewModel.toggleYear(year) })
+                            StaggeredColumnItem(3 + yearIndex) {
+                                YearHeader(year = year, selecting = state.selecting, onToggle = { viewModel.toggleYear(year) })
+                            }
                         }
-                        item(key = "months-${year.year}") {
-                            MonthGrid(months = year.months, onToggle = viewModel::toggleMonth)
+                        year.months.chunked(2).forEachIndexed { rowIndex, row ->
+                            item(key = "months-${year.year}-$rowIndex") {
+                                StaggeredColumnItem(4 + yearIndex + rowIndex) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        row.forEach { cell ->
+                                            MonthTile(
+                                                cell = cell,
+                                                selecting = state.selecting,
+                                                onOpen = {
+                                                    viewModel.openMonth(cell)
+                                                    onStartSession()
+                                                },
+                                                onToggle = { viewModel.toggleMonth(cell.key) },
+                                                onLongPress = { viewModel.startSelecting(month = cell.key) },
+                                                modifier = Modifier.weight(1f),
+                                            )
+                                        }
+                                        if (row.size == 1) Spacer(Modifier.weight(1f))
+                                    }
+                                }
+                            }
                         }
                     }
                 } else {
                     items(state.folders, key = { "folder-${it.bucketId}" }) { folder ->
-                        FolderRow(folder = folder, onToggle = { viewModel.toggleBucket(folder.bucketId) })
+                        FolderRow(
+                            folder = folder,
+                            selecting = state.selecting,
+                            onOpen = {
+                                viewModel.openFolder(folder)
+                                onStartSession()
+                            },
+                            onToggle = { viewModel.toggleBucket(folder.bucketId) },
+                            onLongPress = { viewModel.startSelecting(bucketId = folder.bucketId) },
+                            modifier = Modifier.animateItem(),
+                        )
                     }
                 }
             }
         }
 
-        if (!state.isEmpty && !state.loading) {
+        AnimatedVisibility(
+            visible = state.selecting && !state.isEmpty,
+            enter = slideInVertically(RiseSpring) { it } + fadeIn(),
+            exit = slideOutVertically(RiseSpring) { it } + fadeOut(),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = bottom),
+        ) {
             StartBar(
                 label = state.selectionLabel,
                 count = state.preview?.itemCount,
                 bytes = state.preview?.totalBytes ?: 0L,
-                hasSelection = state.filter.hasSelection,
                 onClear = viewModel::clearSelection,
                 onStart = {
-                    viewModel.commitFilter()
+                    viewModel.startSelection()
                     onStartSession()
                 },
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = bottom),
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .clip(Shapes.sheet)
+                    .frosted(haze)
+                    .glass(Shapes.sheet, Color.Transparent, Ink.HairlineStrong),
             )
         }
 
@@ -200,7 +285,7 @@ fun SwipeHomeRoute(
             onShown = viewModel::consumeMessage,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = bottom + 150.dp),
+                .padding(bottom = bottom + if (state.selecting) 170.dp else Space.l),
         )
     }
 
@@ -221,8 +306,15 @@ fun SwipeHomeRoute(
 }
 
 @Composable
-private fun PendingCard(count: Int, bytes: Long, busy: Boolean, onReview: () -> Unit, onDelete: () -> Unit) {
-    PadlasCard(modifier = Modifier.fillMaxWidth(), border = Ink.Danger.copy(alpha = 0.35f)) {
+private fun PendingCard(
+    count: Int,
+    bytes: Long,
+    busy: Boolean,
+    onReview: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    PadlasCard(modifier = modifier.fillMaxWidth().morphBounds("swipe-pending"), border = Ink.Danger.copy(alpha = 0.45f)) {
         Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconBubble(icon = Icons.Rounded.Delete, tint = Ink.Danger)
@@ -300,7 +392,7 @@ private fun FilterRow(
                 DropdownMenu(
                     expanded = orderMenu,
                     onDismissRequest = { orderMenu = false },
-                    containerColor = Ink.SurfaceHighest,
+                    containerColor = Ink.SurfaceSolidHigh,
                     shape = Shapes.card,
                 ) {
                     SwipeOrder.entries.forEach { option ->
@@ -316,7 +408,6 @@ private fun FilterRow(
                                 orderMenu = false
                                 onOrder(option)
                             },
-                            colors = MenuDefaults.itemColors(),
                         )
                     }
                 }
@@ -333,7 +424,7 @@ private fun SwipeOrder.label(): String = when (this) {
 }
 
 @Composable
-private fun YearHeader(year: YearGroup, onToggle: () -> Unit) {
+private fun YearHeader(year: YearGroup, selecting: Boolean, onToggle: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -348,105 +439,184 @@ private fun YearHeader(year: YearGroup, onToggle: () -> Unit) {
                 color = Ink.TextSecondary,
             )
         }
-        PadlasTextButton(
-            text = if (year.allSelected) "Kijelölés törlése" else "Teljes év",
-            onClick = onToggle,
-        )
-    }
-}
-
-@Composable
-private fun MonthGrid(months: List<MonthCell>, onToggle: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
-        months.chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
-                row.forEach { cell ->
-                    MonthTile(cell = cell, onClick = { onToggle(cell.key) }, modifier = Modifier.weight(1f))
-                }
-                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
-            }
+        if (selecting) {
+            Chip(
+                text = if (year.allSelected) "Kijelölés le" else "Teljes év",
+                selected = year.allSelected,
+                onClick = onToggle,
+            )
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun MonthTile(cell: MonthCell, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val background by animateColorAsState(
+private fun MonthTile(
+    cell: MonthCell,
+    selecting: Boolean,
+    onOpen: () -> Unit,
+    onToggle: () -> Unit,
+    onLongPress: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val haptic = LocalHapticFeedback.current
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = when {
+            pressed -> 0.95f
+            cell.selected -> 0.96f
+            else -> 1f
+        },
+        animationSpec = motionSpec(Motion.rest()),
+        label = "monthScale",
+    )
+    val fill by animateColorAsState(
         targetValue = if (cell.selected) Ink.AccentSoft else Ink.Surface,
         animationSpec = motionSpec(Motion.settle()),
         label = "monthFill",
     )
-    val outline by animateColorAsState(
+    val rim by animateColorAsState(
         targetValue = if (cell.selected) Ink.Accent else Ink.Hairline,
         animationSpec = motionSpec(Motion.settle()),
-        label = "monthOutline",
+        label = "monthRim",
     )
     Column(
         modifier = modifier
-            .clip(Shapes.tile)
-            .background(background)
-            .border(1.dp, outline, Shapes.tile)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .morphBounds("swipe-month-${cell.key}")
+            .glass(Shapes.card, fill, rim)
+            .combinedClickable(
+                interactionSource = interaction,
                 indication = null,
-                role = Role.Checkbox,
-                onClick = onClick,
+                onClick = { if (selecting) onToggle() else onOpen() },
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLongPress()
+                },
             )
-            .padding(horizontal = Space.m, vertical = 10.dp),
+            .padding(8.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(104.dp)
+                .clip(Shapes.tile)
+                .background(Ink.SurfaceHigh),
+        ) {
+            if (cell.cover != null) {
+                AsyncImage(
+                    model = MediaThumb(cell.cover, 384),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            if (selecting) {
+                SelectionMark(
+                    selected = cell.selected,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp),
+                )
+            } else if (cell.complete) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(24.dp)
+                        .clip(Shapes.pill)
+                        .background(Ink.Background.copy(alpha = 0.55f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Rounded.CheckCircle, contentDescription = "Átnézve", tint = Ink.Success, modifier = Modifier.size(18.dp))
+                }
+            }
+        }
+        Row(
+            modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
                 text = cell.name,
-                style = PadlasTheme.type.label,
+                style = PadlasTheme.type.title.copy(fontSize = PadlasTheme.type.bodyStrong.fontSize),
                 color = Ink.Text,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            if (cell.selected) {
-                SelectionMark(selected = true, modifier = Modifier.size(18.dp))
-            } else if (cell.complete) {
-                Icon(Icons.Rounded.CheckCircle, contentDescription = "Átnézve", tint = Ink.Success, modifier = Modifier.size(16.dp))
-            }
+            Text(text = Format.count(cell.itemCount), style = PadlasTheme.type.numeric, color = Ink.TextSecondary)
         }
-        Spacer(Modifier.height(2.dp))
-        Text(text = "${Format.count(cell.itemCount)} elem", style = PadlasTheme.type.caption, color = Ink.TextSecondary, maxLines = 1)
-        Text(text = Format.bytes(cell.totalBytes), style = PadlasTheme.type.micro, color = Ink.TextTertiary, maxLines = 1)
-        Spacer(Modifier.height(Space.s))
-        LinearMeter(fraction = cell.reviewedFraction, color = Ink.Success, height = 3.dp)
+        Text(
+            text = Format.bytes(cell.totalBytes),
+            style = PadlasTheme.type.micro,
+            color = Ink.TextTertiary,
+            modifier = Modifier.padding(start = 6.dp, top = 2.dp),
+        )
+        LinearMeter(
+            fraction = cell.reviewedFraction,
+            color = Ink.Success,
+            height = 4.dp,
+            modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 8.dp, bottom = 6.dp),
+        )
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun FolderRow(folder: FolderItem, onToggle: () -> Unit) {
-    val background by animateColorAsState(
+private fun FolderRow(
+    folder: FolderItem,
+    selecting: Boolean,
+    onOpen: () -> Unit,
+    onToggle: () -> Unit,
+    onLongPress: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val haptic = LocalHapticFeedback.current
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.97f else 1f,
+        animationSpec = motionSpec(Motion.rest()),
+        label = "folderScale",
+    )
+    val fill by animateColorAsState(
         targetValue = if (folder.selected) Ink.AccentSoft else Ink.Surface,
         animationSpec = motionSpec(Motion.settle()),
         label = "folderFill",
     )
-    val outline by animateColorAsState(
+    val rim by animateColorAsState(
         targetValue = if (folder.selected) Ink.Accent else Ink.Hairline,
         animationSpec = motionSpec(Motion.settle()),
-        label = "folderOutline",
+        label = "folderRim",
     )
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .clip(Shapes.card)
-            .background(background)
-            .border(1.dp, outline, Shapes.card)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .morphBounds("swipe-folder-${folder.bucketId}")
+            .glass(Shapes.card, fill, rim)
+            .combinedClickable(
+                interactionSource = interaction,
                 indication = null,
-                role = Role.Checkbox,
-                onClick = onToggle,
+                onClick = { if (selecting) onToggle() else onOpen() },
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLongPress()
+                },
             )
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(58.dp)
+                .size(62.dp)
                 .clip(Shapes.tile)
                 .background(Ink.SurfaceHigh),
             contentAlignment = Alignment.Center,
@@ -473,10 +643,10 @@ private fun FolderRow(folder: FolderItem, onToggle: () -> Unit) {
                 color = Ink.TextSecondary,
                 maxLines = 1,
             )
-            Spacer(Modifier.height(6.dp))
-            LinearMeter(fraction = folder.reviewedFraction, color = Ink.Success, height = 3.dp)
+            Spacer(Modifier.height(8.dp))
+            LinearMeter(fraction = folder.reviewedFraction, color = Ink.Success, height = 4.dp)
         }
-        SelectionMark(selected = folder.selected)
+        if (selecting) SelectionMark(selected = folder.selected)
     }
 }
 
@@ -485,24 +655,15 @@ private fun StartBar(
     label: String,
     count: Int?,
     bytes: Long,
-    hasSelection: Boolean,
     onClear: () -> Unit,
     onStart: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Spacer(
-            Modifier
-                .fillMaxWidth()
-                .height(Space.xl)
-                .background(Brush.verticalGradient(listOf(Color.Transparent, Ink.Background))),
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Ink.Background)
-                .padding(start = Space.page, end = Space.page, bottom = Space.m),
-        ) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = label,
@@ -512,12 +673,9 @@ private fun StartBar(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            if (hasSelection) {
-                PadlasTextButton(text = "Törlés", onClick = onClear, color = Ink.TextSecondary)
-            }
+            PadlasIconButton(icon = Icons.Rounded.Close, contentDescription = "Kijelölés törlése", onClick = onClear, size = 36.dp, iconSize = 18.dp)
         }
-        Spacer(Modifier.height(Space.s))
-        val ready = count != null && count > 0
+        Spacer(Modifier.height(Space.m))
         PadlasButton(
             text = when {
                 count == null -> "Számolás…"
@@ -525,20 +683,11 @@ private fun StartBar(
                 else -> "Indítás · ${Format.count(count)} elem · ${Format.bytes(bytes)}"
             },
             onClick = onStart,
-            enabled = ready,
+            enabled = count != null && count > 0,
             icon = Icons.Rounded.PlayArrow,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .morphBounds(SwipeSetupViewModel.HERO_START),
         )
-        if (count == 0) {
-            Spacer(Modifier.height(Space.xs))
-            Text(
-                text = "Kapcsold ki a „Csak új” szűrőt, ha a már átnézett elemeket is újra látnád.",
-                style = PadlasTheme.type.micro,
-                color = Ink.TextTertiary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        }
     }
 }

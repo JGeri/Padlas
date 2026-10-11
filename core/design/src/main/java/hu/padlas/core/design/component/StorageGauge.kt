@@ -60,6 +60,7 @@ fun StorageGauge(
     modifier: Modifier = Modifier,
     diameter: Dp = 232.dp,
     thickness: Dp = 16.dp,
+    compact: Boolean = false,
 ) {
     val source = rememberUpdatedState(segments)
     val capacity = rememberUpdatedState(totalBytes)
@@ -133,28 +134,34 @@ fun StorageGauge(
             }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text(text = "Szabad", style = PadlasTheme.type.caption, color = Ink.TextSecondary)
-            Spacer(Modifier.height(2.dp))
+            if (!compact) {
+                Text(text = "Szabad", style = PadlasTheme.type.caption, color = Ink.TextSecondary)
+                Spacer(Modifier.height(2.dp))
+            }
             if (totalBytes <= 0L) {
-                Text(text = "…", style = PadlasTheme.type.display, color = Ink.TextTertiary)
+                Text(text = "…", style = if (compact) PadlasTheme.type.displaySmall else PadlasTheme.type.display, color = Ink.TextTertiary)
             } else {
                 Row(verticalAlignment = Alignment.Bottom) {
                     RollingNumber(
                         value = bytesValue(freeBytes),
-                        style = PadlasTheme.type.display,
+                        style = if (compact) PadlasTheme.type.displaySmall else PadlasTheme.type.display,
                         color = Ink.Text,
                     )
                     Text(
                         text = " " + bytesUnit(freeBytes),
-                        style = PadlasTheme.type.title,
+                        style = if (compact) PadlasTheme.type.caption else PadlasTheme.type.title,
                         color = Ink.TextSecondary,
-                        modifier = Modifier.padding(bottom = 8.dp),
+                        modifier = Modifier.padding(bottom = if (compact) 5.dp else 8.dp),
                     )
                 }
             }
             Spacer(Modifier.height(2.dp))
             Text(
-                text = if (totalBytes > 0L) "${(usedFraction * 100).toInt()}% foglalt" else "Mérés",
+                text = when {
+                    totalBytes <= 0L -> "Mérés"
+                    compact -> "szabad"
+                    else -> "${(usedFraction * 100).toInt()}% foglalt"
+                },
                 style = PadlasTheme.type.caption,
                 color = Ink.TextTertiary,
             )

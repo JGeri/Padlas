@@ -96,6 +96,9 @@ data class SwipeMonthStat(
     val totalBytes: Long,
     val reviewedCount: Int,
     val videoCount: Int,
+    val latestTaken: Long,
+    val coverId: Long?,
+    val coverMime: String?,
 )
 
 data class SwipeBucketStat(

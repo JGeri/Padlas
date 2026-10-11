@@ -60,13 +60,20 @@ interface SwipeDao {
     )
     suspend fun pendingAssets(): List<Asset>
 
+    /**
+     * With a single MAX() in the query, SQLite fills the bare cover columns from the row
+     * that holds the maximum: the newest item of each month, without a per-month subquery.
+     */
     @Query(
         """
         SELECT strftime('%Y-%m', a.dateTaken / 1000, 'unixepoch', 'localtime') AS month,
                COUNT(*) AS itemCount,
                COALESCE(SUM(a.sizeBytes), 0) AS totalBytes,
                SUM(CASE WHEN d.assetId IS NULL THEN 0 ELSE 1 END) AS reviewedCount,
-               SUM(CASE WHEN a.mimeType LIKE 'video/%' THEN 1 ELSE 0 END) AS videoCount
+               SUM(CASE WHEN a.mimeType LIKE 'video/%' THEN 1 ELSE 0 END) AS videoCount,
+               MAX(a.dateTaken) AS latestTaken,
+               a.mediaStoreId AS coverId,
+               a.mimeType AS coverMime
         FROM asset a LEFT JOIN swipe_decision d ON d.assetId = a.mediaStoreId
         WHERE a.state IN ('LOCAL', 'PROTECTED') AND a.dateTaken > 0 AND a.mimeType LIKE :mimePattern
         GROUP BY month ORDER BY month DESC

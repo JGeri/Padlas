@@ -53,6 +53,8 @@ internal data class SessionUiState(
     val message: String? = null,
     val deleteMode: DeleteMode = DeleteMode.TRASH,
     val skipsSystemDialog: Boolean = false,
+    /** The element this deck grew out of; the same key shrinks it back on close. */
+    val heroKey: String? = null,
 ) {
     val total: Int get() = cards.size
     val finished: Boolean get() = !loading && index >= cards.size
@@ -74,7 +76,7 @@ internal class SwipeSessionViewModel @Inject constructor(
     private val preferences: SwipePreferences,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(SessionUiState())
+    private val _state = MutableStateFlow(SessionUiState(heroKey = preferences.heroKey))
     val state: StateFlow<SessionUiState> = _state.asStateFlow()
 
     private val _events = Channel<SessionEvent>(Channel.BUFFERED)
@@ -100,7 +102,8 @@ internal class SwipeSessionViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             val filter = preferences.lastFilter ?: SwipeFilter()
-            _state.update { SessionUiState(pending = it.pending, deleteMode = it.deleteMode) }
+            val hero = preferences.heroKey
+            _state.update { SessionUiState(pending = it.pending, deleteMode = it.deleteMode, heroKey = hero) }
             history.clear()
             sessionFavorites.clear()
             autoDeleteDone = false

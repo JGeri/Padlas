@@ -66,6 +66,10 @@ import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.component.Toast
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import hu.padlas.core.design.component.frosted
+import hu.padlas.core.design.component.hairlineTop
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
@@ -237,6 +241,7 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         viewModel.requests.collect { launcher.launch(IntentSenderRequest.Builder(it).build()) }
     }
     var confirm by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val haze = rememberHazeState()
     var confirmText by remember { mutableStateOf("") }
     val guarded: (String, () -> Unit) -> Unit = { text, action ->
         if (viewModel.skipsSystemDialog()) {
@@ -282,7 +287,7 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     contentPadding = PaddingValues(start = Space.l, end = Space.l, bottom = 140.dp),
                     horizontalArrangement = Arrangement.spacedBy(3.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp),
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().hazeSource(haze),
                 ) {
                     item(span = { GridItemSpan(maxLineSpan) }, key = "hero") {
                         Column(Modifier.padding(bottom = Space.m), verticalArrangement = Arrangement.spacedBy(Space.m)) {
@@ -301,6 +306,7 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     items(state.items, key = { it.id }) { item ->
                         val thumb = remember(item.uri) { MediaThumb(item.uri, 384) }
                         SelectableTile(
+                            modifier = Modifier.animateItem(),
                             model = thumb,
                             selected = item.id in state.selected,
                             onToggle = { viewModel.toggle(item.id) },
@@ -332,7 +338,8 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color.Transparent, Ink.Background)))
+                    .frosted(haze)
+                    .hairlineTop(Ink.HairlineStrong)
                     .padding(start = Space.page, end = Space.page, top = Space.xl, bottom = Space.l),
             ) {
                 Text(

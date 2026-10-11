@@ -60,6 +60,11 @@ import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.component.Toast
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import hu.padlas.core.design.component.frosted
+import hu.padlas.core.design.component.hairlineTop
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
@@ -84,6 +89,7 @@ fun BrowseRoute(
     val viewModel: BrowseViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val items = viewModel.items.collectAsLazyPagingItems()
+    val haze = rememberHazeState()
 
     val trashLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult(),
@@ -119,7 +125,7 @@ fun BrowseRoute(
 
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 104.dp),
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().hazeSource(haze),
                 contentPadding = PaddingValues(start = Space.l, end = Space.l, bottom = if (state.selected.isEmpty()) Space.xl else 180.dp),
                 horizontalArrangement = Arrangement.spacedBy(3.dp),
                 verticalArrangement = Arrangement.spacedBy(3.dp),
@@ -180,6 +186,7 @@ fun BrowseRoute(
 
         if (state.selected.isNotEmpty()) {
             SelectionBar(
+                haze = haze,
                 count = state.selected.size,
                 bytes = state.selectedBytes,
                 busy = state.busy,
@@ -291,6 +298,7 @@ private fun AssetTile(asset: Asset, selected: Boolean, model: android.net.Uri, o
 
 @Composable
 private fun SelectionBar(
+    haze: HazeState,
     count: Int,
     bytes: Long,
     busy: Boolean,
@@ -302,7 +310,8 @@ private fun SelectionBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(Color.Transparent, Ink.Background.copy(alpha = 0.95f), Ink.Background)))
+            .frosted(haze)
+                    .hairlineTop(Ink.HairlineStrong)
             .padding(start = Space.page, end = Space.page, top = Space.xl, bottom = Space.l),
     ) {
         Text(

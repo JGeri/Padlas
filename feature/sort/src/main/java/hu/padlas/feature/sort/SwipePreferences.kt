@@ -34,6 +34,12 @@ class SwipePreferences @Inject constructor(@ApplicationContext context: Context)
         _deleteAtEnd.value = enabled
     }
 
+    /**
+     * The element the next deck grows out of (a month tile, a folder row, the start bar).
+     * Memory only: it describes one transition, not a setting.
+     */
+    var heroKey: String? = null
+
     var hintSeen: Boolean
         get() = prefs.getBoolean(KEY_HINT, false)
         set(value) {

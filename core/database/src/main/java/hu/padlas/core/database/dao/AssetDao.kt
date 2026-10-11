@@ -58,6 +58,16 @@ interface AssetDao {
     @Query("SELECT COUNT(*) FROM asset")
     fun observeCount(): Flow<Int>
 
+    /** The newest local photos, for the little fanned stack on the overview card. */
+    @Query(
+        """
+        SELECT * FROM asset
+        WHERE state IN ('LOCAL', 'PROTECTED') AND mimeType LIKE 'image/%'
+        ORDER BY dateTaken DESC LIMIT :limit
+        """,
+    )
+    fun observeNewestPhotos(limit: Int): Flow<List<Asset>>
+
     @Query("SELECT COUNT(*) FROM asset")
     suspend fun count(): Int
 

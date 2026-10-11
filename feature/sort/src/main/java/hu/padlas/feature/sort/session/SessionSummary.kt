@@ -1,6 +1,25 @@
 package hu.padlas.feature.sort.session
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathMeasure
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import hu.padlas.core.design.component.StaggeredColumnItem
+import hu.padlas.core.design.component.glass
+import hu.padlas.core.design.motion.LocalReducedMotion
+import hu.padlas.core.design.theme.Shapes
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -57,15 +76,18 @@ internal fun SessionSummary(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Space.m),
     ) {
-        IconBubble(icon = Icons.Rounded.DoneAll, tint = Ink.Success, size = 76.dp, iconSize = 38.dp)
-        Text(text = "Kész!", style = PadlasTheme.type.headline, color = Ink.Text)
-        Text(
-            text = "${Format.count(state.total)} elemet néztél át.",
-            style = PadlasTheme.type.body,
-            color = Ink.TextSecondary,
-            textAlign = TextAlign.Center,
-        )
+        DrawnCheck()
+        StaggeredColumnItem(1) { Text(text = "Kész!", style = PadlasTheme.type.headline, color = Ink.Text) }
+        StaggeredColumnItem(2) {
+            Text(
+                text = "${Format.count(state.total)} elemet néztél át.",
+                style = PadlasTheme.type.body,
+                color = Ink.TextSecondary,
+                textAlign = TextAlign.Center,
+            )
+        }
         Spacer(Modifier.height(Space.s))
+        StaggeredColumnItem(3) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(Space.s),
             modifier = Modifier
@@ -94,6 +116,7 @@ internal fun SessionSummary(
                 tint = Ink.Danger,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
+        }
         }
 
         if (state.pending.itemCount > 0) {
@@ -182,5 +205,44 @@ internal fun SessionSummary(
         Spacer(Modifier.height(Space.s))
         PadlasButton(text = "Új válogatás", onClick = onNewSession, modifier = Modifier.fillMaxWidth())
         PadlasButton(text = "Bezárás", onClick = onClose, style = ButtonStyle.Ghost, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+/** A check that draws itself inside a glowing ring: the deck is done, said without words. */
+@Composable
+private fun DrawnCheck() {
+    val reduced = LocalReducedMotion.current
+    val ring = remember { Animatable(if (reduced) 1f else 0f) }
+    val tick = remember { Animatable(if (reduced) 1f else 0f) }
+    LaunchedEffect(Unit) {
+        ring.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = 260f))
+    }
+    LaunchedEffect(Unit) {
+        delay(180)
+        tick.animateTo(1f, spring(dampingRatio = 1f, stiffness = 120f))
+    }
+    Box(
+        modifier = Modifier
+            .size(112.dp)
+            .graphicsLayer {
+                scaleX = 0.6f + 0.4f * ring.value
+                scaleY = 0.6f + 0.4f * ring.value
+                alpha = ring.value.coerceIn(0f, 1f)
+            }
+            .shadow(36.dp, Shapes.pill, ambientColor = Ink.Success, spotColor = Ink.Success)
+            .glass(Shapes.pill, Ink.SuccessSoft, Ink.Success.copy(alpha = 0.55f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(52.dp)) {
+            val path = Path().apply {
+                moveTo(size.width * 0.12f, size.height * 0.54f)
+                lineTo(size.width * 0.40f, size.height * 0.80f)
+                lineTo(size.width * 0.90f, size.height * 0.22f)
+            }
+            val measure = PathMeasure().apply { setPath(path, false) }
+            val drawn = Path()
+            measure.getSegment(0f, measure.length * tick.value.coerceIn(0f, 1f), drawn, true)
+            drawPath(drawn, Ink.Success, style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        }
     }
 }

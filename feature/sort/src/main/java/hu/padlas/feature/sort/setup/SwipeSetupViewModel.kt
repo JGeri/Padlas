@@ -46,6 +46,7 @@ internal data class MonthCell(
     val totalBytes: Long,
     val reviewedCount: Int,
     val selected: Boolean,
+    val cover: Uri?,
 ) {
     val reviewedFraction: Float get() = if (itemCount == 0) 0f else reviewedCount.toFloat() / itemCount
     val complete: Boolean get() = itemCount > 0 && reviewedCount >= itemCount
@@ -86,6 +87,8 @@ internal data class SetupUiState(
     val pending: SizeAndCount = SizeAndCount(0, 0),
     val busy: Boolean = false,
     val message: String? = null,
+    /** Long-press turns tiles into checkboxes; until then a tap opens the deck at once. */
+    val selecting: Boolean = false,
 ) {
     val isEmpty: Boolean get() = !loading && years.isEmpty() && folders.isEmpty()
 
@@ -120,7 +123,11 @@ internal class SwipeSetupViewModel @Inject constructor(
     private val preferences: SwipePreferences,
 ) : ViewModel() {
 
-    private val filter = MutableStateFlow(preferences.lastFilter ?: SwipeFilter())
+    // The last deck's scope is not carried over as a selection: only its how (media, order,
+    // unreviewed-only) is, the what starts empty every time the tab opens.
+    private val filter = MutableStateFlow(
+        preferences.lastFilter?.copy(buckets = emptySet(), months = emptySet()) ?: SwipeFilter(),
+    )
     private val tab = MutableStateFlow(SetupTab.MONTHS)
     private val local = MutableStateFlow(LocalState())
 
@@ -152,6 +159,7 @@ internal class SwipeSetupViewModel @Inject constructor(
             pending = pending,
             busy = localState.busy,
             message = localState.message,
+            selecting = localState.selecting || current.hasSelection,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SetupUiState())
 
@@ -178,12 +186,41 @@ internal class SwipeSetupViewModel @Inject constructor(
 
     fun setOnlyUnreviewed(value: Boolean) = filter.update { it.copy(onlyUnreviewed = value) }
 
-    fun clearSelection() = filter.update { it.copy(buckets = emptySet(), months = emptySet()) }
+    fun clearSelection() {
+        filter.update { it.copy(buckets = emptySet(), months = emptySet()) }
+        local.update { it.copy(selecting = false) }
+    }
 
-    /** The session screen reads the filter back from preferences, so a resumed app finds it too. */
-    fun commitFilter() {
+    fun startSelecting(month: String? = null, bucketId: Long? = null) {
+        local.update { it.copy(selecting = true) }
+        if (month != null && month !in filter.value.months) toggleMonth(month)
+        if (bucketId != null && bucketId !in filter.value.buckets) toggleBucket(bucketId)
+    }
+
+    /**
+     * One tap, one deck: the month alone, whatever else was selected. A month that is
+     * already fully reviewed opens with its old decisions shown, instead of opening empty.
+     */
+    fun openMonth(cell: MonthCell) = open(
+        filter.value.copy(months = setOf(cell.key), buckets = emptySet(), onlyUnreviewed = filter.value.onlyUnreviewed && !cell.complete),
+        heroKey = "swipe-month-${cell.key}",
+    )
+
+    fun openFolder(folder: FolderItem) = open(
+        filter.value.copy(buckets = setOf(folder.bucketId), months = emptySet(), onlyUnreviewed = filter.value.onlyUnreviewed && folder.reviewedFraction < 1f),
+        heroKey = "swipe-folder-${folder.bucketId}",
+    )
+
+    fun startSelection() {
+        preferences.heroKey = HERO_START
         preferences.lastFilter = filter.value
     }
+
+    private fun open(target: SwipeFilter, heroKey: String) {
+        preferences.heroKey = heroKey
+        preferences.lastFilter = target
+    }
+
 
     fun deleteNow() {
         if (local.value.busy) return
@@ -240,6 +277,7 @@ internal class SwipeSetupViewModel @Inject constructor(
                             totalBytes = stat.totalBytes,
                             reviewedCount = stat.reviewedCount,
                             selected = stat.month in filter.months,
+                            cover = coverUri(stat.coverId, stat.coverMime),
                         )
                     },
                 )
@@ -252,16 +290,22 @@ internal class SwipeSetupViewModel @Inject constructor(
         itemCount = itemCount,
         totalBytes = totalBytes,
         reviewedCount = reviewedCount,
-        cover = coverId?.let { id ->
-            val collection = if (coverMime?.startsWith("video/") == true) {
-                MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-            } else {
-                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-            }
-            ContentUris.withAppendedId(collection, id)
-        },
+        cover = coverUri(coverId, coverMime),
         selected = bucketId in filter.buckets,
     )
 
-    private data class LocalState(val busy: Boolean = false, val message: String? = null)
+    private fun coverUri(id: Long?, mime: String?): Uri? = id?.let {
+        val collection = if (mime?.startsWith("video/") == true) {
+            MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        } else {
+            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        }
+        ContentUris.withAppendedId(collection, it)
+    }
+
+    private data class LocalState(val busy: Boolean = false, val message: String? = null, val selecting: Boolean = false)
+
+    companion object {
+        const val HERO_START = "swipe-start"
+    }
 }
