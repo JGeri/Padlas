@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.motionSpec
 import hu.padlas.core.design.theme.Ink
+import hu.padlas.core.design.theme.ProgressGradient
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
@@ -38,8 +40,9 @@ fun LinearMeter(
     fraction: Float,
     modifier: Modifier = Modifier,
     color: Color = Ink.Accent,
-    track: Color = Ink.SurfaceHighest,
+    track: Color = Ink.SurfaceHigh,
     height: Dp = 6.dp,
+    brush: Brush? = null,
 ) {
     val filled by animateFloatAsState(
         targetValue = fraction.coerceIn(0f, 1f),
@@ -55,7 +58,11 @@ fun LinearMeter(
                 drawRect(track)
                 if (filled > 0f) {
                     val radius = CornerRadius(size.height / 2f)
-                    drawRoundRect(color, size = Size(size.width * filled, size.height), cornerRadius = radius)
+                    if (brush != null) {
+                        drawRoundRect(brush, size = Size(size.width * filled, size.height), cornerRadius = radius)
+                    } else {
+                        drawRoundRect(color, size = Size(size.width * filled, size.height), cornerRadius = radius)
+                    }
                 }
             },
     )
@@ -66,7 +73,7 @@ fun ProgressStrip(fraction: Float, label: String, modifier: Modifier = Modifier)
     Column(modifier = modifier.fillMaxWidth()) {
         Text(text = label, style = PadlasTheme.type.caption, color = Ink.TextSecondary, maxLines = 1)
         Spacer(Modifier.height(Space.s))
-        LinearMeter(fraction = fraction)
+        LinearMeter(fraction = fraction, brush = ProgressGradient)
     }
 }
 
@@ -78,7 +85,7 @@ fun ProgressRing(
     size: Dp = 44.dp,
     stroke: Dp = 4.dp,
     color: Color = Ink.Accent,
-    track: Color = Ink.SurfaceHighest,
+    track: Color = Ink.SurfaceHigh,
     content: @Composable () -> Unit = {},
 ) {
     val swept by animateFloatAsState(
@@ -107,7 +114,7 @@ fun SegmentBar(
     total: Long,
     modifier: Modifier = Modifier,
     height: Dp = 10.dp,
-    track: Color = Ink.SurfaceHighest,
+    track: Color = Ink.SurfaceHigh,
 ) {
     Box(
         modifier = modifier

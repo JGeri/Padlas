@@ -105,7 +105,7 @@ fun SwipeHomeRoute(
     val bottom = contentPadding.calculateBottomPadding()
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
-    Box(modifier = modifier.fillMaxSize().background(Ink.Background)) {
+    Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(

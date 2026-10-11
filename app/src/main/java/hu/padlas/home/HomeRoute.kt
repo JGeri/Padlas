@@ -122,7 +122,7 @@ fun HomeRoute(
 
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     LazyColumn(
-        modifier = modifier.fillMaxSize().background(Ink.Background),
+        modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = Space.page,
             end = Space.page,

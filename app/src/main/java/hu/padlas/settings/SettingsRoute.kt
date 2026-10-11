@@ -72,6 +72,7 @@ import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.motionSpec
 import hu.padlas.core.design.theme.Ink
+import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
@@ -180,7 +181,7 @@ fun SettingsRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: 
         onPauseOrDispose { }
     }
 
-    Box(modifier = modifier.fillMaxSize().background(Ink.Background).systemBarsPadding()) {
+    Box(modifier = modifier.fillMaxSize().auroraBackground().systemBarsPadding()) {
         Column(Modifier.fillMaxSize()) {
             PadlasTopBar(title = "Beállítások", onBack = onBack)
             LazyColumn(

@@ -66,6 +66,7 @@ import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.hairlineBottom
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.theme.Ink
+import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
@@ -85,7 +86,7 @@ fun RulesRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
     val active = state.rules.count { it.enabled }
 
-    Box(modifier = modifier.fillMaxSize().background(Ink.Background)) {
+    Box(modifier = modifier.fillMaxSize().auroraBackground()) {
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             PadlasTopBar(
                 title = "Automatikus szabályok",

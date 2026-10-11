@@ -59,6 +59,7 @@ import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.hairlineBottom
 import hu.padlas.core.design.theme.Ink
+import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Radius
 import hu.padlas.core.design.theme.Space
@@ -107,7 +108,7 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         undoLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
     }
 
-    Box(modifier = modifier.fillMaxSize().background(Ink.Background)) {
+    Box(modifier = modifier.fillMaxSize().auroraBackground()) {
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             PadlasTopBar(
                 title = "Napló",

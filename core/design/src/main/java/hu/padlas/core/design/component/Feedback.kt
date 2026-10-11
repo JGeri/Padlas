@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
@@ -75,17 +76,17 @@ fun Toast(
     AnimatedVisibility(
         visible = visible && shown != null,
         modifier = modifier,
-        enter = slideInVertically(finiteSpec(reduced, Motion.settle())) { it / 2 } + fadeIn(),
+        enter = slideInVertically(finiteSpec(reduced, Motion.bouncy())) { it } + fadeIn() +
+            androidx.compose.animation.scaleIn(finiteSpec(reduced, Motion.bouncy()), initialScale = 0.8f),
         exit = slideOutVertically { it / 2 } + fadeOut(),
     ) {
         Row(
             modifier = Modifier
                 .padding(horizontal = Space.l, vertical = Space.m)
                 .widthIn(max = 480.dp)
-                .clip(Shapes.pill)
-                .background(Ink.SurfaceHighest)
-                .border(1.dp, Ink.HairlineStrong, Shapes.pill)
-                .padding(horizontal = Space.l, vertical = 12.dp),
+                .shadow(24.dp, Shapes.pill, ambientColor = Color.Black, spotColor = Color.Black)
+                .glass(Shapes.pill, Ink.SurfaceSolidHigh, Ink.HairlineStrong)
+                .padding(horizontal = Space.l, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
@@ -113,9 +114,7 @@ fun ConfirmDialog(
             Column(
                 modifier = modifier
                     .widthIn(max = 420.dp)
-                    .clip(Shapes.sheet)
-                    .background(Ink.SurfaceHigh)
-                    .border(1.dp, Ink.Hairline, Shapes.sheet)
+                    .glass(Shapes.sheet, Ink.SurfaceSolid, Ink.HairlineStrong)
                     .padding(Space.xl),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {

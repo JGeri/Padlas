@@ -38,6 +38,7 @@ import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.ProgressStrip
 import hu.padlas.core.design.component.SectionHeader
 import hu.padlas.core.design.theme.Ink
+import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
 
@@ -59,7 +60,7 @@ internal fun DedupScreen(
     val showBar = !state.loading && state.loserCount > 0
     val navBottom = navigationBarBottom()
 
-    Box(modifier = modifier.fillMaxSize().background(Ink.Background)) {
+    Box(modifier = modifier.fillMaxSize().auroraBackground()) {
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             PadlasTopBar(
                 title = DedupCopy.TITLE,

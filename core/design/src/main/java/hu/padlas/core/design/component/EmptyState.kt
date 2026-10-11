@@ -11,12 +11,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
+import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
 
 /** What is true, and what to do about it. No illustration, no apology. */
@@ -36,7 +38,13 @@ fun EmptyState(
             .padding(horizontal = Space.xl, vertical = Space.xxl),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        IconBubble(icon = icon, tint = tint, size = 64.dp, iconSize = 30.dp)
+        IconBubble(
+            icon = icon,
+            tint = tint,
+            size = 72.dp,
+            iconSize = 32.dp,
+            modifier = Modifier.shadow(28.dp, Shapes.tile, ambientColor = tint, spotColor = tint),
+        )
         Spacer(Modifier.height(Space.l))
         if (title != null) {
             Text(text = title, color = Ink.Text, style = PadlasTheme.type.title, textAlign = TextAlign.Center)

@@ -49,6 +49,7 @@ import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.haptics
 import hu.padlas.core.design.motion.motionSpec
 import hu.padlas.core.design.theme.Ink
+import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes
 import hu.padlas.feature.map.StorageRoute
@@ -79,7 +80,7 @@ fun MainScreen(
 
     BackHandler(enabled = tab != MainTab.HOME) { onTabChange(MainTab.HOME) }
 
-    Box(modifier = modifier.fillMaxSize().background(Ink.Background)) {
+    Box(modifier = modifier.fillMaxSize().auroraBackground()) {
         AnimatedContent(
             targetState = tab,
             transitionSpec = { fadeIn(Motion.snapSpring()) togetherWith fadeOut(Motion.snapSpring()) },

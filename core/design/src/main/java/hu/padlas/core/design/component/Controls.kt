@@ -32,7 +32,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -42,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.haptics
 import hu.padlas.core.design.motion.motionSpec
+import hu.padlas.core.design.theme.AccentGradient
+import hu.padlas.core.design.theme.DangerGradient
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes
@@ -55,19 +62,22 @@ enum class ButtonSize(val height: Dp, val horizontal: Dp, val iconSize: Dp) {
     Small(34.dp, 14.dp, 16.dp),
 }
 
-private data class ButtonColors(val fill: Color, val content: Color)
+private data class ButtonColors(val fill: Brush, val content: Color, val glow: Color)
 
 private fun colorsFor(style: ButtonStyle, enabled: Boolean): ButtonColors = when {
-    !enabled -> ButtonColors(Ink.SurfaceHigh, Ink.TextTertiary)
-    style == ButtonStyle.Primary -> ButtonColors(Ink.Accent, Ink.OnAccent)
-    style == ButtonStyle.Secondary -> ButtonColors(Ink.SurfaceHighest, Ink.Text)
-    style == ButtonStyle.Destructive -> ButtonColors(Ink.Danger, Color.White)
-    style == ButtonStyle.Success -> ButtonColors(Ink.Success, Ink.Background)
-    style == ButtonStyle.Favorite -> ButtonColors(Ink.Favorite, Ink.Background)
-    else -> ButtonColors(Color.Transparent, Ink.Accent)
+    !enabled -> ButtonColors(SolidColor(Ink.SurfaceHigh), Ink.TextTertiary, Color.Transparent)
+    style == ButtonStyle.Primary -> ButtonColors(AccentGradient, Ink.OnAccent, Ink.Accent)
+    style == ButtonStyle.Secondary -> ButtonColors(SolidColor(Ink.SurfaceHigh), Ink.Text, Color.Transparent)
+    style == ButtonStyle.Destructive -> ButtonColors(DangerGradient, Color.White, Ink.Danger)
+    style == ButtonStyle.Success -> ButtonColors(SolidColor(Ink.Success), Ink.Background, Ink.Success)
+    style == ButtonStyle.Favorite -> ButtonColors(SolidColor(Ink.Favorite), Ink.Background, Ink.Favorite)
+    else -> ButtonColors(SolidColor(Color.Transparent), Ink.Accent, Color.Transparent)
 }
 
-/** Pill button. A press shrinks it a little, there is no ripple. */
+/**
+ * Pill button. Primary and destructive ones carry a soft glow of their own colour, so the
+ * one action that matters on a screen is lit, not just coloured. A press sinks it a little.
+ */
 @Composable
 fun PadlasButton(
     text: String,
@@ -82,19 +92,34 @@ fun PadlasButton(
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed && enabled) 0.97f else 1f,
-        animationSpec = motionSpec(Motion.snapSpring()),
+        targetValue = if (pressed && enabled) 0.95f else 1f,
+        animationSpec = motionSpec(Motion.rest()),
         label = "buttonPress",
     )
     val colors = colorsFor(style, enabled)
-    val fill by animateColorAsState(colors.fill, motionSpec(Motion.settle()), label = "buttonFill")
     val haptic = haptics()
     Row(
         modifier = modifier
             .defaultMinSize(minHeight = size.height)
-            .scale(scale)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .then(
+                if (colors.glow != Color.Transparent && size != ButtonSize.Small) {
+                    Modifier.shadow(
+                        elevation = 18.dp,
+                        shape = Shapes.pill,
+                        ambientColor = colors.glow,
+                        spotColor = colors.glow,
+                    )
+                } else {
+                    Modifier
+                },
+            )
             .clip(Shapes.pill)
-            .background(fill)
+            .background(colors.fill)
+            .then(if (style == ButtonStyle.Secondary) Modifier.glass(Shapes.pill, Color.Transparent) else Modifier)
             .clickable(
                 enabled = enabled,
                 interactionSource = interaction,
@@ -116,7 +141,7 @@ fun PadlasButton(
         Text(
             text = text,
             color = colors.content,
-            style = if (size == ButtonSize.Small) PadlasTheme.type.caption else PadlasTheme.type.label,
+            style = if (size == ButtonSize.Small) PadlasTheme.type.caption.copy(fontWeight = FontWeight.Bold) else PadlasTheme.type.label,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
@@ -171,24 +196,23 @@ fun PadlasIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     tint: Color = Ink.Text,
-    background: Color = Ink.SurfaceHigh,
-    size: Dp = 40.dp,
+    background: Color = Ink.Surface,
+    size: Dp = 44.dp,
     iconSize: Dp = 20.dp,
     enabled: Boolean = true,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed && enabled) 0.9f else 1f,
-        animationSpec = motionSpec(Motion.snapSpring()),
+        targetValue = if (pressed && enabled) 0.86f else 1f,
+        animationSpec = motionSpec(Motion.rest()),
         label = "iconButtonPress",
     )
     Box(
         modifier = modifier
             .size(size)
             .scale(scale)
-            .clip(Shapes.pill)
-            .background(background)
+            .glass(Shapes.pill, background)
             .clickable(
                 enabled = enabled,
                 interactionSource = interaction,
@@ -217,7 +241,7 @@ fun Chip(
     trailing: String? = null,
 ) {
     val fill by animateColorAsState(
-        targetValue = if (selected) Ink.AccentSoft else Ink.SurfaceHigh,
+        targetValue = if (selected) Ink.AccentSoft else Ink.Surface,
         animationSpec = motionSpec(Motion.settle()),
         label = "chipFill",
     )
@@ -230,10 +254,8 @@ fun Chip(
     val interaction = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
-            .height(36.dp)
-            .clip(Shapes.pill)
-            .background(fill)
-            .border(1.dp, outline, Shapes.pill)
+            .height(38.dp)
+            .glass(Shapes.pill, fill, outline)
             .then(
                 if (onClick != null) {
                     Modifier.clickable(
@@ -273,15 +295,14 @@ fun SegmentedControl(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
-            .height(40.dp)
-            .clip(Shapes.pill)
-            .background(Ink.SurfaceHigh)
-            .padding(3.dp),
+            .height(44.dp)
+            .glass(Shapes.pill)
+            .padding(4.dp),
     ) {
         val segment = maxWidth / options.size
         val offset by animateDpAsState(
             targetValue = segment * selectedIndex.coerceIn(0, options.lastIndex),
-            animationSpec = motionSpec(Motion.settle()),
+            animationSpec = motionSpec(Motion.rest()),
             label = "segmentThumb",
         )
         Box(
@@ -289,8 +310,7 @@ fun SegmentedControl(
                 .offset(x = offset)
                 .width(segment)
                 .fillMaxHeight()
-                .clip(Shapes.pill)
-                .background(Ink.SurfaceHighest),
+                .glass(Shapes.pill, Ink.SurfaceHighest, Ink.HairlineStrong),
         )
         Row(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
             options.forEachIndexed { index, label ->
@@ -332,7 +352,7 @@ fun PadlasSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier:
             checkedTrackColor = Ink.Accent,
             checkedBorderColor = Color.Transparent,
             uncheckedThumbColor = Ink.TextSecondary,
-            uncheckedTrackColor = Ink.SurfaceHighest,
+            uncheckedTrackColor = Ink.SurfaceHigh,
             uncheckedBorderColor = Color.Transparent,
         ),
     )

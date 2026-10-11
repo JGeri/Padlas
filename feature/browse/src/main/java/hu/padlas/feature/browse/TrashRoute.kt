@@ -67,6 +67,7 @@ import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.theme.Ink
+import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
 import hu.padlas.core.media.MediaOps
@@ -246,7 +247,7 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         }
     }
 
-    Box(modifier = modifier.fillMaxSize().background(Ink.Background).systemBarsPadding()) {
+    Box(modifier = modifier.fillMaxSize().auroraBackground().systemBarsPadding()) {
         Column(Modifier.fillMaxSize()) {
             PadlasTopBar(
                 title = "Kuka",

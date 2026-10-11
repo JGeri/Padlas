@@ -42,6 +42,7 @@ import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.motion.haptics
 import hu.padlas.core.design.theme.Ink
+import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
 import kotlinx.coroutines.delay
@@ -92,7 +93,7 @@ fun FolderRoute(bucketId: Long, onBack: () -> Unit, modifier: Modifier = Modifie
     val navBottom = navigationBarBottom()
     val allKept = state.discardCount == 0
 
-    Box(modifier = modifier.fillMaxSize().background(Ink.Background)) {
+    Box(modifier = modifier.fillMaxSize().auroraBackground()) {
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             PadlasTopBar(
                 title = state.title.ifBlank { "Mappa" },

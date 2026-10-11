@@ -59,6 +59,7 @@ import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.haptics
 import hu.padlas.core.design.theme.Ink
+import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.Space
 
 /** The "Tárhely" tab: a WizTree-style map of the whole shared storage and what to do about it. */
@@ -71,7 +72,6 @@ fun StorageRoute(modifier: Modifier = Modifier, contentPadding: PaddingValues = 
         largeHeader = true,
         modifier = modifier
             .fillMaxSize()
-            .background(Ink.Background)
             .statusBarsPadding(),
     )
 }
@@ -86,7 +86,7 @@ fun MapRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Ink.Background)
+            .auroraBackground()
             .systemBarsPadding(),
     ) {
         PadlasTopBar(

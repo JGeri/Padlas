@@ -32,23 +32,26 @@ private val PadlasColorScheme = darkColorScheme(
     onError = Ink.Text,
     background = Ink.Background,
     onBackground = Ink.Text,
-    surface = Ink.Surface,
+    surface = Ink.SurfaceSolid,
     onSurface = Ink.Text,
-    surfaceVariant = Ink.SurfaceHigh,
+    surfaceVariant = Ink.SurfaceSolidHigh,
     onSurfaceVariant = Ink.TextSecondary,
-    surfaceContainer = Ink.Surface,
-    surfaceContainerHigh = Ink.SurfaceHigh,
-    surfaceContainerHighest = Ink.SurfaceHighest,
-    surfaceContainerLow = Ink.Surface,
+    surfaceContainer = Ink.SurfaceSolid,
+    surfaceContainerHigh = Ink.SurfaceSolidHigh,
+    surfaceContainerHighest = Ink.SurfaceSolidHigh,
+    surfaceContainerLow = Ink.SurfaceSolid,
     surfaceContainerLowest = Ink.Background,
     outline = Ink.HairlineStrong,
     outlineVariant = Ink.Hairline,
     scrim = Ink.Scrim,
 )
 
-/** Dark only: a photo app is read with the pictures as the light source. */
+/**
+ * Dark only: a photo app is read with the pictures as the light source. [liveBackground]
+ * lets the aurora drift; off, it holds still (and costs nothing per frame).
+ */
 @Composable
-fun PadlasTheme(content: @Composable () -> Unit) {
+fun PadlasTheme(liveBackground: Boolean = true, content: @Composable () -> Unit) {
     val context = LocalContext.current
     val type = remember { PadlasTypography() }
     val haptics = rememberPadlasHaptics()
@@ -58,7 +61,10 @@ fun PadlasTheme(content: @Composable () -> Unit) {
         }.getOrDefault(false)
     }
 
+    val aurora = rememberAuroraPhase(liveBackground && !reducedMotion)
+
     CompositionLocalProvider(
+        LocalAuroraPhase provides aurora,
         LocalPadlasType provides type,
         LocalHaptics provides haptics,
         LocalReducedMotion provides reducedMotion,

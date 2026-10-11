@@ -69,11 +69,11 @@ class SquircleShape(private val radius: Dp, private val n: Float = 4.2f) : Shape
 
 object Radius {
     val chip = 999.dp
-    val small = 10.dp
-    val tile = 14.dp
-    val card = 22.dp
-    val sheet = 28.dp
-    val hero = 32.dp
+    val small = 12.dp
+    val tile = 16.dp
+    val card = 26.dp
+    val sheet = 30.dp
+    val hero = 34.dp
 }
 
 object Shapes {

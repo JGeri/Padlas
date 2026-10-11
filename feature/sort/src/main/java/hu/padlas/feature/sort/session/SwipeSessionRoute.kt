@@ -66,6 +66,7 @@ import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.theme.Ink
+import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
@@ -118,7 +119,7 @@ fun SwipeSessionRoute(
     var confirmDelete by remember { mutableStateOf(false) }
     var zoom by remember { mutableStateOf<Uri?>(null) }
 
-    Box(modifier = modifier.fillMaxSize().background(Ink.Background)) {
+    Box(modifier = modifier.fillMaxSize().auroraBackground()) {
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
             SessionTopBar(
                 state = state,

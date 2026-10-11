@@ -32,6 +32,7 @@ import hu.padlas.core.design.component.StatTile
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.motionSpec
 import hu.padlas.core.design.theme.Ink
+import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
 
@@ -45,7 +46,7 @@ internal fun IndexScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Ink.Background)
+            .auroraBackground()
             .systemBarsPadding()
             .padding(horizontal = Space.page),
     ) {

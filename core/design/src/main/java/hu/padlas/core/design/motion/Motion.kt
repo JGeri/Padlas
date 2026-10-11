@@ -9,9 +9,8 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.compositionLocalOf
 
 /**
- * Springs, never tweens. FastOutSlowIn is the system default and looks exactly like it;
- * a spring is what gives an element the sense of mass. The numbers below are the whole
- * motion vocabulary of the app - nothing outside this object invents its own.
+ * Springs, never tweens: a spring is what gives an element the sense of mass. The numbers
+ * below are the motion vocabulary of the app.
  */
 object Motion {
 
@@ -26,6 +25,12 @@ object Motion {
 
     /** Rejection and undo: it comes back, it does not reappear. */
     fun <T> snapback(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.55f, stiffness = 600f)
+
+    /** Playful overshoot for things that pop in: badges, counters, stamps. */
+    fun <T> bouncy(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.5f, stiffness = 500f)
+
+    /** Cards coming to rest after a drag: a little wobble, then still. */
+    fun <T> rest(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.62f, stiffness = 420f)
 
     /** Slow and confident: the meter draining. */
     fun <T> drain(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.90f, stiffness = 90f)

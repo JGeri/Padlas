@@ -26,7 +26,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
@@ -92,7 +94,7 @@ fun StorageGauge(
             val gapDegrees = (stroke * 0.9f) / radius * (180f / PI.toFloat())
 
             drawArc(
-                color = Ink.SurfaceHighest,
+                color = Ink.SurfaceHigh,
                 startAngle = StartAngle,
                 sweepAngle = TotalSweep,
                 useCenter = false,
@@ -104,10 +106,23 @@ fun StorageGauge(
             sweeps.forEachIndexed { index, arc ->
                 val value = arc.value
                 if (value > 0.5f) {
+                    val color = segments.getOrNull(index)?.color ?: Spectrum[index % Spectrum.size]
+                    val start = angle + gapDegrees / 2f
+                    val sweep = (value - gapDegrees).coerceAtLeast(0.01f)
+                    // A wide, faint pass first: the segment glows instead of being painted on.
                     drawArc(
-                        color = segments.getOrNull(index)?.color ?: Spectrum[index % Spectrum.size],
-                        startAngle = angle + gapDegrees / 2f,
-                        sweepAngle = (value - gapDegrees).coerceAtLeast(0.01f),
+                        color = color.copy(alpha = 0.22f),
+                        startAngle = start,
+                        sweepAngle = sweep,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = arcSize,
+                        style = Stroke(stroke * 2.1f, cap = StrokeCap.Round),
+                    )
+                    drawArc(
+                        brush = Brush.linearGradient(listOf(lerp(color, Color.White, 0.25f), color)),
+                        startAngle = start,
+                        sweepAngle = sweep,
                         useCenter = false,
                         topLeft = topLeft,
                         size = arcSize,

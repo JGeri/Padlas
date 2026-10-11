@@ -51,6 +51,7 @@ import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.motion.haptics
 import hu.padlas.core.design.theme.Ink
+import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
 import kotlinx.coroutines.delay
@@ -135,7 +136,7 @@ private fun DiscardScreen(
     val hasContent = !state.loading && state.groups.isNotEmpty()
     val navBottom = navigationBarBottom()
 
-    Box(modifier = modifier.fillMaxSize().background(Ink.Background)) {
+    Box(modifier = modifier.fillMaxSize().auroraBackground()) {
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             PadlasTopBar(
                 title = "Eldobható képek",
