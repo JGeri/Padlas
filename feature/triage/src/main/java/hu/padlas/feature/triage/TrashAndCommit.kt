@@ -1,21 +1,32 @@
 package hu.padlas.feature.triage
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Checklist
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import hu.padlas.core.common.format.Format
-import hu.padlas.core.design.component.HoldToConfirm
-import hu.padlas.core.design.component.NumericText
+import hu.padlas.core.design.component.ButtonStyle
+import hu.padlas.core.design.component.IconBubble
+import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasCard
-import hu.padlas.core.design.component.SectionLabel
-import hu.padlas.core.design.component.raisedSurface
+import hu.padlas.core.design.component.SectionHeader
+import hu.padlas.core.design.component.hairlineBottom
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
@@ -33,23 +44,32 @@ internal fun TrashSection(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(top = Space.xxl)) {
-        SectionLabel(text = "Kuka")
-        PadlasCard(modifier = Modifier.fillMaxWidth().padding(top = Space.s)) {
-            Column(verticalArrangement = Arrangement.spacedBy(Space.l)) {
+        SectionHeader(title = "Ahol még foglalt a hely")
+        PadlasCard(modifier = Modifier.fillMaxWidth().padding(top = Space.m), contentPadding = 0.dp) {
+            Column {
                 TrashRow(
+                    icon = Icons.Rounded.DeleteOutline,
+                    tint = Ink.Info,
                     title = "Rendszerkuka",
-                    detail = "30 nap múlva ürül magától. A hely addig foglalt.",
+                    detail = "30 nap után magától ürül, addig foglalja a helyet.",
                     bytes = trash.systemBytes,
+                    divider = true,
                 )
                 TrashRow(
+                    icon = Icons.Rounded.PhotoLibrary,
+                    tint = Ink.Accent,
                     title = "Galéria kukája",
-                    detail = "Külön kuka, külön kell üríteni. A hely foglalt.",
+                    detail = "Külön kuka, a Galéria appban kell üríteni.",
                     bytes = trash.galleryBytes,
+                    divider = true,
                 )
                 TrashRow(
-                    title = "Függő köteg",
-                    detail = "${Format.count(pendingCount)} fájl kijelölve, még egyik sem törlődött. A hely foglalt.",
+                    icon = Icons.Rounded.Checklist,
+                    tint = Ink.Danger,
+                    title = "Kijelölve, még nem törölve",
+                    detail = "${Format.count(pendingCount)} fájl. A törlés gomb megnyomásáig a helyén marad.",
                     bytes = pendingBytes,
+                    divider = false,
                 )
             }
         }
@@ -57,28 +77,41 @@ internal fun TrashSection(
 }
 
 @Composable
-private fun TrashRow(title: String, detail: String, bytes: Long) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(text = title, style = PadlasTheme.type.body, color = Ink.Text)
-            NumericText(text = Format.bytes(bytes), color = Ink.Accent)
+private fun TrashRow(
+    icon: ImageVector,
+    tint: Color,
+    title: String,
+    detail: String,
+    bytes: Long,
+    divider: Boolean,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (divider) Modifier.hairlineBottom() else Modifier)
+            .padding(horizontal = Space.l, vertical = Space.m),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconBubble(icon = icon, tint = tint, size = 36.dp, iconSize = 18.dp)
+        Spacer(Modifier.width(Space.m))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = PadlasTheme.type.bodyStrong,
+                color = Ink.Text,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(text = detail, style = PadlasTheme.type.caption, color = Ink.TextSecondary)
         }
-        Text(
-            text = detail,
-            style = PadlasTheme.type.micro,
-            color = Ink.TextTertiary,
-            modifier = Modifier.padding(top = Space.xs),
-        )
+        Spacer(Modifier.width(Space.s))
+        Text(text = Format.bytes(bytes), style = PadlasTheme.type.numeric, color = Ink.Text, maxLines = 1)
     }
 }
 
 /**
- * Spec 6.6 ⑥: the label carries the count, never a verb, and the copy names the
- * irreversibility before the finger goes down.
+ * Spec 6.6 ⑥: the copy names the irreversibility before the finger goes down; the system
+ * dialog that follows is the one batched confirmation (INV-3).
  */
 @Composable
 internal fun CommitBar(
@@ -88,34 +121,29 @@ internal fun CommitBar(
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .raisedSurface(background = Ink.SurfaceHigh)
-            .padding(horizontal = Space.l, vertical = Space.m),
-        verticalArrangement = Arrangement.spacedBy(Space.s),
-    ) {
+    Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = if (count == 0) {
-                "Mindent megtartasz. Nincs mit törölni."
+                "Mindent megtartasz, nincs mit törölni."
             } else {
-                "${Format.count(count)} fájl végleges törlése. Nem vonható vissza."
+                "Véglegesen törlődnek. A telefon még egyszer rákérdez."
             },
-            style = PadlasTheme.type.body,
-            color = Ink.Text,
+            style = PadlasTheme.type.caption,
+            color = Ink.TextSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(bottom = Space.s),
         )
-        if (count > 0) {
-            NumericText(text = "${Format.bytes(bytes)} szabadul fel", color = Ink.TextSecondary)
-        }
-        HoldToConfirm(
-            label = "${Format.count(count)} fájl",
-            onConfirm = onConfirm,
+        PadlasButton(
+            text = if (count == 0) {
+                "Nincs kijelölt fájl"
+            } else {
+                "${Format.count(count)} fájl törlése · ${Format.bytes(bytes)}"
+            },
+            onClick = onConfirm,
             enabled = count > 0 && !busy,
-            holdMillis = HOLD_MS,
-            modifier = Modifier.fillMaxWidth().padding(top = Space.xs),
+            icon = Icons.Rounded.Delete,
+            style = ButtonStyle.Destructive,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
-
-private const val HOLD_MS = 2_000
-internal val CommitBarInset = 180.dp

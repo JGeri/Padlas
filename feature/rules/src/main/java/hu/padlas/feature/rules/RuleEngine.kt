@@ -2,6 +2,7 @@ package hu.padlas.feature.rules
 
 import androidx.sqlite.db.SimpleSQLiteQuery
 import hu.padlas.core.common.di.IoDispatcher
+import hu.padlas.core.common.format.Format
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.dao.RuleDao
@@ -101,7 +102,7 @@ class RuleEngine @Inject constructor(
                         },
                     )
                     assetDao.setState(ids, AssetState.UPLOADING)
-                    "${ids.size} elem sorba állt a padlásra."
+                    "${Format.count(ids.size)} fájl vár feltöltésre a felhőbe."
                 }
 
                 RuleAction.TRASH -> {
@@ -109,16 +110,16 @@ class RuleEngine @Inject constructor(
                     // so automation stages the batch and the Kidobo screen finishes it.
                     // Pretending otherwise would make the trash counter lie (INV-1b, INV-2).
                     assetDao.defer(ids, now)
-                    "${ids.size} elem megerősítésre vár a Kidobóban."
+                    "${Format.count(ids.size)} fájl vár jóváhagyásra az Eldobható képek között."
                 }
 
                 RuleAction.PROTECT -> {
                     assetDao.setProtected(ids, true)
-                    "${ids.size} elem védetté vált."
+                    "${Format.count(ids.size)} fájl védett lett."
                 }
 
                 RuleAction.TRANSCODE -> {
-                    "${ids.size} videó várakozik tömörítésre."
+                    "${Format.count(ids.size)} videó vár tömörítésre."
                 }
             }
 

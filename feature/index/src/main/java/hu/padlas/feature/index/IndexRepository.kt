@@ -197,7 +197,7 @@ class IndexRepository @Inject constructor(
         const val ALREADY_RUNNING = "A beolvasás már fut."
         const val SCAN_FAILED = "A beolvasás megszakadt."
         const val NOTE_FULL = "Teljes beolvasás"
-        const val NOTE_INCREMENTAL = "Növekményes beolvasás"
+        const val NOTE_INCREMENTAL = "Új és módosult fájlok"
         const val NOTE_RECONCILED = "Eltűnt fájlok egyeztetése"
 
         const val JSON_SCANNED = "\"scanned\":"

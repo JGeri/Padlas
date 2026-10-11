@@ -54,10 +54,11 @@ internal class DiscardViewModel @Inject constructor(
 
     private var pending: PendingDelete? = null
 
-    private val groups: StateFlow<List<TriageGroup>> =
+    /** Null until the first load lands, so the screen never flashes its empty state. */
+    private val groups: StateFlow<List<TriageGroup>?> =
         combine(assetDao.observeByShotKind(), reload) { aggregates, _ -> aggregates }
-            .mapLatest { aggregates -> loadGroups(aggregates) }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), emptyList())
+            .mapLatest<List<ShotKindAggregate>, List<TriageGroup>?> { aggregates -> loadGroups(aggregates) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), null)
 
     private val trash: Flow<TrashState> = reload.map {
         TrashState(
@@ -69,8 +70,8 @@ internal class DiscardViewModel @Inject constructor(
     val state: StateFlow<DiscardUiState> =
         combine(groups, trash, committing, falling, message) { loaded, bins, busy, leaving, note ->
             DiscardUiState(
-                loading = false,
-                groups = loaded,
+                loading = loaded == null,
+                groups = loaded.orEmpty(),
                 trash = bins,
                 committing = busy,
                 falling = leaving,
@@ -79,7 +80,7 @@ internal class DiscardViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), DiscardUiState())
 
     val selection: StateFlow<DiscardSelection> =
-        combine(groups, kept) { loaded, keepers -> tally(loaded, keepers) }
+        combine(groups, kept) { loaded, keepers -> tally(loaded.orEmpty(), keepers) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), DiscardSelection())
 
     fun toggleKeep(id: Long) {
@@ -87,12 +88,12 @@ internal class DiscardViewModel @Inject constructor(
     }
 
     fun keepAll(key: String) {
-        val ids = groups.value.firstOrNull { it.key == key }?.items?.map { it.id } ?: return
+        val ids = groups.value.orEmpty().firstOrNull { it.key == key }?.items?.map { it.id } ?: return
         kept.update { it + ids }
     }
 
     fun discardAll(key: String) {
-        val group = groups.value.firstOrNull { it.key == key } ?: return
+        val group = groups.value.orEmpty().firstOrNull { it.key == key } ?: return
         val ids = group.items.filterNot { it.locked }.map { it.id }.toSet()
         kept.update { it - ids }
     }
@@ -136,7 +137,7 @@ internal class DiscardViewModel @Inject constructor(
         pending = null
         if (!confirmed || batch == null) {
             committing.value = false
-            message.value = if (batch != null) "A törlés elmaradt. Semmi nem változott." else null
+            message.value = if (batch != null) "Nem töröltünk semmit." else null
             return
         }
         viewModelScope.launch {
@@ -154,7 +155,7 @@ internal class DiscardViewModel @Inject constructor(
 
     private fun discardIds(): List<Long> {
         val keptNow = kept.value
-        return groups.value.flatMap { group ->
+        return groups.value.orEmpty().flatMap { group ->
             group.items.filter { !it.locked && it.id !in keptNow }.map { it.id }
         }
     }

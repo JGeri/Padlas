@@ -31,7 +31,6 @@ data class VideoUiState(
 ) {
     val running: Boolean get() = run.running
 
-
     val pendingRemovalBytes: Long
         get() = videos.filter { it.assetId in pendingRemovalIds }.sumOf { it.originalBytes }
 }

@@ -25,6 +25,10 @@ internal object TranscodeMath {
     fun savedBytes(originalBytes: Long, resultBytes: Long): Long =
         (originalBytes - resultBytes).coerceAtLeast(0L)
 
+    /** What the list promises before encoding: the target ratio, never the clamped edge cases. */
+    fun estimatedSavingBytes(originalBytes: Long): Long =
+        (originalBytes * (1f - TARGET_RATIO)).toLong().coerceAtLeast(0L)
+
     /** 1.0 = nothing gained, 0.4 = the card shrinks to 40% of its height. */
     fun shrinkRatio(originalBytes: Long, resultBytes: Long): Float {
         if (originalBytes <= 0L || resultBytes <= 0L) return 1f
