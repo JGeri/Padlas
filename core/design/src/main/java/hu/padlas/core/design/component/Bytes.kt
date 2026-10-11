@@ -20,7 +20,8 @@ internal fun bytesValue(value: Long): String {
         unit++
     }
     val decimals = if (unit == 0 || bytes >= 100) 0 else 1
-    val text = String.format(HU, "%,.${decimals}f", bytes).replace(' ', GROUP)
+    // The JDK emits U+00A0 or a plain space as the Hungarian group, depending on its CLDR.
+    val text = String.format(HU, "%,.${decimals}f", bytes).replace(' ', GROUP).replace('\u00A0', GROUP)
     return if (value < 0) "-$text" else text
 }
 
