@@ -9,15 +9,22 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.toSize
 import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
@@ -51,11 +58,33 @@ internal fun rememberAuroraPhase(live: Boolean): State<Float> {
  * draw phase reads the clock, so a moving background never recomposes anything, and the
  * lights get a layer of their own above and below: a tick repaints the gradients and
  * nothing else, while the screen on top keeps its recorded drawing.
+ *
+ * The lights are nothing but soft gradients, so they are painted at a sixth of the
+ * screen's resolution and stretched: the GPU samples one small texture instead of
+ * blending four full-screen fills, and the difference cannot be seen.
  */
 fun Modifier.auroraBackground(intensity: Float = 1f): Modifier = composed {
     val phase = LocalAuroraPhase.current
     graphicsLayer {}
-        .drawBehind { drawAurora(phase.value, intensity) }
+        .drawWithCache {
+            val small = IntSize(
+                (size.width / AuroraDownscale).roundToInt().coerceAtLeast(1),
+                (size.height / AuroraDownscale).roundToInt().coerceAtLeast(1),
+            )
+            val full = IntSize(size.width.roundToInt(), size.height.roundToInt())
+            val bitmap = ImageBitmap(small.width, small.height)
+            val canvas = Canvas(bitmap)
+            val painter = CanvasDrawScope()
+            var painted = Float.NaN
+            onDrawBehind {
+                val p = phase.value
+                if (p != painted) {
+                    painter.draw(this, layoutDirection, canvas, small.toSize()) { drawAurora(p, intensity) }
+                    painted = p
+                }
+                drawImage(bitmap, dstSize = full, filterQuality = FilterQuality.Low)
+            }
+        }
         .graphicsLayer {}
 }
 
@@ -85,3 +114,4 @@ private fun DrawScope.blob(center: Offset, radius: Float, color: Color, alpha: F
 
 private const val AuroraPeriodMs = 28_000
 private const val AuroraTickMs = 24L
+private const val AuroraDownscale = 6f

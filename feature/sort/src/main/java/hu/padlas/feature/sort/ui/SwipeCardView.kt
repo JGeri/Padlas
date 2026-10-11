@@ -24,9 +24,9 @@ import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
@@ -40,6 +40,9 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.transformations
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.database.entity.SwipeChoice
 import hu.padlas.core.design.component.PadlasIconButton
@@ -108,14 +111,15 @@ internal fun SwipeCardView(
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
+                val context = LocalPlatformContext.current
                 AsyncImage(
-                    model = MediaThumb(card.uri, 256),
+                    model = remember(card.uri) {
+                        ImageRequest.Builder(context).data(MediaThumb(card.uri, 128)).transformations(SoftBlur).build()
+                    },
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blur(56.dp)
-                        .graphicsLayer { alpha = 0.7f },
+                    alpha = 0.7f,
+                    modifier = Modifier.fillMaxSize(),
                 )
                 Box(Modifier.fillMaxSize().background(Ink.Background.copy(alpha = 0.45f)))
                 AsyncImage(
@@ -256,14 +260,17 @@ private fun Badges(card: SwipeCard, modifier: Modifier = Modifier) {
     }
 }
 
-/** A pane of glass at the foot of the card: when and where, never more than two lines. */
+/**
+ * A pane of glass at the foot of the card: when and where, never more than two lines. Dark
+ * enough to stay readable over a white screenshot, which is half of what people swipe.
+ */
 @Composable
 private fun Caption(card: SwipeCard, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(12.dp)
-            .glass(Shapes.card, Ink.SurfaceSolid.copy(alpha = 0.58f), Ink.HairlineStrong)
+            .glass(Shapes.card, Ink.SurfaceSolid.copy(alpha = 0.82f), Ink.HairlineStrong)
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Text(

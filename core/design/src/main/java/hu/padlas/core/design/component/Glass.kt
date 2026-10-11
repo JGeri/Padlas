@@ -80,9 +80,9 @@ fun DrawScope.drawGlow(shape: Shape, color: Color, radiusPx: Float, alpha: Float
         this.color = color.copy(alpha = alpha.coerceIn(0f, 1f)).toArgb()
         maskFilter = BlurMaskFilter(radiusPx, BlurMaskFilter.Blur.NORMAL)
     }
-    // Under this much blur a squircle and a rounded rectangle cast the same light, and a
-    // blurred rounded rectangle is one the GPU draws analytically; a blurred path is a
-    // mask rasterised again on every frame something else on screen moves.
+    // A blurred rounded rectangle is one the GPU draws analytically; a blurred path is a
+    // mask rasterised again on every frame something else on screen moves. Under this much
+    // blur any other outline casts the same light as its rounded bounds.
     val outline = shape.createOutline(size, layoutDirection, this)
     val bounds = outline.bounds
     val corner = when (outline) {

@@ -159,7 +159,7 @@ categories in `CategoryColor` / `Spectrum`.
 Type (`PadlasTheme.type`): Sora for `display`, `displaySmall`, `headline`, `title`,
 `numericLarge`; Manrope for `body`, `bodyStrong`, `label`, `caption`, `micro`, `numeric`
 (tabular figures). Both are bundled variable fonts. Spacing `theme.Space` (`page` = 20dp),
-shapes `theme.Shapes` (squircles: `tile`, `card`, `sheet`, `hero`; `pill`, `small`).
+shapes `theme.Shapes` (`tile`, `card`, `sheet`, `hero`, `pill`, `small`; all circular corners: path-shaped clips are rasterised every frame, so no custom outlines on anything that clips).
 
 Surfaces: `Modifier.glass(shape, fill, rim)` (translucent fill, lit rim) and
 `Modifier.frosted(hazeState)` (Haze 1.6 backdrop blur) for anything that floats over moving
