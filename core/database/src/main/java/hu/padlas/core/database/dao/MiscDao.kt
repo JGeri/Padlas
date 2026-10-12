@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
 import hu.padlas.core.database.entity.AssetSearchEntity
+import hu.padlas.core.database.entity.AuditAction
 import hu.padlas.core.database.entity.AuditEntry
 import hu.padlas.core.database.entity.BucketSnapshotEntity
 import hu.padlas.core.database.entity.CardEntity
@@ -75,6 +76,13 @@ interface AuditDao {
 
     @Query("DELETE FROM audit_entry WHERE timestamp < :before")
     suspend fun prune(before: Long)
+
+    @Query("SELECT * FROM audit_entry WHERE action = :action ORDER BY timestamp DESC LIMIT 1")
+    suspend fun latest(action: AuditAction): AuditEntry?
+
+    /** Moves an entry to [timestamp]: a check that found what the last one did, done again. */
+    @Query("UPDATE audit_entry SET timestamp = :timestamp WHERE id = :id")
+    suspend fun touch(id: Long, timestamp: Long)
 }
 
 @Dao

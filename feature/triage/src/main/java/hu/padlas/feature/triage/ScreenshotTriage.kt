@@ -13,6 +13,7 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import dagger.hilt.android.qualifiers.ApplicationContext
 import hu.padlas.core.common.di.IoDispatcher
+import hu.padlas.core.common.format.Format
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.dao.SearchDao
@@ -22,6 +23,7 @@ import hu.padlas.core.database.entity.AuditAction
 import hu.padlas.core.database.entity.AuditEntry
 import hu.padlas.core.database.entity.ShotKind
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -67,29 +69,37 @@ class ScreenshotTriage @Inject constructor(
         onProgress: suspend (done: Int, budget: Int) -> Unit = { _, _ -> },
     ): Int = withContext(io) {
         var done = 0
-        while (done < budget && currentCoroutineContext().isActive) {
-            val batch = assetDao.needingTriage(minOf(BATCH, budget - done))
-            if (batch.isEmpty()) break
-            var bytes = 0L
-            for (asset in batch) {
-                if (!currentCoroutineContext().isActive) break
-                triage(asset)
-                bytes += asset.sizeBytes
-                done++
+        var bytes = 0L
+        try {
+            while (done < budget && currentCoroutineContext().isActive) {
+                val batch = assetDao.needingTriage(minOf(BATCH, budget - done))
+                if (batch.isEmpty()) break
+                for (asset in batch) {
+                    if (!currentCoroutineContext().isActive) break
+                    triage(asset)
+                    bytes += asset.sizeBytes
+                    done++
+                }
+                onProgress(done, budget)
             }
-            // One audit row per batch, not per asset: reading a file is not a state
-            // change, and 25k OCR rows would drown the log the user actually reads.
-            auditDao.insert(
-                AuditEntry(
-                    timestamp = System.currentTimeMillis(),
-                    action = AuditAction.OCR,
-                    assetId = null,
-                    sizeBytes = bytes,
-                    reversible = false,
-                    note = "${batch.size} képernyőkép átnézve",
-                ),
-            )
-            onProgress(done, budget)
+        } finally {
+            // One audit row per pass, not per asset or batch: reading a file is not a state
+            // change, and a row per sixty shots drowned the log the user actually reads. A
+            // cancelled pass still reports what it got through.
+            if (done > 0) {
+                withContext(NonCancellable) {
+                    auditDao.insert(
+                        AuditEntry(
+                            timestamp = System.currentTimeMillis(),
+                            action = AuditAction.OCR,
+                            assetId = null,
+                            sizeBytes = bytes,
+                            reversible = false,
+                            note = "${Format.count(done)} képernyőkép átnézve",
+                        ),
+                    )
+                }
+            }
         }
         done
     }

@@ -43,21 +43,35 @@ class DupWorker @AssistedInject constructor(
             val now = System.currentTimeMillis()
             val grouping = grouper.group(loadCandidates(), now)
             dupDao.replaceAll(grouping.groups, grouping.members)
-            auditDao.insert(
-                AuditEntry(
-                    timestamp = now,
-                    action = AuditAction.HASHED,
-                    assetId = null,
-                    sizeBytes = grouping.reclaimableBytes,
-                    reversible = false,
-                    note = "${grouping.groups.size} csoport, ${grouping.loserCount} felesleges másolat",
-                ),
-            )
+            record(now, grouping.reclaimableBytes, "${grouping.groups.size} csoport, ${grouping.loserCount} felesleges másolat")
             Result.success()
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (failure: Exception) {
             if (runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.failure()
+        }
+    }
+
+    /**
+     * The scan runs every time the app opens. A result that matches the last one moves that
+     * entry to now instead of adding a row, so the log keeps one line per change rather
+     * than one per launch.
+     */
+    private suspend fun record(now: Long, bytes: Long, note: String) {
+        val last = auditDao.latest(AuditAction.HASHED)
+        if (last != null && last.note == note && last.sizeBytes == bytes) {
+            auditDao.touch(last.id, now)
+        } else {
+            auditDao.insert(
+                AuditEntry(
+                    timestamp = now,
+                    action = AuditAction.HASHED,
+                    assetId = null,
+                    sizeBytes = bytes,
+                    reversible = false,
+                    note = note,
+                ),
+            )
         }
     }
 
