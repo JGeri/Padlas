@@ -44,9 +44,6 @@ import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.component.Toast
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.rememberHazeState
-import hu.padlas.core.design.component.frosted
 import hu.padlas.core.design.component.hairlineTop
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.auroraBackground
@@ -167,7 +164,6 @@ fun PendingDeletionsRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val launch = rememberSystemRequest(viewModel::onResult)
     LaunchedEffect(viewModel) { viewModel.requests.collect { launch(it.intentSender) } }
     var confirm by remember { mutableStateOf(false) }
-    val haze = rememberHazeState()
     var preview by remember { mutableStateOf<android.net.Uri?>(null) }
 
     Box(modifier = modifier.fillMaxSize().auroraBackground().systemBarsPadding()) {
@@ -190,7 +186,7 @@ fun PendingDeletionsRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
                 else -> LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 108.dp),
-                    modifier = Modifier.fillMaxSize().hazeSource(haze),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(start = Space.l, end = Space.l, bottom = 120.dp),
                     horizontalArrangement = Arrangement.spacedBy(3.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp),
@@ -223,7 +219,7 @@ fun PendingDeletionsRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .frosted(haze)
+                    .background(BarTint)
                     .hairlineTop(Ink.HairlineStrong)
                     .padding(start = Space.page, end = Space.page, top = Space.xl, bottom = Space.l),
             ) {
@@ -264,3 +260,6 @@ fun PendingDeletionsRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         )
     }
 }
+
+/** The selection bar over the grid: dense enough to read over photos, no blur to pay for. */
+private val BarTint = Ink.SurfaceSolid.copy(alpha = 0.94f)

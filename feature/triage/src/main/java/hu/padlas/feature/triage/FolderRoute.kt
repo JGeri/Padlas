@@ -140,8 +140,8 @@ fun FolderRoute(bucketId: Long, onBack: () -> Unit, modifier: Modifier = Modifie
                     },
                 )
             },
-            overlay = { haze ->
-                PinnedActionBar(visible = hasContent, haze = haze, modifier = Modifier.align(Alignment.BottomCenter)) {
+            overlay = {
+                PinnedActionBar(visible = hasContent, modifier = Modifier.align(Alignment.BottomCenter)) {
                     CommitBar(
                         count = state.discardCount,
                         bytes = state.discardBytes,

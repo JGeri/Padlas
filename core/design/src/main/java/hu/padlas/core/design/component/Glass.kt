@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
@@ -51,13 +53,19 @@ fun Modifier.glass(
         )
     }
 
-/** Real backdrop blur for floating bars and sheets; [state] is the content behind them. */
+/**
+ * Real backdrop blur for floating bars and sheets; [state] is the content behind them. The
+ * content is blurred at a third of its resolution: under this much blur nobody can tell,
+ * and over a scrolling grid of photos it halves what the GPU spends on each frame.
+ */
+@OptIn(ExperimentalHazeApi::class)
 fun Modifier.frosted(state: HazeState, tint: Color = Ink.SurfaceSolid.copy(alpha = 0.62f)): Modifier =
     this.hazeEffect(state = state) {
         backgroundColor = Ink.Background
         tints = listOf(HazeTint(tint))
         blurRadius = 26.dp
         noiseFactor = 0.04f
+        inputScale = HazeInputScale.Fixed(0.33f)
     }
 
 /**

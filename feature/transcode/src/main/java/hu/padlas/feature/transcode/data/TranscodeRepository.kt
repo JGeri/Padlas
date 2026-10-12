@@ -20,10 +20,10 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 @Singleton
@@ -41,11 +41,14 @@ class TranscodeRepository @Inject constructor(
     @IoDispatcher private val io: CoroutineDispatcher,
 ) {
 
-    @OptIn(ExperimentalCoroutinesApi::class)
+    /**
+     * Conflated, not latest-wins: while the indexer writes, the asset table changes every
+     * few milliseconds, and cancelling each read for the next one means none ever finishes.
+     */
     fun observeVideos(limit: Int = LIST_LIMIT): Flow<List<VideoItem>> = combine(
         assetDao.observeTranscodeCandidates(TranscodeMath.MIN_CANDIDATE_BYTES),
         jobDao.observeAll(),
-    ) { _, jobs -> jobs }.mapLatest { jobs -> videos(jobs, limit) }
+    ) { _, jobs -> jobs }.conflate().map { jobs -> videos(jobs, limit) }
 
     fun observeSaved(): Flow<SizeAndCount> = jobDao.observeSaved()
 

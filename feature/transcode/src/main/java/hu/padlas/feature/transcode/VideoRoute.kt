@@ -161,8 +161,8 @@ private fun VideoScreen(
                 },
             )
         },
-        overlay = { haze ->
-            PinnedActionBar(visible = showBar, haze = haze, modifier = Modifier.align(Alignment.BottomCenter)) {
+        overlay = {
+            PinnedActionBar(visible = showBar, modifier = Modifier.align(Alignment.BottomCenter)) {
                 AnimatedContent(
                     targetState = state.running,
                     transitionSpec = {

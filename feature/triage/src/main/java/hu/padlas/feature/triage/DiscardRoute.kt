@@ -180,8 +180,8 @@ private fun DiscardScreen(
                     },
                 )
             },
-            overlay = { haze ->
-                PinnedActionBar(visible = hasContent, haze = haze, modifier = Modifier.align(Alignment.BottomCenter)) {
+            overlay = {
+                PinnedActionBar(visible = hasContent, modifier = Modifier.align(Alignment.BottomCenter)) {
                     CommitBar(
                         count = selection.discardCount,
                         bytes = selection.discardBytes,

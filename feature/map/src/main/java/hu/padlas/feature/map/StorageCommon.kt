@@ -77,7 +77,7 @@ import hu.padlas.core.design.component.IconBubble
 import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.RollingNumber
-import hu.padlas.core.design.component.frostedPane
+import hu.padlas.core.design.component.glassPane
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.finite
@@ -87,7 +87,6 @@ import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
-import dev.chrisbanes.haze.HazeState
 import java.io.File
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
@@ -254,7 +253,7 @@ internal fun Breadcrumbs(crumbs: List<Crumb>, onJump: (String) -> Unit, modifier
 }
 
 /**
- * The detail sheet for whatever is selected on the map or in a list: frosted glass over the
+ * The detail sheet for whatever is selected on the map or in a list: dark glass over the
  * list, with a grabber that means what it shows. Pulled down far enough, it lets go.
  */
 @Composable
@@ -262,7 +261,6 @@ internal fun FocusPanel(
     focus: Focus,
     rootPath: String,
     hint: String?,
-    haze: HazeState,
     onOpen: (StorageItem) -> Unit,
     onDelete: (StorageItem) -> Unit,
     onShowAll: () -> Unit,
@@ -291,7 +289,7 @@ internal fun FocusPanel(
                     }
                 },
             )
-            .frostedPane(haze, Shapes.sheet)
+            .glassPane(Shapes.sheet)
             .padding(start = Space.l, end = Space.l, bottom = Space.l, top = Space.s),
     ) {
         Box(
@@ -468,7 +466,6 @@ private fun DetailStat(label: String, value: String, modifier: Modifier = Modifi
 @Composable
 internal fun SelectionBar(
     selection: SelectionUi,
-    haze: HazeState,
     onDelete: () -> Unit,
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
@@ -483,7 +480,7 @@ internal fun SelectionBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .frostedPane(haze, Shapes.pill)
+            .glassPane(Shapes.pill)
             .padding(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -514,10 +511,10 @@ internal fun SelectionBar(
 }
 
 @Composable
-internal fun BusyPill(text: String, haze: HazeState, modifier: Modifier = Modifier) {
+internal fun BusyPill(text: String, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
-            .frostedPane(haze, Shapes.pill)
+            .glassPane(Shapes.pill)
             .padding(horizontal = Space.l, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

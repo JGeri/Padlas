@@ -200,8 +200,8 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     },
                 )
             },
-            overlay = { haze ->
-                PinnedActionBar(visible = showBar, haze = haze, modifier = Modifier.align(Alignment.BottomCenter)) {
+            overlay = {
+                PinnedActionBar(visible = showBar, modifier = Modifier.align(Alignment.BottomCenter)) {
                     AnimatedContent(
                         targetState = selecting,
                         transitionSpec = {

@@ -1,6 +1,7 @@
 package hu.padlas.feature.sort.ui
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateFloatAsState
@@ -17,6 +18,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -81,6 +83,13 @@ internal fun decide(offset: Offset, velocity: Velocity, width: Float, height: Fl
     if (offset.x > width * HorizontalCommit || (velocity.x > FlingVelocity && offset.x > 0f)) return SwipeAction.KEEP
     if (offset.x < -width * HorizontalCommit || (velocity.x < -FlingVelocity && offset.x < 0f)) return SwipeAction.DELETE
     return null
+}
+
+/** Drops whatever part of the offset has crossed the centre since [from]. */
+private fun Offset.towards(from: Offset?): Offset = if (from == null) {
+    this
+} else {
+    Offset(if (x * from.x < 0f) 0f else x, if (y * from.y < 0f) 0f else y)
 }
 
 internal fun overlayFor(offset: Offset, width: Float, height: Float): SwipeOverlay {
@@ -153,12 +162,24 @@ internal fun SwipeDeck(
             Animatable(if (restoring && undo != null) offscreen(undo.action) else Offset.Zero, Offset.VectorConverter)
         }
 
+        // A card springing back to the centre overshoots it a little; the overshoot must not
+        // light up the opposite fate, so while it settles only the side it came from counts.
+        var settlingFrom by remember(top?.id) { mutableStateOf<Offset?>(null) }
+        suspend fun settle(spec: AnimationSpec<Offset>) {
+            settlingFrom = offset.value
+            try {
+                offset.animateTo(Offset.Zero, spec)
+            } finally {
+                settlingFrom = null
+            }
+        }
+
         LaunchedEffect(undo?.ticket, top?.id) {
             val event = undo ?: return@LaunchedEffect
             if (event.ticket == handledUndo || event.cardId != top?.id) return@LaunchedEffect
             handledUndo = event.ticket
             haptics?.undo()
-            if (reduced) offset.snapTo(Offset.Zero) else offset.animateTo(Offset.Zero, spring(0.75f, Spring.StiffnessMediumLow))
+            if (reduced) offset.snapTo(Offset.Zero) else settle(spring(0.75f, Spring.StiffnessMediumLow))
         }
 
         // One button press throws exactly one card: the effect restarts for the next top.
@@ -214,19 +235,19 @@ internal fun SwipeDeck(
                                     if (action != null) {
                                         commit(card, action, drag, velocity)
                                     } else {
-                                        scope.launch { offset.animateTo(Offset.Zero, spring(0.6f, Spring.StiffnessMedium)) }
+                                        scope.launch { settle(spring(0.6f, Spring.StiffnessMedium)) }
                                     }
                                 },
                                 onDragCancel = {
                                     crossed = null
-                                    scope.launch { offset.animateTo(Offset.Zero, spring(0.6f, Spring.StiffnessMedium)) }
+                                    scope.launch { settle(spring(0.6f, Spring.StiffnessMedium)) }
                                 },
                             )
                         }
                     cardContent(
                         card,
                         true,
-                        { overlayFor(offset.value, width, height) },
+                        { overlayFor(offset.value.towards(settlingFrom), width, height) },
                         Modifier
                             .fillMaxSize()
                             .graphicsLayer {

@@ -340,7 +340,6 @@ internal fun StorageScreen(
                 reduced = reduced,
                 rootPath = viewModel.rootPath,
                 hint = if (view == StorageView.MAP) "Koppints rá még egyszer a térképen, és megnyílik." else null,
-                haze = haze,
                 viewModel = viewModel,
             )
         }
@@ -369,7 +368,6 @@ private fun BottomPanel(
     reduced: Boolean,
     rootPath: String,
     hint: String?,
-    haze: HazeState,
     viewModel: StorageViewModel,
 ) {
     AnimatedContent(
@@ -387,10 +385,9 @@ private fun BottomPanel(
     ) { state ->
         when (state) {
             Panel.None -> Box(Modifier.fillMaxWidth())
-            Panel.Busy -> BusyPill(text = "Törlés folyamatban…", haze = haze)
+            Panel.Busy -> BusyPill(text = "Törlés folyamatban…")
             is Panel.Select -> SelectionBar(
                 selection = state.selection,
-                haze = haze,
                 onDelete = viewModel::requestDeleteSelection,
                 onClear = viewModel::clearSelection,
             )
@@ -398,7 +395,6 @@ private fun BottomPanel(
                 focus = state.focus,
                 rootPath = rootPath,
                 hint = if (state.focus is Focus.Item && state.focus.item.isDirectory) hint else null,
-                haze = haze,
                 onOpen = { viewModel.open(it.path) },
                 onDelete = { viewModel.requestDelete(listOf(it)) },
                 onShowAll = viewModel::showAllInFolder,

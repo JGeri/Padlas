@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -23,15 +25,14 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.rememberHazeState
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.finite
@@ -55,19 +56,19 @@ fun navigationBarBottom(): Dp = WindowInsets.navigationBars.asPaddingValues().ca
 fun topBarClearance(): Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + TopBarHeight
 
 /**
- * The frame every pushed feature screen shares. The aurora and the list are one blur
- * source, so the bars floating over them frost exactly what slides underneath; the top bar
- * only turns to glass once something actually is underneath it.
+ * The frame every pushed feature screen shares: the list over the aurora, with bars of
+ * dark glass floating above it. The top bar only turns to glass once something actually is
+ * underneath it. These screens are dense photo grids, so the bars are tinted, not blurred:
+ * blurring a grid as it scrolls cost the frame budget on its own on a 1440p phone.
  */
 @Composable
 fun GlassScreen(
     scrolled: Boolean,
     topBar: @Composable () -> Unit,
     modifier: Modifier = Modifier,
-    overlay: @Composable BoxScope.(HazeState) -> Unit = {},
+    overlay: @Composable BoxScope.() -> Unit = {},
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val haze = rememberHazeState()
     val glass by animateFloatAsState(
         targetValue = if (scrolled) 1f else 0f,
         animationSpec = motionSpec(Motion.settle()),
@@ -77,32 +78,45 @@ fun GlassScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(haze)
                 .auroraBackground(),
             content = content,
+        )
+        // The navigation bar is transparent; the list fades out under it instead of running
+        // on behind the buttons.
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(navigationBarBottom() + 24.dp)
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color.Transparent,
+                        0.5f to Ink.Background.copy(alpha = 0.85f),
+                        1f to Ink.Background,
+                    ),
+                ),
         )
         Box(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier
                     .matchParentSize()
                     .graphicsLayer { alpha = glass }
-                    .frosted(haze)
+                    .background(PaneTint)
                     .hairlineBottom(),
             )
             Box(modifier = Modifier.statusBarsPadding()) { topBar() }
         }
-        overlay(haze)
+        overlay()
     }
 }
 
 /**
- * The screen's one primary action, floating over the list on a pane of frosted glass. It
+ * The screen's one primary action, floating over the list on a pane of dark glass. It
  * rises on a spring when there is something to do and sinks away when there is not.
  */
 @Composable
 fun PinnedActionBar(
     visible: Boolean,
-    haze: HazeState,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -118,7 +132,7 @@ fun PinnedActionBar(
                 .navigationBarsPadding()
                 .padding(start = Space.m, end = Space.m, bottom = Space.s)
                 .fillMaxWidth()
-                .frostedPane(haze)
+                .glassPane()
                 .padding(start = Space.l, end = Space.l, top = Space.m, bottom = Space.m),
             verticalArrangement = Arrangement.spacedBy(Space.s),
             content = content,
@@ -126,7 +140,8 @@ fun PinnedActionBar(
     }
 }
 
-/** A floating pane of glass: the list behind it blurred, then the lit rim on top. */
-fun Modifier.frostedPane(haze: HazeState, shape: Shape = Shapes.sheet): Modifier = this
-    .glass(shape, Color.Transparent, Ink.HairlineStrong)
-    .frosted(haze)
+/** A floating pane of dark glass with the lit rim on top, dense enough to read over photos. */
+fun Modifier.glassPane(shape: Shape = Shapes.sheet): Modifier = this
+    .glass(shape, PaneTint, Ink.HairlineStrong)
+
+private val PaneTint = Ink.SurfaceSolid.copy(alpha = 0.9f)

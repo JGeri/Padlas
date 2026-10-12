@@ -132,8 +132,8 @@ internal fun DedupScreen(
                     },
                 )
             },
-            overlay = { haze ->
-                PinnedActionBar(visible = showBar, haze = haze, modifier = Modifier.align(Alignment.BottomCenter)) {
+            overlay = {
+                PinnedActionBar(visible = showBar, modifier = Modifier.align(Alignment.BottomCenter)) {
                     BarFigures(
                         count = Format.count(state.loserCount),
                         noun = DedupCopy.BAR_NOUN,

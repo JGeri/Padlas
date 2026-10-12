@@ -21,8 +21,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -57,10 +57,15 @@ internal class DiscardViewModel @Inject constructor(
 
     private var pending: PendingDelete? = null
 
-    /** Null until the first load lands, so the screen never flashes its empty state. */
+    /**
+     * Null until the first load lands, so the screen never flashes its empty state.
+     * Conflated, not latest-wins: while the classifier writes, the aggregates change every
+     * few milliseconds, and cancelling each load for the next one means none ever lands.
+     */
     private val groups: StateFlow<List<TriageGroup>?> =
         combine(assetDao.observeByShotKind(), reload) { aggregates, _ -> aggregates }
-            .mapLatest<List<ShotKindAggregate>, List<TriageGroup>?> { aggregates ->
+            .conflate()
+            .map<List<ShotKindAggregate>, List<TriageGroup>?> { aggregates ->
                 loadGroups(aggregates).also(::keepUnrecognised)
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), null)

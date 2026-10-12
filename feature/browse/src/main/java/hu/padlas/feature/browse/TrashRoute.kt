@@ -66,9 +66,6 @@ import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.component.Toast
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.rememberHazeState
-import hu.padlas.core.design.component.frosted
 import hu.padlas.core.design.component.hairlineTop
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.auroraBackground
@@ -241,7 +238,6 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         viewModel.requests.collect { launcher.launch(IntentSenderRequest.Builder(it).build()) }
     }
     var confirm by remember { mutableStateOf<(() -> Unit)?>(null) }
-    val haze = rememberHazeState()
     var confirmText by remember { mutableStateOf("") }
     val guarded: (String, () -> Unit) -> Unit = { text, action ->
         if (viewModel.skipsSystemDialog()) {
@@ -287,7 +283,7 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     contentPadding = PaddingValues(start = Space.l, end = Space.l, bottom = 140.dp),
                     horizontalArrangement = Arrangement.spacedBy(3.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp),
-                    modifier = Modifier.fillMaxSize().hazeSource(haze),
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     item(span = { GridItemSpan(maxLineSpan) }, key = "hero") {
                         Column(Modifier.padding(bottom = Space.m), verticalArrangement = Arrangement.spacedBy(Space.m)) {
@@ -338,7 +334,7 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .frosted(haze)
+                    .background(BarTint)
                     .hairlineTop(Ink.HairlineStrong)
                     .padding(start = Space.page, end = Space.page, top = Space.xl, bottom = Space.l),
             ) {
@@ -448,3 +444,6 @@ private fun daysLeft(expiresAt: Long): String? {
 }
 
 private const val DAY_MS = 24L * 60 * 60 * 1000
+
+/** The selection bar over the grid: dense enough to read over photos, no blur to pay for. */
+private val BarTint = Ink.SurfaceSolid.copy(alpha = 0.94f)
