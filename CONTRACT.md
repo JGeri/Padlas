@@ -145,7 +145,7 @@ class OneDriveGuard @Inject constructor(...) {   // spec 4.1
 
 **Aurora**: a near-black ground (`Ink.Background`) with three slow lights drifting behind
 it (`Modifier.auroraBackground()`, one shared clock in `LocalAuroraPhase`, switchable in the
-settings) and frosted glass on top. Pushed screens paint `auroraBackground()` on their root;
+settings) and glass on top. Pushed screens paint `auroraBackground()` on their root;
 tab roots stay transparent because the shell paints it once.
 
 Colours (`theme.Ink`): glass steps `Surface` / `SurfaceHigh` / `SurfaceHighest` (translucent
@@ -161,9 +161,11 @@ Type (`PadlasTheme.type`): Sora for `display`, `displaySmall`, `headline`, `titl
 (tabular figures). Both are bundled variable fonts. Spacing `theme.Space` (`page` = 20dp),
 shapes `theme.Shapes` (`tile`, `card`, `sheet`, `hero`, `pill`, `small`; all circular corners: path-shaped clips are rasterised every frame, so no custom outlines on anything that clips).
 
-Surfaces: `Modifier.glass(shape, fill, rim)` (translucent fill, lit rim) and
-`Modifier.frosted(hazeState)` (Haze 1.6 backdrop blur) for anything that floats over moving
-content; the content behind gets `Modifier.hazeSource(state)`.
+Surfaces: `Modifier.glass(shape, fill, rim)` (translucent fill, lit rim), `Modifier.glassPane(shape)`
+(dark glass dense enough to read over photos) and `Modifier.frosted(hazeState)` (Haze 1.6
+backdrop blur at a third of the resolution; the content behind gets `Modifier.hazeSource(state)`).
+Blur only small bars over light content (tab bar, swipe start bar, storage switcher): over a
+scrolling photo grid it costs ~10 ms a frame on a 1440p phone, so grids get `glassPane`.
 
 Components (`component.*`): `PadlasTopBar`, `LargeHeader`, `PadlasButton` (`ButtonStyle`:
 `Primary` gradient with glow, `Destructive` red gradient with glow, `Secondary` glass, …;
@@ -175,9 +177,9 @@ Components (`component.*`): `PadlasTopBar`, `LargeHeader`, `PadlasButton` (`Butt
 `SelectionMark`, `GhostTile`, `HoldToConfirm`, `Toast`, `ConfirmDialog`, `StatTile`,
 `StaggeredColumnItem`, `Modifier.raisedSurface`, `Modifier.hairlineTop/Bottom`.
 
-Pushed-screen chrome (`component.*`): `GlassScreen` (aurora + list as one blur source under a
-top bar that frosts once scrolled; `overlay` gets the `HazeState`), `PinnedActionBar` (the
-floating frosted primary action), `Modifier.frostedPane`, `topBarClearance()`,
+Pushed-screen chrome (`component.*`): `GlassScreen` (aurora + list under a top bar that turns
+to dark glass once scrolled, the list fading out under the navigation bar), `PinnedActionBar`
+(the floating primary action on a `glassPane`), `topBarClearance()`,
 `navigationBarBottom()`, `PinnedBarClearance`, and the figures `ReclaimHero`, `BigBytes`,
 `BarFigures`, which take strings already formatted through `Format`. `ZoomHost` /
 `ZoomableImage` / `rememberZoomState()` grow a grid tile in place into a full-screen picture
