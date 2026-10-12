@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.StrokeCap
@@ -229,6 +229,9 @@ private fun DrawnCheck() {
                 scaleX = 0.6f + 0.4f * ring.value
                 scaleY = 0.6f + 0.4f * ring.value
                 alpha = ring.value.coerceIn(0f, 1f)
+                // Fading through an offscreen buffer would cut the glow off at the bubble's
+                // square bounds; applying alpha per draw keeps it round.
+                compositingStrategy = CompositingStrategy.ModulateAlpha
             }
             .glow(Ink.Success, 34.dp, Shapes.pill, 0.38f)
             .glass(Shapes.pill, Ink.SuccessSoft, Ink.Success.copy(alpha = 0.55f)),
