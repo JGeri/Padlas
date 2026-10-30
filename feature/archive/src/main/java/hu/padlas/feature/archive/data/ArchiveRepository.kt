@@ -55,7 +55,8 @@ class ArchiveRepository @Inject constructor(
     val progress: StateFlow<UploadProgress> = _progress.asStateFlow()
 
     suspend fun enqueue(assetIds: List<Long>) = withContext(io) {
-        val assets = assetDao.byIds(assetIds).filter { it.state == AssetState.LOCAL || it.state == AssetState.PROTECTED }
+        val assets = assetIds.chunked(SQLITE_ARGUMENT_LIMIT).flatMap { assetDao.byIds(it) }
+            .filter { it.state == AssetState.LOCAL || it.state == AssetState.PROTECTED }
         if (assets.isEmpty()) return@withContext
         uploadJobDao.upsertAll(
             assets.map { asset ->
@@ -67,7 +68,7 @@ class ArchiveRepository @Inject constructor(
                 )
             },
         )
-        assetDao.setState(assets.map { it.mediaStoreId }, AssetState.UPLOADING)
+        assets.map { it.mediaStoreId }.chunked(SQLITE_ARGUMENT_LIMIT).forEach { assetDao.setState(it, AssetState.UPLOADING) }
     }
 
     /** Runs the queue until it is empty or the coroutine is cancelled. */

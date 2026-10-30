@@ -73,7 +73,9 @@ class VideoViewModel @Inject constructor(
 
     fun startBatch() {
         viewModelScope.launch {
-            repository.enqueueAll()
+            // The worker queues candidates itself as well; a failed write here only means it
+            // starts from its own list.
+            outcomeOf { repository.enqueueAll() }
             TranscodeScheduler.enqueueBatch(context)
         }
     }
@@ -83,7 +85,7 @@ class VideoViewModel @Inject constructor(
     }
 
     fun retry(assetId: Long) {
-        viewModelScope.launch { repository.retry(assetId) }
+        viewModelScope.launch { outcomeOf { repository.retry(assetId) } }
     }
 
     /**
@@ -116,10 +118,14 @@ class VideoViewModel @Inject constructor(
 
     fun refreshPendingRemovals() {
         viewModelScope.launch {
-            val ids = repository.pendingRemovalIds()
-            val settled = pendingRemovals.value.filterNot { it in ids }
-            if (settled.isNotEmpty()) repository.settleRemovals(settled)
-            pendingRemovals.value = ids
+            // Runs right after the system dialog and on every resume: a rename MediaStore
+            // refuses or a full disk is retried next time, not thrown into the screen.
+            outcomeOf {
+                val ids = repository.pendingRemovalIds()
+                val settled = pendingRemovals.value.filterNot { it in ids }
+                if (settled.isNotEmpty()) repository.settleRemovals(settled)
+                pendingRemovals.value = ids
+            }
         }
     }
 

@@ -121,7 +121,7 @@ internal class DiscardViewModel @Inject constructor(
     fun unlock(ids: List<Long>) {
         if (ids.isEmpty()) return
         viewModelScope.launch {
-            if (outcomeOf { assetDao.setProtected(ids, false) }.isSuccess) {
+            if (outcomeOf { ids.chunked(SQLITE_ARGUMENT_LIMIT).forEach { assetDao.setProtected(it, false) } }.isSuccess) {
                 kept.update { it + ids }
                 reload.update { it + 1 }
             } else {
@@ -279,5 +279,6 @@ internal class DiscardViewModel @Inject constructor(
 
     private companion object {
         const val STOP_TIMEOUT = 5_000L
+        const val SQLITE_ARGUMENT_LIMIT = 900
     }
 }

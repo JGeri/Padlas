@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.common.result.Outcome
+import hu.padlas.core.common.result.outcomeOf
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.UploadJobDao
 import hu.padlas.core.database.entity.Asset
@@ -84,7 +85,7 @@ internal class AtticViewModel @Inject constructor(
     }
 
     fun dismissDesktopNotice() {
-        viewModelScope.launch { preferences.markDesktopNoticeRead() }
+        viewModelScope.launch { outcomeOf { preferences.markDesktopNoticeRead() } }
     }
 
     /** Queue rows, then ask the scheduler to run; the route owns the WorkManager call. */
@@ -93,7 +94,12 @@ internal class AtticViewModel @Inject constructor(
         if (ids.isEmpty()) return
         viewModelScope.launch {
             local.update { it.copy(busy = true) }
-            repository.enqueue(ids)
+            if (!outcomeOf { repository.enqueue(ids) }.isSuccess) {
+                local.update {
+                    it.copy(busy = false, message = "A feltöltési sort nem sikerült menteni. Megtelt a tárhely?", messageOk = false)
+                }
+                return@launch
+            }
             selection.value = emptySet()
             local.update {
                 it.copy(busy = false, message = "${Format.count(ids.size)} fájl vár feltöltésre.", messageOk = true)

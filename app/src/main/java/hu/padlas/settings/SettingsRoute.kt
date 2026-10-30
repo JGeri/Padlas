@@ -143,8 +143,11 @@ class SettingsViewModel @Inject constructor(
 
     fun forgetReviewed() {
         viewModelScope.launch {
-            swipeRepository.forgetReviewed()
-            message.value = "Minden elem újra átnézhető"
+            message.value = if (swipeRepository.forgetReviewed()) {
+                "Minden elem újra átnézhető"
+            } else {
+                "Nem sikerült. Megtelt a tárhely?"
+            }
         }
     }
 
