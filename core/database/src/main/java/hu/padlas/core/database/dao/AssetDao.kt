@@ -143,13 +143,17 @@ interface AssetDao {
     )
     fun observeBuckets(): Flow<List<BucketAggregate>>
 
+    /**
+     * strftime gives NULL past the year 9999, which a DATE_TAKEN written in microseconds
+     * reaches; that group is dropped, because a NULL month cannot be read into the row.
+     */
     @Query(
         """
         SELECT strftime('%Y-%m', dateTaken / 1000, 'unixepoch', 'localtime') AS month,
                COUNT(*) AS itemCount, COALESCE(SUM(sizeBytes), 0) AS totalBytes
         FROM asset
         WHERE state IN ('LOCAL', 'PROTECTED') AND dateTaken > 0
-        GROUP BY month ORDER BY month DESC
+        GROUP BY month HAVING month IS NOT NULL ORDER BY month DESC
         """,
     )
     fun observeMonths(): Flow<List<MonthAggregate>>

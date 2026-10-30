@@ -22,6 +22,7 @@ import hu.padlas.core.database.entity.AssetSearchEntity
 import hu.padlas.core.database.entity.AuditAction
 import hu.padlas.core.database.entity.AuditEntry
 import hu.padlas.core.database.entity.ShotKind
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
@@ -119,6 +120,10 @@ class ScreenshotTriage @Inject constructor(
         }
 
         val read = runCatching { read(bitmap, asset) }
+        // A cancelled await returns while ML Kit is still reading the pixels on its own
+        // thread; recycling under it pulls the bitmap away mid-recognition. Only a
+        // finished task has let go of it.
+        read.exceptionOrNull()?.let { if (it is CancellationException) throw it }
         bitmap.recycle()
 
         val input = read.getOrNull()

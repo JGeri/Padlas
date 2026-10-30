@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.database.dao.RuleDao
 import hu.padlas.core.database.entity.RuleEntity
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -40,14 +41,14 @@ internal class RulesViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RulesUiState())
 
     init {
-        viewModelScope.launch {
+        launchSafely {
             engine.seedBuiltInsIfEmpty()
             local.update { it.copy(deltas = tracker.weeklyDeltas()) }
         }
     }
 
     fun dryRun(rule: RuleEntity) {
-        viewModelScope.launch {
+        launchSafely {
             local.update { it.copy(busyRuleId = rule.id) }
             val result = engine.dryRun(rule)
             local.update { current ->
@@ -68,11 +69,11 @@ internal class RulesViewModel @Inject constructor(
             local.update { it.copy(message = "Előbb nézd meg, mit érintene.", messageOk = false) }
             return
         }
-        viewModelScope.launch { ruleDao.setEnabled(rule.id, enabled) }
+        launchSafely { ruleDao.setEnabled(rule.id, enabled) }
     }
 
     fun runNow(rule: RuleEntity) {
-        viewModelScope.launch {
+        launchSafely {
             local.update { it.copy(busyRuleId = rule.id) }
             val result = engine.apply(rule)
             local.update { it.copy(busyRuleId = null, message = result.message, messageOk = true) }
@@ -80,17 +81,33 @@ internal class RulesViewModel @Inject constructor(
     }
 
     fun delete(rule: RuleEntity) {
-        viewModelScope.launch { ruleDao.delete(rule.id) }
+        launchSafely { ruleDao.delete(rule.id) }
     }
 
     fun refreshDeltas() {
-        viewModelScope.launch {
+        launchSafely {
             tracker.snapshot()
             local.update { it.copy(deltas = tracker.weeklyDeltas()) }
         }
     }
 
     fun dismissMessage() = local.update { it.copy(message = null) }
+
+    /**
+     * Everything here reads or writes the whole index. A query that fails has to end in a
+     * message and a card that stops saying "Számolás…", not in a crashed app.
+     */
+    private fun launchSafely(block: suspend () -> Unit) {
+        viewModelScope.launch {
+            try {
+                block()
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (failure: Exception) {
+                local.update { it.copy(busyRuleId = null, message = FAILED, messageOk = false) }
+            }
+        }
+    }
 
     private data class LocalState(
         val dryRuns: Map<Long, DryRunResult> = emptyMap(),
@@ -100,6 +117,10 @@ internal class RulesViewModel @Inject constructor(
         val message: String? = null,
         val messageOk: Boolean = true,
     )
+
+    private companion object {
+        const val FAILED = "Ez most nem sikerült. Próbáld újra."
+    }
 }
 
 internal data class RulesUiState(

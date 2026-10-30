@@ -33,7 +33,9 @@ class CardWriter @Inject constructor(
     @IoDispatcher private val io: CoroutineDispatcher,
 ) {
 
-    suspend fun writeFor(ids: List<Long>): List<CardEntity> = write(assetDao.byIds(ids))
+    /** In id chunks SQLite accepts: a whole folder can be thousands of rows. */
+    suspend fun writeFor(ids: List<Long>): List<CardEntity> =
+        write(ids.chunked(SQLITE_ARGUMENT_LIMIT).flatMap { chunk -> assetDao.byIds(chunk) })
 
     /**
      * Assets that were never triaged get a card too, only without text. A record with a
@@ -76,5 +78,9 @@ class CardWriter @Inject constructor(
             },
         )
         cards
+    }
+
+    private companion object {
+        const val SQLITE_ARGUMENT_LIMIT = 900
     }
 }

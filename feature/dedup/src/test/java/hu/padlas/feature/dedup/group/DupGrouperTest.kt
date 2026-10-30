@@ -321,6 +321,18 @@ class DupGrouperTest {
         assertThat(second.groups.single().id).isEqualTo(first.groups.single().id)
     }
 
+    @Test(timeout = 20_000)
+    fun `thousands of identical frames in one bucket still group in time`() {
+        val frames = (1L..3_000L).map { candidate(it, dHash = BASE, blur = it.toFloat()) }
+
+        val result = grouper.group(frames, NOW)
+
+        assertThat(result.groups).hasSize(1)
+        assertThat(result.groups.single().kind).isEqualTo(DupKind.BURST)
+        assertThat(result.members).hasSize(3_000)
+        assertThat(winnerIds(result)).containsExactly(3_000L)
+    }
+
     // ---- helpers ------------------------------------------------------------
 
     private fun memberIds(grouping: DupGrouping, groupId: String): List<Long> =

@@ -88,6 +88,9 @@ class RuleEngine @Inject constructor(
 
             val bytes = matches.sumOf { it.sizeBytes }
             val ids = matches.map { it.mediaStoreId }
+            // "Older than a year" matches most of a library; SQLite refuses an IN list that
+            // long, so the writes go through in chunks it accepts.
+            val chunks = ids.chunked(SQLITE_ARGUMENT_LIMIT)
 
             val message = when (rule.action) {
                 RuleAction.ARCHIVE -> {
@@ -101,7 +104,7 @@ class RuleEngine @Inject constructor(
                             )
                         },
                     )
-                    assetDao.setState(ids, AssetState.UPLOADING)
+                    chunks.forEach { chunk -> assetDao.setState(chunk, AssetState.UPLOADING) }
                     "${Format.count(ids.size)} fájl vár feltöltésre a felhőbe."
                 }
 
@@ -109,12 +112,12 @@ class RuleEngine @Inject constructor(
                     // The system bin can only be entered through a user-confirmed dialog,
                     // so automation stages the batch and the Kidobo screen finishes it.
                     // Pretending otherwise would make the trash counter lie (INV-1b, INV-2).
-                    assetDao.defer(ids, now)
+                    chunks.forEach { chunk -> assetDao.defer(chunk, now) }
                     "${Format.count(ids.size)} fájl vár jóváhagyásra az Eldobható képek között."
                 }
 
                 RuleAction.PROTECT -> {
-                    assetDao.setProtected(ids, true)
+                    chunks.forEach { chunk -> assetDao.setProtected(chunk, true) }
                     "${Format.count(ids.size)} fájl védett lett."
                 }
 
@@ -156,5 +159,6 @@ class RuleEngine @Inject constructor(
     private companion object {
         const val SAMPLES = 20
         const val SAMPLE_POOL = 400
+        const val SQLITE_ARGUMENT_LIMIT = 900
     }
 }
