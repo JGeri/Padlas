@@ -227,12 +227,20 @@ private class UnionFind {
 
     fun components(): Collection<List<Long>> = parent.keys.groupBy { find(it) }.values
 
+    /**
+     * Path halving: every step hangs the node on its grandparent. Without it a bucket of a
+     * few thousand near-identical frames builds one long chain that every later union walks
+     * end to end, and the scan never finishes inside a worker's time slot.
+     */
     private fun find(id: Long): Long {
-        var root = parent.getOrPut(id) { id }
+        var node = id
+        parent.getOrPut(node) { node }
         while (true) {
-            val next = parent[root] ?: root
-            if (next == root) return root
-            root = next
+            val up = parent[node] ?: return node
+            if (up == node) return node
+            val grand = parent[up] ?: up
+            parent[node] = grand
+            node = grand
         }
     }
 }

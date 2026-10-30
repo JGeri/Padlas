@@ -71,5 +71,13 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
+
+        <!-- Upload and transcode workers go foreground as dataSync. From Android 14 on the
+             service has to declare that type itself, or startForeground() throws inside
+             WorkManager's service and takes the whole process down. -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
     </application>
 </manifest>

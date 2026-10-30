@@ -63,6 +63,8 @@ interface SwipeDao {
     /**
      * With a single MAX() in the query, SQLite fills the bare cover columns from the row
      * that holds the maximum: the newest item of each month, without a per-month subquery.
+     * A date past the year 9999 has no strftime month at all; that group is dropped rather
+     * than read as a NULL month.
      */
     @Query(
         """
@@ -76,7 +78,7 @@ interface SwipeDao {
                a.mimeType AS coverMime
         FROM asset a LEFT JOIN swipe_decision d ON d.assetId = a.mediaStoreId
         WHERE a.state IN ('LOCAL', 'PROTECTED') AND a.dateTaken > 0 AND a.mimeType LIKE :mimePattern
-        GROUP BY month ORDER BY month DESC
+        GROUP BY month HAVING month IS NOT NULL ORDER BY month DESC
         """,
     )
     fun observeMonthStats(mimePattern: String): Flow<List<SwipeMonthStat>>

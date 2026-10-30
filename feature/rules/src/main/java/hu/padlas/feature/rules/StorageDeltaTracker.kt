@@ -70,7 +70,7 @@ class StorageDeltaTracker @Inject constructor(
                 itemCount = 0,
             )
         }
-        storageDao.insertBuckets(buckets)
+        storageDao.insertBuckets(buckets.mergedByKey())
         storageDao.prune(now - RETENTION_MS)
         id
     }
@@ -102,3 +102,16 @@ class StorageDeltaTracker @Inject constructor(
         const val LIMIT = 8
     }
 }
+
+/**
+ * One row per key, because (snapshot, key) is the table's primary key. MediaStore buckets
+ * are per directory and volume, so an SD card with its own DCIM/Camera/ reports the same
+ * relative path twice, and inserting both aborted the whole snapshot.
+ */
+internal fun List<BucketSnapshotEntity>.mergedByKey(): List<BucketSnapshotEntity> =
+    groupBy { it.bucketKey }.values.map { same ->
+        same.singleOrNull() ?: same.first().copy(
+            bytes = same.sumOf { it.bytes },
+            itemCount = same.sumOf { it.itemCount },
+        )
+    }
