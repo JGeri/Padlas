@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import hu.padlas.core.common.result.outcomeOf
 import hu.padlas.core.database.entity.JobState
 import hu.padlas.core.database.model.SizeAndCount
 import hu.padlas.core.media.MediaOps
@@ -90,18 +91,22 @@ class VideoViewModel @Inject constructor(
      * one system dialog, never file by file and never behind the user's back.
      */
     fun replaceOriginals() {
+        if (busy.value) return
         viewModelScope.launch {
             busy.value = true
             val finished = state.value.videos
                 .filter { it.state == JobState.SUCCEEDED }
                 .map { it.assetId }
-            val originals = repository.publishFinished(finished)
+            // One publish failing (a full disk, a file that vanished meanwhile) must not take
+            // the screen down; whatever did go through is still offered below.
+            val originals = outcomeOf { repository.publishFinished(finished) }.valueOrNull().orEmpty()
             busy.value = false
             if (originals.isEmpty()) {
                 refreshPendingRemovals()
                 return@launch
             }
-            _removalRequest.value = mediaOps.trashRequest(originals)
+            // Anything past one dialog stays in the pending removals for the next tap.
+            _removalRequest.value = mediaOps.trashRequest(originals.take(MediaOps.MAX_REQUEST))
         }
     }
 

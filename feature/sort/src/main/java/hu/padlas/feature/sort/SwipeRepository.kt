@@ -3,6 +3,7 @@ package hu.padlas.feature.sort
 import android.content.IntentSender
 import androidx.sqlite.db.SimpleSQLiteQuery
 import hu.padlas.core.common.di.IoDispatcher
+import hu.padlas.core.common.result.outcomeOf
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.dao.SwipeDao
@@ -90,12 +91,12 @@ class SwipeRepository @Inject constructor(
     fun takePrepared(filter: SwipeFilter): List<SwipeCard>? =
         prepared?.also { prepared = null }?.takeIf { it.first == filter }?.second
 
-    suspend fun record(cardId: Long, action: SwipeAction) = write {
+    suspend fun record(cardId: Long, action: SwipeAction): Boolean = tryWrite {
         swipeDao.upsert(SwipeDecisionEntity(cardId, action.choice, System.currentTimeMillis()))
     }
 
     /** Undo puts back whatever was there before the swipe, including "never decided". */
-    suspend fun restore(cardId: Long, previous: SwipeChoice?) = write {
+    suspend fun restore(cardId: Long, previous: SwipeChoice?): Boolean = tryWrite {
         if (previous == null) {
             swipeDao.delete(listOf(cardId))
         } else {
@@ -103,12 +104,12 @@ class SwipeRepository @Inject constructor(
         }
     }
 
-    suspend fun setChoice(ids: List<Long>, choice: SwipeChoice) = write {
+    suspend fun setChoice(ids: List<Long>, choice: SwipeChoice): Boolean = tryWrite {
         val now = System.currentTimeMillis()
         swipeDao.upsertAll(ids.map { SwipeDecisionEntity(it, choice, now) })
     }
 
-    suspend fun forgetReviewed() = write { swipeDao.forgetReviewed() }
+    suspend fun forgetReviewed(): Boolean = tryWrite { swipeDao.forgetReviewed() }
 
     suspend fun pendingNow(): List<Asset> = withContext(io) { swipeDao.pendingAssets() }
 
@@ -118,14 +119,12 @@ class SwipeRepository @Inject constructor(
      * Builds the system request for [assets]. Trash is the default because it can be
      * undone for thirty days; the permanent mode is the user's explicit choice.
      */
-    fun deleteRequest(assets: List<Asset>): DeleteBatch? {
+    suspend fun deleteRequest(assets: List<Asset>): DeleteBatch? {
         if (assets.isEmpty()) return null
-        val batch = assets.take(MAX_BATCH)
+        val batch = assets.take(MediaOps.MAX_REQUEST)
         val permanent = preferences.deleteMode.value == DeleteMode.PERMANENT
         val uris = batch.map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) }
-        val sender = runCatching {
-            if (permanent) mediaOps.deleteRequest(uris) else mediaOps.trashRequest(uris)
-        }.getOrNull() ?: return null
+        val sender = (if (permanent) mediaOps.deleteRequest(uris) else mediaOps.trashRequest(uris)) ?: return null
         return DeleteBatch(
             intentSender = sender,
             ids = batch.map { it.mediaStoreId },
@@ -135,7 +134,10 @@ class SwipeRepository @Inject constructor(
         )
     }
 
-    suspend fun onDeleted(batch: DeleteBatch) = write {
+    /** The files are already gone when this runs; if the write fails the next index pass squares the rows. */
+    suspend fun onDeleted(batch: DeleteBatch): Boolean = tryWrite { recordDeleted(batch) }
+
+    private suspend fun recordDeleted(batch: DeleteBatch) {
         val now = System.currentTimeMillis()
         val sizes = assetDao.byIds(batch.ids).associate { it.mediaStoreId to it.sizeBytes }
         if (batch.permanent) {
@@ -162,17 +164,20 @@ class SwipeRepository @Inject constructor(
     suspend fun favoriteRequest(ids: List<Long>): FavoriteBatch? = withContext(io) {
         val assets = assetDao.byIds(ids).filter { !it.isFavorite }
         if (assets.isEmpty()) return@withContext null
-        val uris = assets.take(MAX_BATCH).map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) }
-        val sender = runCatching { mediaOps.favoriteRequest(uris) }.getOrNull() ?: return@withContext null
-        FavoriteBatch(sender, assets.take(MAX_BATCH).map { it.mediaStoreId })
+        val batch = assets.take(MediaOps.MAX_REQUEST)
+        val sender = mediaOps.favoriteRequest(batch.map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) })
+            ?: return@withContext null
+        FavoriteBatch(sender, batch.map { it.mediaStoreId })
     }
 
-    suspend fun onFavorited(batch: FavoriteBatch) = write {
-        assetDao.setFavorite(batch.ids, true)
-    }
+    suspend fun onFavorited(batch: FavoriteBatch): Boolean = tryWrite { assetDao.setFavorite(batch.ids, true) }
 
-    private suspend fun <T> write(block: suspend () -> T): T = withContext(io) {
-        writeLock.withLock { block() }
+    /**
+     * A failed write - a full disk, most likely, on a phone that is being cleaned - is
+     * reported to the screen instead of thrown into it.
+     */
+    private suspend fun tryWrite(block: suspend () -> Unit): Boolean = withContext(io) {
+        writeLock.withLock { outcomeOf { block() }.isSuccess }
     }
 
     private val MediaFilter.mimePattern: String
@@ -184,8 +189,5 @@ class SwipeRepository @Inject constructor(
 
     companion object {
         const val DECK_LIMIT = 6_000
-
-        /** Thousands of URIs in one PendingIntent would hit the binder size limit. */
-        const val MAX_BATCH = 1_500
     }
 }

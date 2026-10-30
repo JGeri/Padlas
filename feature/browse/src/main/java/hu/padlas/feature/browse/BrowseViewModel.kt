@@ -11,6 +11,7 @@ import androidx.sqlite.db.SimpleSQLiteQuery
 import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.common.di.IoDispatcher
 import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.result.outcomeOf
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.dao.UploadJobDao
@@ -42,6 +43,8 @@ import kotlinx.coroutines.withContext
 internal class TrashRequest(
     val intentSender: IntentSender,
     val sizes: Map<Long, Long>,
+    /** More was selected than one dialog carries; the next round follows this one. */
+    val more: Boolean,
 ) {
     val bytes: Long get() = sizes.values.sum()
 }
@@ -168,20 +171,28 @@ internal class BrowseViewModel @Inject constructor(
         if (ids.isEmpty()) return
         viewModelScope.launch {
             local.update { it.copy(busy = true) }
-            val rows = withContext(io) { assetDao.byIds(ids) }
+            val rows = withContext(io) { ids.chunked(SQLITE_ARGUMENT_LIMIT).flatMap { assetDao.byIds(it) } }
             val now = now()
-            withContext(io) {
-                uploadJobDao.upsertAll(
-                    rows.map { asset ->
-                        UploadJobEntity(
-                            assetId = asset.mediaStoreId,
-                            totalBytes = asset.sizeBytes,
-                            state = JobState.PENDING,
-                            updatedAt = now,
-                        )
-                    },
-                )
-                assetDao.setState(rows.map { it.mediaStoreId }, AssetState.UPLOADING)
+            val queued = withContext(io) {
+                outcomeOf {
+                    uploadJobDao.upsertAll(
+                        rows.map { asset ->
+                            UploadJobEntity(
+                                assetId = asset.mediaStoreId,
+                                totalBytes = asset.sizeBytes,
+                                state = JobState.PENDING,
+                                updatedAt = now,
+                            )
+                        },
+                    )
+                    rows.map { it.mediaStoreId }.chunked(SQLITE_ARGUMENT_LIMIT).forEach {
+                        assetDao.setState(it, AssetState.UPLOADING)
+                    }
+                }.isSuccess
+            }
+            if (!queued) {
+                local.update { it.copy(busy = false, message = NOT_WRITTEN) }
+                return@launch
             }
             local.update {
                 it.copy(
@@ -199,24 +210,25 @@ internal class BrowseViewModel @Inject constructor(
     /** Two phase (INV-2): the system bin first, and the bytes are still occupied there. */
     fun trashSelected() {
         val ids = local.value.selected.toList()
-        if (ids.isEmpty()) return
+        if (ids.isEmpty() || pendingTrash != null) return
         viewModelScope.launch {
             local.update { it.copy(busy = true) }
             val rows = withContext(io) {
-                assetDao.byIds(ids).filter { !it.protectedManually && it.state != AssetState.PROTECTED }
+                ids.chunked(SQLITE_ARGUMENT_LIMIT)
+                    .flatMap { assetDao.byIds(it) }
+                    .filter { !it.protectedManually && it.state != AssetState.PROTECTED }
             }
             if (rows.isEmpty()) {
                 local.update { it.copy(busy = false, message = "A kijelölésben csak védett elem van.") }
                 return@launch
             }
-            val sender = runCatching {
-                mediaOps.trashRequest(rows.map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) })
-            }.getOrNull()
+            val batch = rows.take(MediaOps.MAX_REQUEST)
+            val sender = mediaOps.trashRequest(batch.map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) })
             if (sender == null) {
                 local.update { it.copy(busy = false, message = "A kuka nem nyitható meg.") }
                 return@launch
             }
-            pendingTrash = TrashRequest(sender, rows.associate { it.mediaStoreId to it.sizeBytes })
+            pendingTrash = TrashRequest(sender, batch.associate { it.mediaStoreId to it.sizeBytes }, more = rows.size > batch.size)
             local.update { it.copy(trashRequest = pendingTrash) }
         }
     }
@@ -232,29 +244,38 @@ internal class BrowseViewModel @Inject constructor(
         }
         viewModelScope.launch {
             val now = now()
-            withContext(io) {
-                assetDao.markTrashed(batch.sizes.keys.toList(), now)
-                auditDao.insertAll(
-                    batch.sizes.map { (id, size) ->
-                        AuditEntry(
-                            timestamp = now,
-                            action = AuditAction.TRASHED,
-                            assetId = id,
-                            sizeBytes = size,
-                            reversible = true,
-                        )
-                    },
-                )
+            // The files are in the bin whatever happens here; a failed write is left for the
+            // next index pass to square instead of taking the screen down.
+            val recorded = withContext(io) {
+                outcomeOf {
+                    assetDao.markTrashed(batch.sizes.keys.toList(), now)
+                    auditDao.insertAll(
+                        batch.sizes.map { (id, size) ->
+                            AuditEntry(
+                                timestamp = now,
+                                action = AuditAction.TRASHED,
+                                assetId = id,
+                                sizeBytes = size,
+                                reversible = true,
+                            )
+                        },
+                    )
+                }.isSuccess
             }
             local.update {
                 it.copy(
                     busy = false,
-                    selected = emptySet(),
-                    selectedBytes = 0,
-                    message = "${Format.bytes(batch.bytes)} a kukában. Amíg ott van, helyet foglal.",
+                    selected = if (batch.more) it.selected - batch.sizes.keys else emptySet(),
+                    selectedBytes = if (batch.more) (it.selectedBytes - batch.bytes).coerceAtLeast(0) else 0,
+                    message = when {
+                        !recorded -> NOT_WRITTEN
+                        batch.more -> "${Format.bytes(batch.bytes)} a kukában · jön a következő adag"
+                        else -> "${Format.bytes(batch.bytes)} a kukában. Amíg ott van, helyet foglal."
+                    },
                 )
             }
             recomputeTotals()
+            if (batch.more) trashSelected()
         }
     }
 
@@ -262,7 +283,13 @@ internal class BrowseViewModel @Inject constructor(
         val ids = local.value.selected.toList()
         if (ids.isEmpty()) return
         viewModelScope.launch {
-            withContext(io) { assetDao.setProtected(ids, true) }
+            val written = withContext(io) {
+                outcomeOf { ids.chunked(SQLITE_ARGUMENT_LIMIT).forEach { assetDao.setProtected(it, true) } }.isSuccess
+            }
+            if (!written) {
+                local.update { it.copy(message = NOT_WRITTEN) }
+                return@launch
+            }
             local.update {
                 it.copy(
                     selected = emptySet(),
@@ -306,6 +333,8 @@ internal class BrowseViewModel @Inject constructor(
     private companion object {
         const val PAGE = 60
         const val SELECT_ALL_CAP = 2_000
+        const val SQLITE_ARGUMENT_LIMIT = 900
+        const val NOT_WRITTEN = "A változást nem sikerült menteni. Megtelt a tárhely?"
     }
 }
 

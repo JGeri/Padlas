@@ -36,6 +36,9 @@ internal class FolderViewModel @Inject constructor(
     private var pending: PendingDelete? = null
     private var bucketId: Long = 0
 
+    /** What the rounds of one delete have freed so far; the last round reports the total. */
+    private var doneBytes = 0L
+
     fun load(bucketId: Long) {
         if (this.bucketId == bucketId && !_state.value.loading) return
         this.bucketId = bucketId
@@ -78,6 +81,12 @@ internal class FolderViewModel @Inject constructor(
     }
 
     fun requestDelete() {
+        if (_state.value.committing) return
+        doneBytes = 0L
+        nextRound()
+    }
+
+    private fun nextRound() {
         val current = _state.value
         val ids = current.discardIds()
         if (ids.isEmpty() || current.committing) return
@@ -107,14 +116,22 @@ internal class FolderViewModel @Inject constructor(
         }
         viewModelScope.launch {
             val bytes = committer.finish(batch)
+            doneBytes += bytes ?: 0L
+            val last = bytes == null || !batch.more
             _state.update { current ->
                 current.copy(
                     committing = false,
-                    falling = true,
+                    falling = bytes != null && last,
                     items = current.items.filterNot { it.id in batch.sizes.keys },
-                    message = "${hu.padlas.core.common.format.Format.bytes(bytes)} szabadult fel.",
+                    message = when {
+                        bytes == null -> "A fájlok törölve, de a nyilvántartás nem frissült. Megtelt a tárhely?"
+                        last -> "${hu.padlas.core.common.format.Format.bytes(doneBytes)} szabadult fel."
+                        else -> "${hu.padlas.core.common.format.Format.bytes(doneBytes)} szabadult fel · jön a következő adag"
+                    },
                 )
             }
+            // More was marked than one dialog carries; the deleted tiles are out of the list.
+            if (!last) nextRound()
         }
     }
 

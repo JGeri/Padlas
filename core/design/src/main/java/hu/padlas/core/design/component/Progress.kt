@@ -45,7 +45,7 @@ fun LinearMeter(
     brush: Brush? = null,
 ) {
     val filled by animateFloatAsState(
-        targetValue = fraction.coerceIn(0f, 1f),
+        targetValue = if (fraction.isNaN()) 0f else fraction.coerceIn(0f, 1f),
         animationSpec = motionSpec(Motion.settle()),
         label = "meter",
     )
@@ -89,7 +89,7 @@ fun ProgressRing(
     content: @Composable () -> Unit = {},
 ) {
     val swept by animateFloatAsState(
-        targetValue = fraction.coerceIn(0f, 1f),
+        targetValue = if (fraction.isNaN()) 0f else fraction.coerceIn(0f, 1f),
         animationSpec = motionSpec(Motion.settle()),
         label = "ring",
     )

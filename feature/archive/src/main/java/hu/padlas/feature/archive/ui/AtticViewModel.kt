@@ -116,7 +116,7 @@ internal class AtticViewModel @Inject constructor(
     /** INV-1: only verified copies can free local bytes, and only through one dialog. */
     fun requestGhosting() {
         val ids = selection.value.toList()
-        if (ids.isEmpty()) return
+        if (ids.isEmpty() || pendingGhost != null) return
         viewModelScope.launch {
             local.update { it.copy(busy = true) }
             when (val outcome = repository.prepareGhosting(ids)) {
@@ -145,14 +145,29 @@ internal class AtticViewModel @Inject constructor(
         }
         viewModelScope.launch {
             val bytes = repository.finishGhosting(batch)
-            selection.value = emptySet()
+            val more = bytes != null && batch.more
+            selection.value = if (more) selection.value - batch.sizes.keys else emptySet()
             local.update {
-                it.copy(
-                    busy = false,
-                    message = "${Format.bytes(bytes)} felszabadult a telefonon.",
-                    messageOk = true,
-                )
+                when {
+                    bytes == null -> it.copy(
+                        busy = false,
+                        message = "A hely felszabadult, de a nyilvántartás nem frissült. Megtelt a tárhely?",
+                        messageOk = false,
+                    )
+                    more -> it.copy(
+                        busy = false,
+                        message = "${Format.bytes(bytes)} felszabadult · jön a következő adag",
+                        messageOk = true,
+                    )
+                    else -> it.copy(
+                        busy = false,
+                        message = "${Format.bytes(bytes)} felszabadult a telefonon.",
+                        messageOk = true,
+                    )
+                }
             }
+            // More was selected than one dialog carries; the freed ones left the selection.
+            if (more) requestGhosting()
         }
     }
 

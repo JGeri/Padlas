@@ -45,6 +45,7 @@ import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.hairlineTop
+import hu.padlas.core.design.component.rememberSystemRequest
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.Space
@@ -53,7 +54,6 @@ import hu.padlas.core.media.MediaThumb
 import hu.padlas.feature.sort.DeleteBatch
 import hu.padlas.feature.sort.SwipeRepository
 import hu.padlas.feature.sort.ui.ZoomViewer
-import hu.padlas.feature.sort.ui.rememberSystemRequest
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -121,11 +121,19 @@ internal class PendingViewModel @Inject constructor(
     fun skipsSystemDialog(): Boolean = repository.canSkipSystemDialog()
 
     fun delete() {
+        if (_state.value.busy || batch != null) return
         val assets = _state.value.marked.map { it.asset }
-        val request = repository.deleteRequest(assets) ?: return
-        batch = request
+        if (assets.isEmpty()) return
         _state.update { it.copy(busy = true) }
-        viewModelScope.launch { _requests.send(request) }
+        viewModelScope.launch {
+            val request = repository.deleteRequest(assets)
+            if (request == null) {
+                _state.update { it.copy(busy = false, message = "A rendszer most nem engedte a törlést.") }
+                return@launch
+            }
+            batch = request
+            _requests.send(request)
+        }
     }
 
     fun onResult(confirmed: Boolean) {
@@ -136,21 +144,28 @@ internal class PendingViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            repository.onDeleted(request)
+            val recorded = repository.onDeleted(request)
             val gone = request.ids.toSet()
+            val text = if (request.permanent) {
+                "${Format.bytes(request.bytes)} felszabadítva"
+            } else {
+                "${Format.count(request.ids.size)} elem a kukába került"
+            }
             _state.update { state ->
                 val left = state.items.filterNot { it.asset.mediaStoreId in gone }
                 state.copy(
                     busy = false,
                     items = left,
                     done = left.none { it.marked },
-                    message = if (request.permanent) {
-                        "${Format.bytes(request.bytes)} felszabadítva"
-                    } else {
-                        "${Format.count(request.ids.size)} elem a kukába került"
+                    message = when {
+                        !recorded -> "A törlés megtörtént, de a nyilvántartás nem frissült. Megtelt a tárhely?"
+                        request.truncated -> "$text · jön a következő adag"
+                        else -> text
                     },
                 )
             }
+            // More was marked than one dialog carries; what is left is smaller every round.
+            if (request.truncated) delete()
         }
     }
 

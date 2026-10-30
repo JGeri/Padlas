@@ -91,6 +91,7 @@ import hu.padlas.core.design.component.StaggeredColumnItem
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.frosted
 import hu.padlas.core.design.component.glass
+import hu.padlas.core.design.component.rememberSystemRequest
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.morphBounds
 import hu.padlas.core.design.motion.morphElement
@@ -103,7 +104,6 @@ import hu.padlas.core.media.MediaThumb
 import hu.padlas.feature.sort.ui.Cover
 import hu.padlas.feature.sort.MediaFilter
 import hu.padlas.feature.sort.SwipeOrder
-import hu.padlas.feature.sort.ui.rememberSystemRequest
 
 private val RiseSpring = spring<IntOffset>(dampingRatio = 0.78f, stiffness = Spring.StiffnessMediumLow)
 

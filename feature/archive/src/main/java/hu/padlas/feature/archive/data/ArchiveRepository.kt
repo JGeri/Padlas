@@ -244,42 +244,47 @@ class ArchiveRepository @Inject constructor(
      */
     suspend fun prepareGhosting(assetIds: List<Long>): Outcome<GhostBatch> = withContext(io) {
         outcomeOf("A helyi törlés előkészítése nem sikerült.") {
-            val rows = assetDao.byIds(assetIds).filter {
+            val rows = assetIds.chunked(SQLITE_ARGUMENT_LIMIT).flatMap { assetDao.byIds(it) }.filter {
                 it.state == AssetState.ARCHIVED && it.driveMd5 != null
             }
             require(rows.isNotEmpty()) { "Csak ellenőrzött másolat után lehet helyet felszabadítani." }
-            rows.forEach { asset ->
+            val batch = rows.take(MediaOps.MAX_REQUEST)
+            batch.forEach { asset ->
                 asset.uri.toUriOrNull()?.let { uri ->
                     thumbnails.writeGhostThumbnail(asset.mediaStoreId, uri)
                 }
             }
             GhostBatch(
-                sizes = rows.associate { it.mediaStoreId to it.sizeBytes },
+                sizes = batch.associate { it.mediaStoreId to it.sizeBytes },
                 intentSender = mediaOps.deleteRequest(
-                    rows.map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) },
-                ),
+                    batch.map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) },
+                ) ?: error("A rendszer most nem engedte a törlést."),
+                more = rows.size > batch.size,
             )
         }
     }
 
-    suspend fun finishGhosting(batch: GhostBatch): Long = withContext(io) {
-        val now = System.currentTimeMillis()
-        val ids = batch.sizes.keys.toList()
-        ids.forEach { id ->
-            assetDao.markGhost(listOf(id), thumbnails.ghostThumbnailFile(id).absolutePath)
-        }
-        auditDao.insertAll(
-            batch.sizes.map { (id, size) ->
-                AuditEntry(
-                    timestamp = now,
-                    action = AuditAction.GHOSTED,
-                    assetId = id,
-                    sizeBytes = size,
-                    reversible = false,
-                )
-            },
-        )
-        batch.bytes
+    /** Null when the bookkeeping could not be written (a full disk); the files are gone either way. */
+    suspend fun finishGhosting(batch: GhostBatch): Long? = withContext(io) {
+        outcomeOf {
+            val now = System.currentTimeMillis()
+            val ids = batch.sizes.keys.toList()
+            ids.forEach { id ->
+                assetDao.markGhost(listOf(id), thumbnails.ghostThumbnailFile(id).absolutePath)
+            }
+            auditDao.insertAll(
+                batch.sizes.map { (id, size) ->
+                    AuditEntry(
+                        timestamp = now,
+                        action = AuditAction.GHOSTED,
+                        assetId = id,
+                        sizeBytes = size,
+                        reversible = false,
+                    )
+                },
+            )
+            batch.bytes
+        }.valueOrNull()
     }
 
     /**
@@ -287,7 +292,7 @@ class ArchiveRepository @Inject constructor(
      * otherwise keep claiming the asset is safe, which is the one lie this app cannot tell.
      */
     suspend fun reconcile(): Int = withContext(io) {
-        val archived = assetDao.byIds(assetDao.allIds()).filter {
+        val archived = assetDao.allIds().chunked(SQLITE_ARGUMENT_LIMIT).flatMap { assetDao.byIds(it) }.filter {
             (it.state == AssetState.ARCHIVED || it.state == AssetState.GHOST) && it.driveFileId != null
         }
         var drifted = 0
@@ -325,6 +330,7 @@ class ArchiveRepository @Inject constructor(
 
     private companion object {
         const val BATCH = 8
+        const val SQLITE_ARGUMENT_LIMIT = 900
     }
 }
 
@@ -342,6 +348,8 @@ data class UploadProgress(
 data class GhostBatch(
     val sizes: Map<Long, Long>,
     val intentSender: IntentSender,
+    /** More was asked for than one dialog carries; the rest goes in the next round. */
+    val more: Boolean = false,
 ) {
     val bytes: Long get() = sizes.values.sum()
 }

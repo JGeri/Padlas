@@ -1,10 +1,6 @@
 package hu.padlas.feature.triage
 
-import android.app.Activity
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -55,6 +51,7 @@ import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.ZoomHost
 import hu.padlas.core.design.component.ZoomTarget
 import hu.padlas.core.design.component.navigationBarBottom
+import hu.padlas.core.design.component.rememberSystemRequest
 import hu.padlas.core.design.component.rememberZoomState
 import hu.padlas.core.design.component.topBarClearance
 import hu.padlas.core.design.motion.Entrance
@@ -90,19 +87,14 @@ fun DiscardRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         }
     }
 
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartIntentSenderForResult(),
-    ) { result ->
-        viewModel.onDeleteResult(result.resultCode == Activity.RESULT_OK)
-    }
+    val launch = rememberSystemRequest(viewModel::onDeleteResult)
 
     BackHandler { leave() }
 
-    LaunchedEffect(viewModel, launcher) {
+    LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
-                is DiscardEvent.Confirm ->
-                    launcher.launch(IntentSenderRequest.Builder(event.intentSender).build())
+                is DiscardEvent.Confirm -> launch(event.intentSender)
             }
         }
     }

@@ -77,6 +77,7 @@ import hu.padlas.core.design.component.RollingNumber
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.glass
 import hu.padlas.core.design.component.glow
+import hu.padlas.core.design.component.rememberSystemRequest
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.haptics
@@ -93,7 +94,6 @@ import hu.padlas.feature.sort.ui.SwipeCardView
 import hu.padlas.feature.sort.ui.SwipeDeck
 import hu.padlas.feature.sort.ui.ZoomViewer
 import hu.padlas.feature.sort.ui.rememberSwipeDeckState
-import hu.padlas.feature.sort.ui.rememberSystemRequest
 
 /**
  * The swipe run. Left marks for deletion, right keeps, up makes a favourite. Nothing is
@@ -158,7 +158,8 @@ fun SwipeSessionRoute(
                 AnimatedContent(
                     targetState = when {
                         state.loading -> Phase.LOADING
-                        state.cards.isEmpty() -> Phase.EMPTY
+                        // Not cards: a deck whose every card was deleted is done, not empty.
+                        state.total == 0 -> Phase.EMPTY
                         state.finished -> Phase.DONE
                         else -> Phase.DECK
                     },
@@ -298,7 +299,7 @@ private fun SessionTopBar(state: SessionUiState, onClose: () -> Unit, onDeleteNo
             if (state.total > 0) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RollingNumber(
-                        value = Format.count(minOf(state.index + 1, state.total)),
+                        value = Format.count(minOf(state.position + 1, state.total)),
                         style = PadlasTheme.type.numeric,
                         color = Ink.TextSecondary,
                     )

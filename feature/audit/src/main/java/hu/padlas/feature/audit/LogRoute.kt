@@ -1,8 +1,6 @@
 package hu.padlas.feature.audit
 
-import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -59,6 +57,7 @@ import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.hairlineBottom
 import hu.padlas.core.design.component.navigationBarBottom
+import hu.padlas.core.design.component.rememberSystemRequest
 import hu.padlas.core.design.component.topBarClearance
 import hu.padlas.core.design.motion.entrance
 import hu.padlas.core.design.motion.itemMotion
@@ -91,9 +90,7 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
     }
     val entrance = rememberEntrance()
 
-    val undoLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartIntentSenderForResult(),
-    ) { result -> viewModel.onUndoResult(result.resultCode == Activity.RESULT_OK) }
+    val launchUndo = rememberSystemRequest(viewModel::onUndoResult)
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv"),
@@ -114,7 +111,7 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
     LaunchedEffect(state.undoRequest) {
         val request = state.undoRequest ?: return@LaunchedEffect
-        undoLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
+        launchUndo(request.intentSender)
     }
 
 

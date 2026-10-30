@@ -19,6 +19,8 @@ import javax.inject.Singleton
 data class PendingDelete(
     val sizes: Map<Long, Long>,
     val intentSender: IntentSender,
+    /** More was marked than one dialog carries; the rest goes in the next round. */
+    val more: Boolean = false,
 ) {
     val ids: List<Long> get() = sizes.keys.toList()
     val count: Int get() = sizes.size
@@ -44,37 +46,48 @@ class DiscardCommitter @Inject constructor(
             // INV-1c and INV-4: a protected row never reaches the dialog, however the
             // selection was assembled. SECRET assets stay protected until the user
             // explicitly lifts the protection.
-            val rows = assetDao.byIds(ids).filter {
+            val rows = ids.chunked(SQLITE_ARGUMENT_LIMIT).flatMap { assetDao.byIds(it) }.filter {
                 !it.protectedManually && it.state != AssetState.PROTECTED
             }
             require(rows.isNotEmpty()) { "Nincs törölhető elem a kötegben." }
 
-            cardWriter.write(rows)
+            val batch = rows.take(MediaOps.MAX_REQUEST)
+            cardWriter.write(batch)
             val sender = mediaOps.deleteRequest(
-                rows.map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) },
-            )
+                batch.map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) },
+            ) ?: error("A rendszer most nem engedte a törlést.")
             PendingDelete(
-                sizes = rows.associate { it.mediaStoreId to it.sizeBytes },
+                sizes = batch.associate { it.mediaStoreId to it.sizeBytes },
                 intentSender = sender,
+                more = rows.size > batch.size,
             )
         }
     }
 
-    /** Called only after the system dialog reported success: the bytes are really gone. */
-    suspend fun finish(pending: PendingDelete): Long = withContext(io) {
-        val now = System.currentTimeMillis()
-        auditDao.insertAll(
-            pending.sizes.map { (id, size) ->
-                AuditEntry(
-                    timestamp = now,
-                    action = AuditAction.DELETED,
-                    assetId = id,
-                    sizeBytes = size,
-                    reversible = false,
-                )
-            },
-        )
-        assetDao.deleteByIds(pending.ids)
-        pending.bytes
+    /**
+     * Called only after the system dialog reported success: the bytes are really gone. Null
+     * when the bookkeeping could not be written (a full disk); the next index pass squares it.
+     */
+    suspend fun finish(pending: PendingDelete): Long? = withContext(io) {
+        outcomeOf {
+            val now = System.currentTimeMillis()
+            auditDao.insertAll(
+                pending.sizes.map { (id, size) ->
+                    AuditEntry(
+                        timestamp = now,
+                        action = AuditAction.DELETED,
+                        assetId = id,
+                        sizeBytes = size,
+                        reversible = false,
+                    )
+                },
+            )
+            assetDao.deleteByIds(pending.ids)
+            pending.bytes
+        }.valueOrNull()
+    }
+
+    private companion object {
+        const val SQLITE_ARGUMENT_LIMIT = 900
     }
 }

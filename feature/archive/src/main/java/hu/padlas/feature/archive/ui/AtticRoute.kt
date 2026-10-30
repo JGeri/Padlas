@@ -1,6 +1,5 @@
 package hu.padlas.feature.archive.ui
 
-import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -90,6 +89,7 @@ import hu.padlas.core.design.component.ZoomHost
 import hu.padlas.core.design.component.ZoomTarget
 import hu.padlas.core.design.component.ZoomableImage
 import hu.padlas.core.design.component.navigationBarBottom
+import hu.padlas.core.design.component.rememberSystemRequest
 import hu.padlas.core.design.component.rememberZoomState
 import hu.padlas.core.design.component.topBarClearance
 import hu.padlas.core.design.motion.LocalReducedMotion
@@ -120,19 +120,17 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         ActivityResultContracts.StartIntentSenderForResult(),
     ) { result -> viewModel.onConsentResult(result.data) }
 
-    val deleteLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartIntentSenderForResult(),
-    ) { result -> viewModel.onGhostResult(result.resultCode == Activity.RESULT_OK) }
+    val launchDelete = rememberSystemRequest(viewModel::onGhostResult)
 
     LaunchedEffect(state.ghostRequest) {
         val request = state.ghostRequest ?: return@LaunchedEffect
-        deleteLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
+        launchDelete(request.intentSender)
     }
 
     val authState = state.authState
     LaunchedEffect(authState) {
         if (authState is AuthState.ConsentNeeded) {
-            consentLauncher.launch(IntentSenderRequest.Builder(authState.intent.intentSender).build())
+            runCatching { consentLauncher.launch(IntentSenderRequest.Builder(authState.intent.intentSender).build()) }
         }
     }
 

@@ -1,10 +1,6 @@
 package hu.padlas.feature.triage
 
-import android.app.Activity
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -47,6 +43,7 @@ import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.ZoomHost
 import hu.padlas.core.design.component.ZoomTarget
 import hu.padlas.core.design.component.navigationBarBottom
+import hu.padlas.core.design.component.rememberSystemRequest
 import hu.padlas.core.design.component.rememberZoomState
 import hu.padlas.core.design.component.topBarClearance
 import hu.padlas.core.design.motion.LocalReducedMotion
@@ -81,11 +78,7 @@ fun FolderRoute(bucketId: Long, onBack: () -> Unit, modifier: Modifier = Modifie
         }
     }
 
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartIntentSenderForResult(),
-    ) { result ->
-        viewModel.onDeleteResult(result.resultCode == Activity.RESULT_OK)
-    }
+    val launch = rememberSystemRequest(viewModel::onDeleteResult)
 
     BackHandler { leave() }
 
@@ -93,7 +86,7 @@ fun FolderRoute(bucketId: Long, onBack: () -> Unit, modifier: Modifier = Modifie
 
     LaunchedEffect(state.request) {
         val request = state.request ?: return@LaunchedEffect
-        launcher.launch(IntentSenderRequest.Builder(request.intentSender).build())
+        launch(request.intentSender)
     }
 
     LaunchedEffect(state.falling) {

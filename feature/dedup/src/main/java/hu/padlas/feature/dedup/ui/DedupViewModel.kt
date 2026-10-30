@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import hu.padlas.core.common.di.IoDispatcher
+import hu.padlas.core.common.result.outcomeOf
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.dao.DupDao
@@ -23,17 +24,16 @@ import hu.padlas.feature.dedup.hash.HashPipeline
 import hu.padlas.feature.dedup.work.DedupScheduler
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -55,8 +55,13 @@ internal class DedupViewModel @Inject constructor(
     /** The batch waiting behind the system dialog. Written only from the main thread. */
     private var pending: PendingTrash? = null
 
-    private val _trashRequests = MutableSharedFlow<IntentSender>(extraBufferCapacity = 1)
-    val trashRequests: SharedFlow<IntentSender> = _trashRequests.asSharedFlow()
+    // A channel, not a shared flow: a request sent while the screen is between two
+    // compositions must wait for it, not vanish and leave [pending] stuck.
+    private val _trashRequests = Channel<IntentSender>(Channel.BUFFERED)
+    val trashRequests: Flow<IntentSender> = _trashRequests.receiveAsFlow()
+
+    /** Losers already sent to the bin from this screen, so a following round never asks twice. */
+    private val trashed = HashSet<Long>()
 
     private val groups: Flow<List<DupGroupUi>> = dupDao.observeOpenGroups()
         .map { open -> open.toUi() }
@@ -97,7 +102,7 @@ internal class DedupViewModel @Inject constructor(
 
     /** The similar section is the only one where the keeper is a human decision. */
     fun pickWinner(groupId: String, assetId: Long) {
-        viewModelScope.launch(io) { dupDao.setWinner(groupId, assetId) }
+        viewModelScope.launch(io) { outcomeOf { dupDao.setWinner(groupId, assetId) } }
     }
 
     /**
@@ -107,14 +112,28 @@ internal class DedupViewModel @Inject constructor(
      */
     fun requestTrash(groupIds: List<String>) {
         if (groupIds.isEmpty() || pending != null) return
+        val wanted = groupIds.toSet()
+        val open = state.value.sections.flatMap { it.groups }
+            .filter { it.id in wanted }
+            .map { group -> group.id to group.losers.filter { it.assetId !in trashed } }
+            .filter { (_, losers) -> losers.isNotEmpty() }
+        if (open.isEmpty()) return
+        val round = planTrashRound(open, MediaOps.MAX_REQUEST)
+        pending = PendingTrash(
+            groupIds = round.resolved,
+            losers = round.losers.map { it.assetId to it.sizeBytes },
+            rest = round.rest,
+        )
+        // A cut group is the first of the rest; its cards fold while the dialog is open too.
+        pendingGroups.value = round.resolved.ifEmpty { round.rest.take(1) }.toSet()
         viewModelScope.launch {
-            val open = state.value.sections.flatMap { it.groups }.filter { it.id in groupIds }
-            val losers = open.flatMap { it.losers }
-            if (losers.isEmpty()) return@launch
-            val sender = withContext(io) { mediaOps.trashRequest(losers.map { it.uri }) }
-            pending = PendingTrash(open.map { it.id }, losers.map { it.assetId to it.sizeBytes })
-            pendingGroups.value = open.map { it.id }.toSet()
-            _trashRequests.emit(sender)
+            val sender = mediaOps.trashRequest(round.losers.map { it.uri })
+            if (sender == null) {
+                pending = null
+                pendingGroups.value = emptySet()
+                return@launch
+            }
+            _trashRequests.send(sender)
         }
     }
 
@@ -125,24 +144,32 @@ internal class DedupViewModel @Inject constructor(
             pendingGroups.value = emptySet()
             return
         }
-        viewModelScope.launch(io) {
-            val now = System.currentTimeMillis()
-            val ids = batch.losers.map { it.first }
-            ids.chunked(SQLITE_ARGUMENT_LIMIT).forEach { chunk -> assetDao.markTrashed(chunk, now) }
-            dupDao.markResolvedAll(batch.groupIds, now)
-            auditDao.insertAll(
-                batch.losers.map { (assetId, sizeBytes) ->
-                    AuditEntry(
-                        timestamp = now,
-                        action = AuditAction.TRASHED,
-                        assetId = assetId,
-                        sizeBytes = sizeBytes,
-                        reversible = true,
-                        note = "duplikátum-vesztes",
+        val ids = batch.losers.map { it.first }
+        trashed += ids
+        viewModelScope.launch {
+            // The files are in the bin either way; a failed write (a full disk) is left for
+            // the next scan to square instead of taking the screen down.
+            withContext(io) {
+                outcomeOf {
+                    val now = System.currentTimeMillis()
+                    ids.chunked(SQLITE_ARGUMENT_LIMIT).forEach { chunk -> assetDao.markTrashed(chunk, now) }
+                    if (batch.groupIds.isNotEmpty()) dupDao.markResolvedAll(batch.groupIds, now)
+                    auditDao.insertAll(
+                        batch.losers.map { (assetId, sizeBytes) ->
+                            AuditEntry(
+                                timestamp = now,
+                                action = AuditAction.TRASHED,
+                                assetId = assetId,
+                                sizeBytes = sizeBytes,
+                                reversible = true,
+                                note = "duplikátum-vesztes",
+                            )
+                        },
                     )
-                },
-            )
-            trashedBytes.value = mediaOps.trashedBytes()
+                }
+                trashedBytes.value = mediaOps.trashedBytes()
+            }
+            requestTrash(batch.rest)
         }
     }
 
@@ -181,8 +208,11 @@ internal class DedupViewModel @Inject constructor(
     }
 
     private data class PendingTrash(
+        /** Groups that are fully resolved once this round goes through. */
         val groupIds: List<String>,
         val losers: List<Pair<Long, Long>>,
+        /** Groups asked for that did not fit in this round. */
+        val rest: List<String>,
     )
 
     private companion object {

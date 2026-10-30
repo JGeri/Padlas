@@ -240,9 +240,12 @@ internal class SwipeSetupViewModel @Inject constructor(
         if (local.value.busy) return
         viewModelScope.launch {
             local.update { it.copy(busy = true) }
-            val batch = repository.deleteRequest(repository.pendingNow())
+            val pending = repository.pendingNow()
+            val batch = repository.deleteRequest(pending)
             if (batch == null) {
-                local.update { it.copy(busy = false) }
+                local.update {
+                    it.copy(busy = false, message = if (pending.isEmpty()) null else "A rendszer most nem engedte a törlést.")
+                }
                 return@launch
             }
             pendingBatch = batch
@@ -258,17 +261,24 @@ internal class SwipeSetupViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            repository.onDeleted(batch)
+            val recorded = repository.onDeleted(batch)
+            val text = if (batch.permanent) {
+                "${Format.bytes(batch.bytes)} felszabadítva"
+            } else {
+                "${Format.count(batch.ids.size)} elem a kukába került"
+            }
             local.update {
                 it.copy(
                     busy = false,
-                    message = if (batch.permanent) {
-                        "${Format.bytes(batch.bytes)} felszabadítva"
-                    } else {
-                        "${Format.count(batch.ids.size)} elem a kukába került"
+                    message = when {
+                        !recorded -> "A törlés megtörtént, de a nyilvántartás nem frissült. Megtelt a tárhely?"
+                        batch.truncated -> "$text · jön a következő adag"
+                        else -> text
                     },
                 )
             }
+            // More was marked than one dialog carries: the next round follows on its own.
+            if (recorded && batch.truncated) deleteNow()
         }
     }
 

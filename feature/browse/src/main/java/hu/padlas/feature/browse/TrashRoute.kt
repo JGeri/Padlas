@@ -1,10 +1,6 @@
 package hu.padlas.feature.browse
 
-import android.app.Activity
 import android.content.IntentSender
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,6 +48,7 @@ import coil3.compose.AsyncImage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.common.di.IoDispatcher
 import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.result.outcomeOf
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.entity.AuditAction
@@ -67,6 +64,7 @@ import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.hairlineTop
+import hu.padlas.core.design.component.rememberSystemRequest
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
@@ -102,7 +100,13 @@ internal data class TrashUiState(
 
 private enum class TrashOp { EMPTY, DELETE_SELECTED, RESTORE }
 
-private class BinRequest(val sender: IntentSender, val op: TrashOp, val items: List<TrashedMedia>)
+/** [rest] is what did not fit in this dialog; it goes in the next round. */
+private class BinRequest(
+    val sender: IntentSender,
+    val op: TrashOp,
+    val items: List<TrashedMedia>,
+    val rest: List<TrashedMedia>,
+)
 
 /**
  * The system trash still occupies space for thirty days (INV-2). This is where the user
@@ -151,11 +155,11 @@ internal class TrashViewModel @Inject constructor(
         it.copy(selected = if (it.selected.size == it.items.size) emptySet() else it.items.map { item -> item.id }.toSet())
     }
 
-    fun emptyAll() = launch(TrashOp.EMPTY, _state.value.items)
+    fun emptyAll() = startRound(TrashOp.EMPTY, _state.value.items)
 
-    fun deleteSelected() = launch(TrashOp.DELETE_SELECTED, _state.value.items.filter { it.id in _state.value.selected })
+    fun deleteSelected() = startRound(TrashOp.DELETE_SELECTED, _state.value.items.filter { it.id in _state.value.selected })
 
-    fun restoreSelected() = launch(TrashOp.RESTORE, _state.value.items.filter { it.id in _state.value.selected })
+    fun restoreSelected() = startRound(TrashOp.RESTORE, _state.value.items.filter { it.id in _state.value.selected })
 
     fun skipsSystemDialog(): Boolean = mediaOps.canManageMedia()
 
@@ -171,59 +175,65 @@ internal class TrashViewModel @Inject constructor(
             val ids = current.items.map { it.id }
             val now = System.currentTimeMillis()
             val bytes = current.items.sumOf { it.sizeBytes }
-            withContext(io) {
-                if (current.op == TrashOp.RESTORE) {
-                    assetDao.markUntrashed(ids)
-                } else {
-                    assetDao.deleteByIds(ids)
-                }
-                auditDao.insertAll(
-                    current.items.map {
-                        AuditEntry(
-                            timestamp = now,
-                            action = if (current.op == TrashOp.RESTORE) AuditAction.UNTRASHED else AuditAction.DELETED,
-                            assetId = it.id,
-                            sizeBytes = it.sizeBytes,
-                            note = "Kuka",
-                        )
-                    },
-                )
+            // The system already did it; a failed write here only leaves rows for the next
+            // index pass to square, it must not take the screen down.
+            val recorded = withContext(io) {
+                outcomeOf {
+                    if (current.op == TrashOp.RESTORE) {
+                        assetDao.markUntrashed(ids)
+                    } else {
+                        assetDao.deleteByIds(ids)
+                    }
+                    auditDao.insertAll(
+                        current.items.map {
+                            AuditEntry(
+                                timestamp = now,
+                                action = if (current.op == TrashOp.RESTORE) AuditAction.UNTRASHED else AuditAction.DELETED,
+                                assetId = it.id,
+                                sizeBytes = it.sizeBytes,
+                                note = "Kuka",
+                            )
+                        },
+                    )
+                }.isSuccess
+            }
+            val text = if (current.op == TrashOp.RESTORE) {
+                "${Format.count(ids.size)} elem visszaállítva"
+            } else {
+                "${Format.bytes(bytes)} felszabadítva"
             }
             _state.update {
                 it.copy(
                     busy = false,
-                    selected = emptySet(),
-                    message = if (current.op == TrashOp.RESTORE) {
-                        "${Format.count(ids.size)} elem visszaállítva"
-                    } else {
-                        "${Format.bytes(bytes)} felszabadítva"
+                    selected = if (current.rest.isEmpty()) emptySet() else it.selected,
+                    message = when {
+                        !recorded -> "Kész, de a nyilvántartás nem frissült. Megtelt a tárhely?"
+                        current.rest.isNotEmpty() -> "$text · jön a következő adag"
+                        else -> text
                     },
                 )
             }
             reload()
+            startRound(current.op, current.rest)
         }
     }
 
     fun consumeMessage() = _state.update { it.copy(message = null) }
 
-    private fun launch(op: TrashOp, items: List<TrashedMedia>) {
-        if (items.isEmpty() || request != null) return
-        val batch = items.take(MAX_BATCH)
-        val uris = batch.map { it.uri }
-        val sender = runCatching {
-            if (op == TrashOp.RESTORE) mediaOps.untrashRequest(uris) else mediaOps.deleteRequest(uris)
-        }.getOrNull()
-        if (sender == null) {
-            _state.update { it.copy(message = "A rendszer most nem engedte a műveletet.") }
-            return
-        }
-        request = BinRequest(sender, op, batch)
+    private fun startRound(op: TrashOp, items: List<TrashedMedia>) {
+        if (items.isEmpty() || request != null || _state.value.busy) return
         _state.update { it.copy(busy = true) }
-        viewModelScope.launch { _requests.send(sender) }
-    }
-
-    private companion object {
-        const val MAX_BATCH = 1_500
+        viewModelScope.launch {
+            val batch = items.take(MediaOps.MAX_REQUEST)
+            val uris = batch.map { it.uri }
+            val sender = if (op == TrashOp.RESTORE) mediaOps.untrashRequest(uris) else mediaOps.deleteRequest(uris)
+            if (sender == null) {
+                _state.update { it.copy(busy = false, message = "A rendszer most nem engedte a műveletet.") }
+                return@launch
+            }
+            request = BinRequest(sender, op, batch, items.drop(batch.size))
+            _requests.send(sender)
+        }
     }
 }
 
@@ -231,11 +241,9 @@ internal class TrashViewModel @Inject constructor(
 fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val viewModel: TrashViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
-        viewModel.onResult(result.resultCode == Activity.RESULT_OK)
-    }
+    val launch = rememberSystemRequest(viewModel::onResult)
     LaunchedEffect(viewModel) {
-        viewModel.requests.collect { launcher.launch(IntentSenderRequest.Builder(it).build()) }
+        viewModel.requests.collect { launch(it) }
     }
     var confirm by remember { mutableStateOf<(() -> Unit)?>(null) }
     var confirmText by remember { mutableStateOf("") }

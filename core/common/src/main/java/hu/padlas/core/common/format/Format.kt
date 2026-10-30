@@ -58,7 +58,8 @@ object Format {
     fun count(value: Int): String = count(value.toLong())
 
     /** 0.34 -> "34%" */
-    fun percent(fraction: Float): String = "${(fraction * 100f).roundToLong()}%"
+    /** 0 / 0 is a real case (an empty folder, a volume that reports nothing); NaN cannot be rounded. */
+    fun percent(fraction: Float): String = if (fraction.isNaN()) "0%" else "${(fraction * 100f).roundToLong()}%"
 
     fun duration(millis: Long): String {
         val totalSeconds = millis / 1000

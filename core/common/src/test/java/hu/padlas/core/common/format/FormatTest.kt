@@ -47,6 +47,11 @@ class FormatTest {
     }
 
     @Test
+    fun `percent of nothing is zero, not a crash`() {
+        assertThat(Format.percent(0f / 0f)).isEqualTo("0%")
+    }
+
+    @Test
     fun `duration switches to hours when needed`() {
         assertThat(Format.duration(65_000)).isEqualTo("1:05")
         assertThat(Format.duration(3_725_000)).isEqualTo("1:02:05")

@@ -1,9 +1,5 @@
 package hu.padlas.feature.browse
 
-import android.app.Activity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -64,6 +60,7 @@ import hu.padlas.core.design.component.PhotoViewer
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.hairlineTop
+import hu.padlas.core.design.component.rememberSystemRequest
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.core.design.theme.PadlasTheme
@@ -90,9 +87,7 @@ fun BrowseRoute(
     val items = viewModel.items.collectAsLazyPagingItems()
     var preview by remember { mutableStateOf<android.net.Uri?>(null) }
 
-    val trashLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartIntentSenderForResult(),
-    ) { result -> viewModel.onTrashResult(result.resultCode == Activity.RESULT_OK) }
+    val launchTrash = rememberSystemRequest(viewModel::onTrashResult)
 
     LaunchedEffect(olderThanDaysPreset, bucketPreset) {
         if (olderThanDaysPreset != null) viewModel.applyPreset(olderThanDaysPreset)
@@ -101,7 +96,7 @@ fun BrowseRoute(
 
     LaunchedEffect(state.trashRequest) {
         val request = state.trashRequest ?: return@LaunchedEffect
-        trashLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
+        launchTrash(request.intentSender)
     }
 
     Box(modifier = modifier.fillMaxSize().auroraBackground().systemBarsPadding()) {

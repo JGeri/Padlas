@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.common.di.IoDispatcher
 import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.result.outcomeOf
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.entity.AuditAction
@@ -71,14 +72,16 @@ internal class AuditViewModel @Inject constructor(
                 local.update { it.copy(message = "Ezek a fájlok már nincsenek a telefonon.", messageOk = false) }
                 return@launch
             }
-            val sender = runCatching {
-                mediaOps.untrashRequest(assets.map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) })
-            }.getOrNull()
+            // The log shows at most LIMIT entries, so one row always fits in one dialog; the
+            // cap only guards against that ever changing.
+            val sender = mediaOps.untrashRequest(
+                assets.take(MediaOps.MAX_REQUEST).map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) },
+            )
             if (sender == null) {
                 local.update { it.copy(message = "A visszaállítás most nem indítható.", messageOk = false) }
                 return@launch
             }
-            val found = assets.map { it.mediaStoreId }.toSet()
+            val found = assets.take(MediaOps.MAX_REQUEST).map { it.mediaStoreId }.toSet()
             pendingUndo = UndoBatch(
                 entryIds = reversible.filter { it.assetId in found }.map { it.id },
                 assetIds = found.toList(),
@@ -94,24 +97,32 @@ internal class AuditViewModel @Inject constructor(
         local.update { it.copy(undoRequest = null) }
         if (batch == null || !confirmed) return
         viewModelScope.launch {
-            withContext(io) {
-                val now = System.currentTimeMillis()
-                batch.assetIds.chunked(SQLITE_ARGUMENT_LIMIT).forEach { chunk -> assetDao.markUntrashed(chunk) }
-                batch.entryIds.forEach { id -> auditDao.markConsumed(id) }
-                auditDao.insertAll(
-                    batch.assetIds.map { assetId ->
-                        AuditEntry(
-                            timestamp = now,
-                            action = AuditAction.UNTRASHED,
-                            assetId = assetId,
-                            sizeBytes = 0,
-                            reversible = false,
-                        )
-                    },
-                )
+            // The files are back either way; a failed write (a full disk) must not take the
+            // screen down with it.
+            val recorded = withContext(io) {
+                outcomeOf {
+                    val now = System.currentTimeMillis()
+                    batch.assetIds.chunked(SQLITE_ARGUMENT_LIMIT).forEach { chunk -> assetDao.markUntrashed(chunk) }
+                    batch.entryIds.forEach { id -> auditDao.markConsumed(id) }
+                    auditDao.insertAll(
+                        batch.assetIds.map { assetId ->
+                            AuditEntry(
+                                timestamp = now,
+                                action = AuditAction.UNTRASHED,
+                                assetId = assetId,
+                                sizeBytes = 0,
+                                reversible = false,
+                            )
+                        },
+                    )
+                }.isSuccess
             }
             local.update {
-                it.copy(message = "${Format.count(batch.assetIds.size)} fájl visszaállítva.", messageOk = true)
+                if (recorded) {
+                    it.copy(message = "${Format.count(batch.assetIds.size)} fájl visszaállítva.", messageOk = true)
+                } else {
+                    it.copy(message = "Visszaállítva, de a napló nem frissült. Megtelt a tárhely?", messageOk = false)
+                }
             }
         }
     }

@@ -7,6 +7,7 @@ import androidx.sqlite.db.SimpleSQLiteQuery
 import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.common.result.Outcome
+import hu.padlas.core.common.result.outcomeOf
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.entity.Asset
 import hu.padlas.core.database.entity.AssetState
@@ -56,6 +57,10 @@ internal class DiscardViewModel @Inject constructor(
     val events: Flow<DiscardEvent> = eventChannel.receiveAsFlow()
 
     private var pending: PendingDelete? = null
+
+    /** What the rounds of one delete have freed so far; the last round reports the total. */
+    private var doneCount = 0
+    private var doneBytes = 0L
 
     /**
      * Null until the first load lands, so the screen never flashes its empty state.
@@ -116,13 +121,23 @@ internal class DiscardViewModel @Inject constructor(
     fun unlock(ids: List<Long>) {
         if (ids.isEmpty()) return
         viewModelScope.launch {
-            assetDao.setProtected(ids, false)
-            kept.update { it + ids }
-            reload.update { it + 1 }
+            if (outcomeOf { assetDao.setProtected(ids, false) }.isSuccess) {
+                kept.update { it + ids }
+                reload.update { it + 1 }
+            } else {
+                message.value = "A védelmet nem sikerült feloldani."
+            }
         }
     }
 
     fun requestDelete() {
+        if (committing.value || falling.value) return
+        doneCount = 0
+        doneBytes = 0L
+        nextRound()
+    }
+
+    private fun nextRound() {
         if (committing.value || falling.value) return
         val ids = discardIds()
         if (ids.isEmpty()) return
@@ -154,7 +169,20 @@ internal class DiscardViewModel @Inject constructor(
             val bytes = committer.finish(batch)
             kept.update { it - batch.ids.toSet() }
             committing.value = false
-            message.value = "${Format.count(batch.count)} fájl törölve · ${Format.bytes(bytes)} szabadult fel"
+            if (bytes == null) {
+                message.value = "A fájlok törölve, de a nyilvántartás nem frissült. Megtelt a tárhely?"
+                return@launch
+            }
+            doneCount += batch.count
+            doneBytes += bytes
+            if (batch.more) {
+                // More was marked than one dialog carries. The finished rows are gone from
+                // the index, so the next round can only ever pick up what is left.
+                message.value = "${Format.count(doneCount)} fájl törölve · jön a következő adag"
+                nextRound()
+                return@launch
+            }
+            message.value = "${Format.count(doneCount)} fájl törölve · ${Format.bytes(doneBytes)} szabadult fel"
             falling.value = true
         }
     }

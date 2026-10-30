@@ -55,8 +55,11 @@ internal data class SessionUiState(
     val skipsSystemDialog: Boolean = false,
     /** The element this deck grew out of; the same key shrinks it back on close. */
     val heroKey: String? = null,
+    /** Swiped cards whose files left mid-session: out of [cards], still part of the count. */
+    val removed: Int = 0,
 ) {
-    val total: Int get() = cards.size
+    val total: Int get() = cards.size + removed
+    val position: Int get() = index + removed
     val finished: Boolean get() = !loading && index >= cards.size
     val current: SwipeCard? get() = cards.getOrNull(index)
 
@@ -151,7 +154,7 @@ internal class SwipeSessionViewModel @Inject constructor(
         }
         if (current.showHint) preferences.hintSeen = true
         viewModelScope.launch {
-            repository.record(card.id, action)
+            if (!repository.record(card.id, action)) _state.update { it.copy(message = NOT_SAVED) }
             if (_state.value.finished) onFinished()
         }
     }
@@ -180,9 +183,10 @@ internal class SwipeSessionViewModel @Inject constructor(
         if (_state.value.busy || pendingBatch != null) return
         viewModelScope.launch {
             _state.update { it.copy(busy = true) }
-            val batch = repository.deleteRequest(repository.pendingNow())
+            val pending = repository.pendingNow()
+            val batch = repository.deleteRequest(pending)
             if (batch == null) {
-                _state.update { it.copy(busy = false, message = "Nincs mit törölni.") }
+                _state.update { it.copy(busy = false, message = if (pending.isEmpty()) "Nincs mit törölni." else REFUSED) }
                 return@launch
             }
             pendingBatch = batch
@@ -222,12 +226,22 @@ internal class SwipeSessionViewModel @Inject constructor(
             _state.update { it.copy(busy = false, message = "A törlés elmaradt, a jelölések megmaradtak.") }
             return
         }
-        // A card whose file already left cannot be swiped back; undo skips over it.
+        // A card whose file already left cannot be swiped back or dealt again: it leaves the
+        // deck, so undo lands on the last card that is still there and a card marked in an
+        // earlier session never comes up after its file is gone.
         val gone = batch.ids.toSet()
         history.removeAll { it.card.id in gone }
-        _state.update { it.copy(canUndo = history.isNotEmpty()) }
+        _state.update { current ->
+            val behind = current.cards.take(current.index).count { it.id in gone }
+            current.copy(
+                cards = current.cards.filterNot { it.id in gone },
+                index = current.index - behind,
+                removed = current.removed + behind,
+                canUndo = history.isNotEmpty(),
+            )
+        }
         viewModelScope.launch {
-            repository.onDeleted(batch)
+            val recorded = repository.onDeleted(batch)
             val text = if (batch.permanent) {
                 "${Format.bytes(batch.bytes)} felszabadítva"
             } else {
@@ -238,10 +252,20 @@ internal class SwipeSessionViewModel @Inject constructor(
                     busy = false,
                     freedBytes = it.freedBytes + batch.bytes,
                     freedPermanently = batch.permanent,
-                    message = if (batch.truncated) "$text · a többi a következő körben" else text,
+                    message = when {
+                        !recorded -> NOT_RECORDED
+                        batch.truncated -> "$text · jön a következő adag"
+                        else -> text
+                    },
                 )
             }
-            if (_state.value.finished) offerFavoriteSync()
+            // More was marked than one dialog carries: the next round follows on its own.
+            // Each round clears its own decisions, so the pile shrinks until it is empty.
+            if (recorded && batch.truncated) {
+                deleteNow()
+            } else if (_state.value.finished) {
+                offerFavoriteSync()
+            }
         }
     }
 
@@ -300,6 +324,9 @@ internal class SwipeSessionViewModel @Inject constructor(
 
     private companion object {
         const val UNDO_DEPTH = 200
+        const val REFUSED = "A rendszer most nem engedte a törlést, a jelölések megmaradtak."
+        const val NOT_SAVED = "A döntést nem sikerült menteni. Megtelt a tárhely?"
+        const val NOT_RECORDED = "A törlés megtörtént, de a nyilvántartás nem frissült. Megtelt a tárhely?"
     }
 }
 

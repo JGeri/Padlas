@@ -1,5 +1,6 @@
 package hu.padlas.core.media
 
+import android.app.PendingIntent
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
@@ -7,6 +8,7 @@ import android.content.IntentSender
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import hu.padlas.core.common.di.IoDispatcher
 import java.io.InputStream
@@ -31,6 +33,11 @@ internal object MediaUris {
 /**
  * Every destructive call here is batched into a single system dialog (INV-3) and every
  * deletion goes through the trash first (INV-2).
+ *
+ * One request carries at most [MAX_REQUEST] items: the URIs travel inside the PendingIntent
+ * through the binder twice, and a few thousand of them overflow it. Callers take that many
+ * and send the rest in a following round. A request that cannot be built comes back null
+ * instead of throwing, so a refusal from MediaStore never takes the app down with it.
  */
 @Singleton
 class MediaOps @Inject constructor(
@@ -40,17 +47,33 @@ class MediaOps @Inject constructor(
 
     private val resolver: ContentResolver get() = context.contentResolver
 
-    fun trashRequest(uris: List<Uri>): IntentSender =
-        MediaStore.createTrashRequest(resolver, uris, true).intentSender
+    suspend fun trashRequest(uris: List<Uri>): IntentSender? =
+        request(uris) { MediaStore.createTrashRequest(resolver, it, true) }
 
-    fun untrashRequest(uris: List<Uri>): IntentSender =
-        MediaStore.createTrashRequest(resolver, uris, false).intentSender
+    suspend fun untrashRequest(uris: List<Uri>): IntentSender? =
+        request(uris) { MediaStore.createTrashRequest(resolver, it, false) }
 
-    fun deleteRequest(uris: List<Uri>): IntentSender =
-        MediaStore.createDeleteRequest(resolver, uris).intentSender
+    suspend fun deleteRequest(uris: List<Uri>): IntentSender? =
+        request(uris) { MediaStore.createDeleteRequest(resolver, it) }
 
-    fun favoriteRequest(uris: List<Uri>, favorite: Boolean = true): IntentSender =
-        MediaStore.createFavoriteRequest(resolver, uris, favorite).intentSender
+    suspend fun favoriteRequest(uris: List<Uri>, favorite: Boolean = true): IntentSender? =
+        request(uris) { MediaStore.createFavoriteRequest(resolver, it, favorite) }
+
+    private suspend fun request(uris: List<Uri>, build: (List<Uri>) -> PendingIntent): IntentSender? {
+        if (uris.isEmpty()) return null
+        if (uris.size > MAX_REQUEST) {
+            Log.e(TAG, "${uris.size} items in one request, the limit is $MAX_REQUEST")
+            return null
+        }
+        return withContext(io) {
+            try {
+                build(uris).intentSender
+            } catch (e: Exception) {
+                Log.w(TAG, "MediaStore refused a request for ${uris.size} items", e)
+                null
+            }
+        }
+    }
 
     /** With "manage media" granted the system skips its confirmation dialogs entirely. */
     fun canManageMedia(): Boolean = runCatching { MediaStore.canManageMedia(context) }.getOrDefault(false)
@@ -161,8 +184,12 @@ class MediaOps @Inject constructor(
         }.getOrDefault(emptyList())
     }
 
-    private companion object {
-        val COLLECTION: Uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+    companion object {
+        /** The most items one system dialog is asked to carry. */
+        const val MAX_REQUEST = 1_000
+
+        private const val TAG = "MediaOps"
+        private val COLLECTION: Uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
     }
 }
 
