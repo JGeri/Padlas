@@ -113,6 +113,50 @@ class StorageTreeTest {
     }
 
     @Test
+    fun `files and folders of one batch leave together`() {
+        val root = sample()
+
+        root.removePaths(
+            listOf("$ROOT/DCIM/Camera/IMG_1.jpg", "$ROOT/DCIM/Camera/VID_1.mp4", "$ROOT/Download", "$ROOT/notes.txt"),
+        )
+
+        assertThat(root.find("$ROOT/DCIM/Camera")?.files?.names?.toList()).containsExactly("IMG_2.jpg")
+        assertThat(root.find("$ROOT/Download")).isNull()
+        assertThat(root.files.count).isEqualTo(0)
+        assertThat(root.bytes).isEqualTo(6_500)
+        assertThat(root.fileCount).isEqualTo(2)
+        assertThat(root.categoryBytes[FileCategory.INSTALLERS.ordinal]).isEqualTo(0)
+        root.assertConsistent()
+    }
+
+    @Test
+    fun `a batch naming what is already gone changes nothing`() {
+        val root = sample()
+        val download = root.find("$ROOT/Download") ?: error("missing")
+        val leaves = download.files
+
+        root.removePaths(listOf("$ROOT/Download/nothing.bin", "$ROOT/Gone/a.jpg", "$ROOT/DCIM/Nope"))
+
+        assertThat(download.files).isSameInstanceAs(leaves)
+        assertThat(root.bytes).isEqualTo(80_600)
+        root.assertConsistent()
+    }
+
+    @Test
+    fun `thousands of files leave a big folder in one pass`() {
+        val root = tree { dir("Camera") { repeat(20_000) { file("IMG_$it.jpg", 10) } } }
+        val camera = root.child("Camera") ?: error("missing")
+
+        root.removePaths((0 until 15_000).map { "$ROOT/Camera/IMG_$it.jpg" })
+
+        assertThat(camera.files.count).isEqualTo(5_000)
+        assertThat(camera.files.names.first()).isEqualTo("IMG_15000.jpg")
+        assertThat(root.bytes).isEqualTo(50_000)
+        assertThat(root.fileCount).isEqualTo(5_000)
+        root.assertConsistent()
+    }
+
+    @Test
     fun `replacing a subtree moves only the difference up`() {
         val root = sample()
         val download = root.find("$ROOT/Download") ?: error("missing")

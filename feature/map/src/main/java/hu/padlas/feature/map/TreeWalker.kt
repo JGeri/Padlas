@@ -68,6 +68,7 @@ internal class TreeWalker(
         val leaves = FileLeavesBuilder()
         val children = ArrayList<DirNode>()
         val categoryDelta = LongArray(CATEGORY_COUNT)
+        val mangled = HashSet<String>()
 
         try {
             Files.newDirectoryStream(dir).use { stream ->
@@ -75,6 +76,9 @@ internal class TreeWalker(
                     val attrs = attributesOf(entry)
                     val name = entry.fileName?.toString()
                     if (attrs == null || name == null || attrs.isSymbolicLink) continue
+                    // Bytes that are not UTF-8 decode to U+FFFD, so two different names can
+                    // read the same here; the copy would be a duplicate key in every list.
+                    if (REPLACEMENT in name && !mangled.add(name)) continue
                     if (attrs.isDirectory) {
                         val child = DirNode(name, node)
                         if (child.path.lowercase(Locale.ROOT) !in skipped) {
@@ -130,5 +134,7 @@ internal class TreeWalker(
 
         /** Real trees are never this deep; the cap only guards against a pathological one. */
         const val MAX_DEPTH = 96
+
+        private const val REPLACEMENT = '\uFFFD'
     }
 }
