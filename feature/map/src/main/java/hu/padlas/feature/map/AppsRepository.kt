@@ -11,6 +11,7 @@ import hu.padlas.core.common.di.IoDispatcher
 import hu.padlas.core.media.StorageProbe
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -63,7 +64,17 @@ internal class AppsRepository @Inject constructor(
             if (!force && fresh) return
             _loading.value = true
             try {
-                val measured = runCatching { probe.appUsage() }.getOrDefault(emptyList())
+                // A screen that leaves mid-measure cancels it; that is no answer to keep.
+                val usage = try {
+                    probe.appUsage()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    emptyList()
+                }
+                val measured = usage
+                    // The package name is the row key of the apps list.
+                    .distinctBy { it.packageName }
                     .map { AppEntry(it.packageName, it.label, it.appBytes, it.dataBytes, it.cacheBytes) }
                     .filter { it.totalBytes > 0L }
                     .sortedByDescending { it.totalBytes }

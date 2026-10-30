@@ -12,6 +12,7 @@ import hu.padlas.core.common.di.ApplicationScope
 import hu.padlas.core.common.di.DefaultDispatcher
 import hu.padlas.core.common.di.IoDispatcher
 import java.nio.file.Files
+import java.nio.file.InvalidPathException
 import java.nio.file.LinkOption
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -76,6 +77,11 @@ internal class StorageAnalyzer @Inject constructor(
     val state: StateFlow<AnalyzerState> = _state.asStateFlow()
 
     private val treeLock = Mutex()
+
+    /** One batch at a time: two walks over the same folder would each trip over the other. */
+    private val deleteLock = Mutex()
+
+    @Volatile
     private var scanJob: Job? = null
 
     /** Paths deleted while a scan was running: the fresh tree may have seen them alive. */
@@ -108,7 +114,7 @@ internal class StorageAnalyzer @Inject constructor(
      * brought in line with the disk, even if the screen that asked has gone away.
      */
     suspend fun delete(items: List<StorageItem>): DeleteOutcome =
-        scope.async(io) { performDelete(items) }.await()
+        scope.async(io) { deleteLock.withLock { performDelete(items) } }.await()
 
     private suspend fun runScan() {
         val counters = ScanCounters()
@@ -182,19 +188,27 @@ internal class StorageAnalyzer @Inject constructor(
         val gone = ArrayList<StorageItem>()
         val partial = ArrayList<StorageItem>()
         for (target in targets) {
-            val path = Paths.get(target.path)
-            report += if (target.isDirectory && target.fileCount == 0) {
-                FileDeleter.deleteEmptyTree(path)
-            } else {
-                FileDeleter.delete(path)
+            // One entry the file system refuses outright must not abort the batch: what
+            // went before it is already off the disk and still has to leave the map.
+            val left = try {
+                val path = Paths.get(target.path)
+                report += if (target.isDirectory && target.fileCount == 0) {
+                    FileDeleter.deleteEmptyTree(path)
+                } else {
+                    FileDeleter.delete(path)
+                }
+                Files.exists(path, LinkOption.NOFOLLOW_LINKS)
+            } catch (e: RuntimeException) {
+                report += DeleteReport(failures = 1)
+                true
             }
-            if (Files.exists(path, LinkOption.NOFOLLOW_LINKS)) partial += target else gone += target
+            if (left) partial += target else gone += target
         }
 
         treeLock.withLock {
             val snapshot = _state.value.snapshot
             if (snapshot != null) {
-                gone.forEach { removeFromTree(snapshot.root, it) }
+                snapshot.root.removePaths(gone.map { it.path })
                 partial.filter { it.isDirectory }.forEach { remeasure(snapshot.root, it) }
                 val index = withContext(cpu) { StorageIndex.build(snapshot.root, System.currentTimeMillis()) }
                 val next = StorageSnapshot(snapshot.root, index, snapshot.scannedAt, snapshot.version + 1)
@@ -207,33 +221,25 @@ internal class StorageAnalyzer @Inject constructor(
         return DeleteOutcome(report.freedBytes, gone.size, partial.size)
     }
 
-    private fun removeFromTree(root: DirNode, item: StorageItem) {
-        if (item.isDirectory) {
-            val node = root.find(item.path) ?: return
-            node.parent?.removeDir(node)
-        } else {
-            root.find(item.parentPath)?.removeFile(item.name)
-        }
-    }
-
     private suspend fun remeasure(root: DirNode, item: StorageItem) {
         val node = root.find(item.path) ?: return
         val parent = node.parent ?: return
-        val fresh = TreeWalker(io, ScanCounters(), skippedPaths()).remeasure(parent, node.name)
+        val fresh = try {
+            TreeWalker(io, ScanCounters(), skippedPaths()).remeasure(parent, node.name)
+        } catch (e: InvalidPathException) {
+            // A path the file system cannot even name keeps its old figures.
+            return
+        }
         parent.replaceDir(node, fresh)
     }
 
     private fun applyTombstones(root: DirNode) {
+        val dead = ArrayList<String>()
         while (true) {
             val path = tombstones.poll() ?: break
-            if (Files.exists(Paths.get(path), LinkOption.NOFOLLOW_LINKS)) continue
-            val dir = root.find(path)
-            if (dir != null) {
-                dir.parent?.removeDir(dir)
-            } else {
-                root.find(path.substringBeforeLast('/'))?.removeFile(path.substringAfterLast('/'))
-            }
+            if (!Files.exists(Paths.get(path), LinkOption.NOFOLLOW_LINKS)) dead += path
         }
+        root.removePaths(dead)
     }
 
     /**

@@ -198,6 +198,55 @@ internal fun DirNode.removeDir(child: DirNode): Boolean {
     return true
 }
 
+/**
+ * Removes every file and folder called one of [names] in a single pass and takes their
+ * size off every ancestor. One by one, two thousand files out of a full camera folder
+ * would copy its leaves two thousand times while the tree is locked.
+ */
+internal fun DirNode.removeChildren(names: Set<String>): Int {
+    if (names.isEmpty()) return 0
+    var bytes = 0L
+    var count = 0
+    val delta = LongArray(CATEGORY_COUNT)
+
+    val keptDirs = ArrayList<DirNode>(dirs.size)
+    for (dir in dirs) {
+        if (dir.name !in names) {
+            keptDirs += dir
+            continue
+        }
+        bytes += dir.bytes
+        count += dir.fileCount
+        for (c in 0 until CATEGORY_COUNT) delta[c] -= dir.categoryBytes[c]
+    }
+    val goneDirs = dirs.size - keptDirs.size
+
+    val keptFiles = FileLeavesBuilder()
+    for (i in 0 until files.count) {
+        val size = files.sizes[i]
+        if (files.names[i] !in names) {
+            keptFiles.add(files.names[i], size, files.modified[i], files.category(i))
+            continue
+        }
+        bytes += size
+        count++
+        delta[files.categories[i].toInt()] -= size
+    }
+    val goneFiles = files.count - keptFiles.count
+
+    if (goneDirs == 0 && goneFiles == 0) return 0
+    if (goneDirs > 0) dirs = keptDirs
+    if (goneFiles > 0) files = keptFiles.build()
+    propagate(this, -bytes, -count, delta)
+    return goneDirs + goneFiles
+}
+
+/** Folder by folder, so each one is rebuilt once however many of its entries went. */
+internal fun DirNode.removePaths(paths: Collection<String>) {
+    paths.groupBy({ it.substringBeforeLast('/') }, { it.substringAfterLast('/') })
+        .forEach { (parentPath, names) -> find(parentPath)?.removeChildren(names.toHashSet()) }
+}
+
 /** Swaps a subtree for a freshly measured one and moves the difference up the chain. */
 internal fun DirNode.replaceDir(old: DirNode, fresh: DirNode): Boolean {
     if (dirs.none { it === old }) return false
