@@ -257,7 +257,7 @@ internal class BrowseViewModel @Inject constructor(
             // next index pass to square instead of taking the screen down.
             val recorded = withContext(io) {
                 outcomeOf {
-                    assetDao.markTrashed(batch.sizes.keys.toList(), now)
+                    batch.sizes.keys.chunked(SQLITE_ARGUMENT_LIMIT).forEach { assetDao.markTrashed(it, now) }
                     auditDao.insertAll(
                         batch.sizes.map { (id, size) ->
                             AuditEntry(

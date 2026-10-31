@@ -82,7 +82,7 @@ class DiscardCommitter @Inject constructor(
                     )
                 },
             )
-            assetDao.deleteByIds(pending.ids)
+            pending.ids.chunked(SQLITE_ARGUMENT_LIMIT).forEach { assetDao.deleteByIds(it) }
             pending.bytes
         }.valueOrNull()
     }
