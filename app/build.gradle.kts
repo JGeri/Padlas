@@ -35,8 +35,8 @@ android {
         applicationId = "hu.padlas"
         minSdk = 34
         targetSdk = 36
-        versionCode = (findProperty("padlas.versionCode") as String?)?.toInt() ?: 6
-        versionName = (findProperty("padlas.versionName") as String?) ?: "2.1.3"
+        versionCode = (findProperty("padlas.versionCode") as String?)?.toInt() ?: 7
+        versionName = (findProperty("padlas.versionName") as String?) ?: "2.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
