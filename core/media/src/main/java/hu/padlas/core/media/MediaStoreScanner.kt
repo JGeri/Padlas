@@ -21,19 +21,40 @@ import kotlinx.coroutines.withContext
  * row that touches the file itself: no EXIF, no bitmap. That is what keeps a 25 000 asset
  * cold index under 90 seconds.
  */
-@Singleton
-class MediaStoreScanner @Inject constructor(
-    @ApplicationContext private val context: Context,
-    @IoDispatcher private val io: CoroutineDispatcher,
-) {
+interface MediaStoreScanner {
 
     /**
      * @param sinceDateModified MediaStore DATE_MODIFIED in **seconds**, matching what
      * AssetDao.latestDateModified() returns. 0 means a full scan.
      */
-    fun scan(sinceDateModified: Long = 0L): Flow<List<Asset>> = flow {
+    fun scan(sinceDateModified: Long = 0L): Flow<List<Asset>>
+
+    /**
+     * Rows by id, whatever their timestamps say. A file copied in with its old modification
+     * time sorts below the incremental watermark, so the indexer asks for it by name.
+     */
+    fun scanIds(ids: Collection<Long>): Flow<List<Asset>>
+
+    /** Ids currently in MediaStore, so the indexer can drop rows deleted outside the app. */
+    suspend fun currentIds(): Set<Long>
+
+    suspend fun assetById(mediaStoreId: Long): Asset?
+
+    companion object {
+        const val BATCH_SIZE = 500
+    }
+}
+
+/** The ContentResolver behind [MediaStoreScanner]; the index can then be tested on a list. */
+@Singleton
+class MediaStoreCursorScanner @Inject constructor(
+    @ApplicationContext private val context: Context,
+    @IoDispatcher private val io: CoroutineDispatcher,
+) : MediaStoreScanner {
+
+    override fun scan(sinceDateModified: Long): Flow<List<Asset>> = flow {
         val seenAt = System.currentTimeMillis()
-        var batch = ArrayList<Asset>(BATCH_SIZE)
+        var batch = ArrayList<Asset>(MediaStoreScanner.BATCH_SIZE)
         val incremental = sinceDateModified > 0L
         val selection = if (incremental) {
             MEDIA_SELECTION + " AND " + MediaStore.Files.FileColumns.DATE_MODIFIED + " > ?"
@@ -48,20 +69,16 @@ class MediaStoreScanner @Inject constructor(
             while (cursor.moveToNext()) {
                 currentCoroutineContext().ensureActive()
                 batch += cursor.toAsset(columns, seenAt)
-                if (batch.size >= BATCH_SIZE) {
+                if (batch.size >= MediaStoreScanner.BATCH_SIZE) {
                     emit(batch)
-                    batch = ArrayList(BATCH_SIZE)
+                    batch = ArrayList(MediaStoreScanner.BATCH_SIZE)
                 }
             }
         }
         if (batch.isNotEmpty()) emit(batch)
     }.flowOn(io)
 
-    /**
-     * Rows by id, whatever their timestamps say. A file copied in with its old modification
-     * time sorts below the incremental watermark, so the indexer asks for it by name.
-     */
-    fun scanIds(ids: Collection<Long>): Flow<List<Asset>> = flow {
+    override fun scanIds(ids: Collection<Long>): Flow<List<Asset>> = flow {
         val seenAt = System.currentTimeMillis()
         for (chunk in ids.chunked(ID_CHUNK)) {
             val selection = MEDIA_SELECTION + " AND " + MediaStore.Files.FileColumns._ID +
@@ -78,8 +95,7 @@ class MediaStoreScanner @Inject constructor(
         }
     }.flowOn(io)
 
-    /** Ids currently in MediaStore, so the indexer can drop rows deleted outside the app. */
-    suspend fun currentIds(): Set<Long> = withContext(io) {
+    override suspend fun currentIds(): Set<Long> = withContext(io) {
         val ids = HashSet<Long>()
         val projection = arrayOf(MediaStore.Files.FileColumns._ID)
         query(projection, MEDIA_SELECTION, null, null)?.use { cursor ->
@@ -92,7 +108,7 @@ class MediaStoreScanner @Inject constructor(
         ids
     }
 
-    suspend fun assetById(mediaStoreId: Long): Asset? = withContext(io) {
+    override suspend fun assetById(mediaStoreId: Long): Asset? = withContext(io) {
         val selection = MEDIA_SELECTION + " AND " + MediaStore.Files.FileColumns._ID + " = ?"
         query(PROJECTION, selection, arrayOf(mediaStoreId.toString()), null)?.use { cursor ->
             if (cursor.moveToFirst()) {
@@ -181,24 +197,22 @@ class MediaStoreScanner @Inject constructor(
         val favorite = cursor.getColumnIndex(MediaStore.MediaColumns.IS_FAVORITE)
     }
 
-    companion object {
-        const val BATCH_SIZE = 500
-
+    private companion object {
         /** Well under SQLite's variable limit, which MediaProvider's own queries share. */
-        private const val ID_CHUNK = 500
+        const val ID_CHUNK = 500
 
-        private const val MILLIS_PER_SECOND = 1000L
+        const val MILLIS_PER_SECOND = 1000L
 
-        private val COLLECTION = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        val COLLECTION = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
 
         /** Parenthesised because callers append " AND ..." and OR binds looser than AND. */
-        private val MEDIA_SELECTION =
+        val MEDIA_SELECTION =
             "(" + MediaStore.Files.FileColumns.MEDIA_TYPE + " = " +
                 MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE + " OR " +
                 MediaStore.Files.FileColumns.MEDIA_TYPE + " = " +
                 MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO + ")"
 
-        private val PROJECTION = arrayOf(
+        val PROJECTION = arrayOf(
             MediaStore.Files.FileColumns._ID,
             MediaStore.Files.FileColumns.DISPLAY_NAME,
             MediaStore.Files.FileColumns.RELATIVE_PATH,

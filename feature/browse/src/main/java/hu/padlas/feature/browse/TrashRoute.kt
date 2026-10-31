@@ -107,6 +107,9 @@ internal data class TrashUiState(
 
 private enum class TrashOp { EMPTY, DELETE_SELECTED, RESTORE }
 
+/** A dialog's worth of ids is more than one statement may bind on an older SQLite. */
+private const val SQLITE_ARGUMENT_LIMIT = 900
+
 /** [rest] is what did not fit in this dialog; it goes in the next round. */
 private class BinRequest(
     val sender: IntentSender,
@@ -190,10 +193,12 @@ internal class TrashViewModel @Inject constructor(
             // index pass to square, it must not take the screen down.
             val recorded = withContext(io) {
                 outcomeOf {
-                    if (current.op == TrashOp.RESTORE) {
-                        assetDao.markUntrashed(ids)
-                    } else {
-                        assetDao.deleteByIds(ids)
+                    ids.chunked(SQLITE_ARGUMENT_LIMIT).forEach { chunk ->
+                        if (current.op == TrashOp.RESTORE) {
+                            assetDao.markUntrashed(chunk)
+                        } else {
+                            assetDao.deleteByIds(chunk)
+                        }
                     }
                     auditDao.insertAll(
                         current.items.map {

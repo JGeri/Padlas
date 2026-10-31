@@ -89,8 +89,9 @@ settings update): "12,4 GB" and "2 341" in Hungarian, "12.4 GB" and "2,341" in E
 ```kotlin
 package hu.padlas.core.media
 
-class MediaStoreScanner @Inject constructor(...) {
+interface MediaStoreScanner {                     // bound to MediaStoreCursorScanner
     fun scan(sinceDateModified: Long = 0L): Flow<List<Asset>>   // emits batches of 500
+    fun scanIds(ids: Collection<Long>): Flow<List<Asset>>
     suspend fun currentIds(): Set<Long>
     suspend fun assetById(mediaStoreId: Long): Asset?
 }
@@ -129,14 +130,18 @@ class ThumbnailStore @Inject constructor(...) {
     fun ghostThumbnailFile(assetId: Long): File
 }
 
-class MediaOps @Inject constructor(...) {
-    fun trashRequest(uris: List<Uri>): IntentSender        // MediaStore.createTrashRequest
-    fun untrashRequest(uris: List<Uri>): IntentSender
-    fun deleteRequest(uris: List<Uri>): IntentSender       // one dialog for the whole batch
+interface MediaOps {                              // bound to MediaStoreOps
+    // At most MediaOps.MAX_REQUEST (1 000) uris per dialog; null when it cannot be built.
+    suspend fun trashRequest(uris: List<Uri>): IntentSender?      // MediaStore.createTrashRequest
+    suspend fun untrashRequest(uris: List<Uri>): IntentSender?
+    suspend fun deleteRequest(uris: List<Uri>): IntentSender?     // one dialog for the whole batch
+    suspend fun favoriteRequest(uris: List<Uri>, favorite: Boolean = true): IntentSender?
+    fun canManageMedia(): Boolean
     fun uriFor(mediaStoreId: Long, isVideo: Boolean): Uri
     suspend fun openInputStream(uri: Uri): InputStream?
     suspend fun fileSize(uri: Uri): Long
     suspend fun trashedBytes(): Long                        // MediaStore trash, still occupied
+    suspend fun trashedItems(): List<TrashedMedia>
 }
 
 class StorageProbe @Inject constructor(...) {

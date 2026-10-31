@@ -139,13 +139,17 @@ class SwipeRepository @Inject constructor(
 
     private suspend fun recordDeleted(batch: DeleteBatch) {
         val now = System.currentTimeMillis()
-        val sizes = assetDao.byIds(batch.ids).associate { it.mediaStoreId to it.sizeBytes }
-        if (batch.permanent) {
-            assetDao.deleteByIds(batch.ids)
-        } else {
-            assetDao.markTrashed(batch.ids, now)
+        // A full round is more ids than one statement may bind on an older SQLite.
+        val chunks = batch.ids.chunked(SQLITE_ARGUMENT_LIMIT)
+        val sizes = chunks.flatMap { assetDao.byIds(it) }.associate { it.mediaStoreId to it.sizeBytes }
+        chunks.forEach { chunk ->
+            if (batch.permanent) {
+                assetDao.deleteByIds(chunk)
+            } else {
+                assetDao.markTrashed(chunk, now)
+            }
+            swipeDao.delete(chunk)
         }
-        swipeDao.delete(batch.ids)
         auditDao.insertAll(
             batch.ids.map { id ->
                 AuditEntry(
@@ -162,7 +166,7 @@ class SwipeRepository @Inject constructor(
 
     /** Favourites marked in the deck that the system gallery does not know about yet. */
     suspend fun favoriteRequest(ids: List<Long>): FavoriteBatch? = withContext(io) {
-        val assets = assetDao.byIds(ids).filter { !it.isFavorite }
+        val assets = ids.chunked(SQLITE_ARGUMENT_LIMIT).flatMap { assetDao.byIds(it) }.filter { !it.isFavorite }
         if (assets.isEmpty()) return@withContext null
         val batch = assets.take(MediaOps.MAX_REQUEST)
         val sender = mediaOps.favoriteRequest(batch.map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) })
@@ -170,7 +174,9 @@ class SwipeRepository @Inject constructor(
         FavoriteBatch(sender, batch.map { it.mediaStoreId })
     }
 
-    suspend fun onFavorited(batch: FavoriteBatch): Boolean = tryWrite { assetDao.setFavorite(batch.ids, true) }
+    suspend fun onFavorited(batch: FavoriteBatch): Boolean = tryWrite {
+        batch.ids.chunked(SQLITE_ARGUMENT_LIMIT).forEach { assetDao.setFavorite(it, true) }
+    }
 
     /**
      * A failed write - a full disk, most likely, on a phone that is being cleaned - is
@@ -189,5 +195,6 @@ class SwipeRepository @Inject constructor(
 
     companion object {
         const val DECK_LIMIT = 6_000
+        private const val SQLITE_ARGUMENT_LIMIT = 900
     }
 }

@@ -39,30 +39,68 @@ internal object MediaUris {
  * and send the rest in a following round. A request that cannot be built comes back null
  * instead of throwing, so a refusal from MediaStore never takes the app down with it.
  */
+interface MediaOps {
+
+    suspend fun trashRequest(uris: List<Uri>): IntentSender?
+
+    suspend fun untrashRequest(uris: List<Uri>): IntentSender?
+
+    suspend fun deleteRequest(uris: List<Uri>): IntentSender?
+
+    suspend fun favoriteRequest(uris: List<Uri>, favorite: Boolean = true): IntentSender?
+
+    /** With "manage media" granted the system skips its confirmation dialogs entirely. */
+    fun canManageMedia(): Boolean
+
+    fun uriFor(mediaStoreId: Long, isVideo: Boolean): Uri
+
+    suspend fun openInputStream(uri: Uri): InputStream?
+
+    suspend fun fileSize(uri: Uri): Long
+
+    /**
+     * INV-2: trashed content still occupies bytes for 30 days. The trash is only visible
+     * through a bundle query with QUERY_ARG_MATCH_TRASHED, not through a plain selection.
+     */
+    suspend fun trashedBytes(): Long
+
+    /** Everything in the system trash: ours, the gallery's, any app's. */
+    suspend fun trashedItems(): List<TrashedMedia>
+
+    companion object {
+        /** The most items one system dialog is asked to carry. */
+        const val MAX_REQUEST = 1_000
+    }
+}
+
+/**
+ * Behind [MediaOps] so the delete rounds of every screen can be exercised without a system
+ * dialog to answer them.
+ */
 @Singleton
-class MediaOps @Inject constructor(
+class MediaStoreOps @Inject constructor(
     @ApplicationContext private val context: Context,
     @IoDispatcher private val io: CoroutineDispatcher,
-) {
+) : MediaOps {
 
     private val resolver: ContentResolver get() = context.contentResolver
 
-    suspend fun trashRequest(uris: List<Uri>): IntentSender? =
+    override suspend fun trashRequest(uris: List<Uri>): IntentSender? =
         request(uris) { MediaStore.createTrashRequest(resolver, it, true) }
 
-    suspend fun untrashRequest(uris: List<Uri>): IntentSender? =
+    override suspend fun untrashRequest(uris: List<Uri>): IntentSender? =
         request(uris) { MediaStore.createTrashRequest(resolver, it, false) }
 
-    suspend fun deleteRequest(uris: List<Uri>): IntentSender? =
+    override suspend fun deleteRequest(uris: List<Uri>): IntentSender? =
         request(uris) { MediaStore.createDeleteRequest(resolver, it) }
 
-    suspend fun favoriteRequest(uris: List<Uri>, favorite: Boolean = true): IntentSender? =
+    override suspend fun favoriteRequest(uris: List<Uri>, favorite: Boolean): IntentSender? =
         request(uris) { MediaStore.createFavoriteRequest(resolver, it, favorite) }
 
     private suspend fun request(uris: List<Uri>, build: (List<Uri>) -> PendingIntent): IntentSender? {
         if (uris.isEmpty()) return null
-        if (uris.size > MAX_REQUEST) {
-            Log.e(TAG, "${uris.size} items in one request, the limit is $MAX_REQUEST")
+        if (uris.size > MediaOps.MAX_REQUEST) {
+            Log.e(TAG, "${uris.size} items in one request, the limit is ${MediaOps.MAX_REQUEST}")
             return null
         }
         return withContext(io) {
@@ -75,16 +113,15 @@ class MediaOps @Inject constructor(
         }
     }
 
-    /** With "manage media" granted the system skips its confirmation dialogs entirely. */
-    fun canManageMedia(): Boolean = runCatching { MediaStore.canManageMedia(context) }.getOrDefault(false)
+    override fun canManageMedia(): Boolean = runCatching { MediaStore.canManageMedia(context) }.getOrDefault(false)
 
-    fun uriFor(mediaStoreId: Long, isVideo: Boolean): Uri = MediaUris.forId(mediaStoreId, isVideo)
+    override fun uriFor(mediaStoreId: Long, isVideo: Boolean): Uri = MediaUris.forId(mediaStoreId, isVideo)
 
-    suspend fun openInputStream(uri: Uri): InputStream? = withContext(io) {
+    override suspend fun openInputStream(uri: Uri): InputStream? = withContext(io) {
         runCatching { resolver.openInputStream(uri) }.getOrNull()
     }
 
-    suspend fun fileSize(uri: Uri): Long = withContext(io) {
+    override suspend fun fileSize(uri: Uri): Long = withContext(io) {
         runCatching {
             resolver.query(uri, arrayOf(MediaStore.MediaColumns.SIZE), null, null, null)?.use {
                 if (it.moveToFirst()) {
@@ -96,11 +133,7 @@ class MediaOps @Inject constructor(
         }.getOrDefault(0L)
     }
 
-    /**
-     * INV-2: trashed content still occupies bytes for 30 days. The trash is only visible
-     * through a bundle query with QUERY_ARG_MATCH_TRASHED, not through a plain selection.
-     */
-    suspend fun trashedBytes(): Long = withContext(io) {
+    override suspend fun trashedBytes(): Long = withContext(io) {
         val args = Bundle().apply {
             putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_ONLY)
             putString(
@@ -126,8 +159,7 @@ class MediaOps @Inject constructor(
         }.getOrDefault(0L)
     }
 
-    /** Everything in the system trash: ours, the gallery's, any app's. */
-    suspend fun trashedItems(): List<TrashedMedia> = withContext(io) {
+    override suspend fun trashedItems(): List<TrashedMedia> = withContext(io) {
         val args = Bundle().apply {
             putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_ONLY)
             putString(
@@ -184,12 +216,9 @@ class MediaOps @Inject constructor(
         }.getOrDefault(emptyList())
     }
 
-    companion object {
-        /** The most items one system dialog is asked to carry. */
-        const val MAX_REQUEST = 1_000
-
-        private const val TAG = "MediaOps"
-        private val COLLECTION: Uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+    private companion object {
+        const val TAG = "MediaOps"
+        val COLLECTION: Uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
     }
 }
 
