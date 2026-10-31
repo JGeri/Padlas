@@ -2,6 +2,8 @@
 
 [English](README.md) · **Magyar**
 
+![Padlás](docs/media/hero.png)
+
 Galéria-válogató és tárhelykezelő Androidra. Swipe-pal mész végig a fotóidon és videóidon
 — hónapok vagy mappák szerint —, és közben látod, mi foglalja a helyet a telefonon.
 

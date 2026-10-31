@@ -7,6 +7,8 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-Compose-7F52FF)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
+![Padlás](docs/media/hero.png)
+
 A gallery sorter and storage manager for Android. Swipe through your photos and videos
 month by month or folder by folder, and see what is actually filling the phone while you
 do it. *Padlás* is Hungarian for attic: the place where things you want to keep, but not
@@ -14,6 +16,13 @@ in the living room, go.
 
 Everything happens on the device. Nothing is uploaded unless you set up the optional
 Google Drive archive yourself.
+
+<p align="center">
+  <img src="docs/media/swipe.gif" width="22%" alt="Swiping through a month">
+  <img src="docs/media/morph2.gif" width="22%" alt="A folder grows into the deck">
+  <img src="docs/media/dups.gif" width="22%" alt="Marking frames in a burst">
+  <img src="docs/media/treemap.gif" width="22%" alt="Storage map">
+</p>
 
 ## What it does
 
@@ -27,6 +36,16 @@ Google Drive archive yourself.
 | **Trash, log, rules** | The system trash with restore and empty, a full action log with undo and CSV export, and a rule engine that only runs after a dry run. |
 
 The app is fully localised in English and Hungarian (per-app language in system settings).
+
+| Overview | Sort | Deck |
+|---|---|---|
+| ![Overview](docs/media/overview.png) | ![Folders to sort](docs/media/folders.png) | ![Swipe deck](docs/media/deck.png) |
+| **Duplicates** | **Throwaway pictures** | **Storage map** |
+| ![Duplicates](docs/media/dups_review.png) | ![Throwaway pictures](docs/media/throwaway.png) | ![Storage map](docs/media/treemap.png) |
+
+*All pictures in these captures are generated mock photos and screenshots; the debug build
+can be confined to one folder for exactly this (`adb shell setprop debug.padlas.demo
+Pictures/PadlasDemo/`).*
 
 ## Design
 
