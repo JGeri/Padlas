@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -67,6 +68,7 @@ import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
+import hu.padlas.feature.dedup.R
 import kotlinx.coroutines.delay
 
 private val TILE = 96.dp
@@ -126,7 +128,7 @@ internal fun DupGroupCard(
                 }
                 Spacer(Modifier.width(Space.s))
                 PadlasButton(
-                    text = DedupCopy.GROUP_ACTION,
+                    text = stringResource(R.string.dedup_group_action),
                     onClick = {
                         hapticFeedback?.collapse()
                         onResolve(group.id)
@@ -165,7 +167,7 @@ internal fun DupGroupCard(
             if (group.needsReview) {
                 Spacer(Modifier.height(Space.m))
                 Text(
-                    text = DedupCopy.REVIEW_HINT,
+                    text = stringResource(R.string.dedup_review_hint),
                     style = PadlasTheme.type.caption,
                     color = Ink.TextTertiary,
                     modifier = Modifier.padding(horizontal = Space.l),
@@ -174,7 +176,7 @@ internal fun DupGroupCard(
                 val others = group.members.count { it.assetId != suggested?.assetId && !it.isProtected }
                 if (markable && suggested != null && others > 0 && group.losers.size < others) {
                     PadlasTextButton(
-                        text = DedupCopy.KEEP_SUGGESTED,
+                        text = stringResource(R.string.dedup_keep_suggested),
                         onClick = {
                             hapticFeedback?.tick()
                             onKeepSuggested(group.id)
@@ -255,8 +257,8 @@ private fun MemberTile(
                 role = if (markable) Role.Checkbox else Role.Image,
                 onClickLabel = when {
                     !markable -> null
-                    fate == MemberFate.TRASH -> DedupCopy.VIEW_KEEP
-                    else -> DedupCopy.VIEW_MARK
+                    fate == MemberFate.TRASH -> stringResource(R.string.dedup_view_keep)
+                    else -> stringResource(R.string.dedup_view_mark)
                 },
                 onLongClick = onView,
                 onClick = if (markable && fate != MemberFate.PROTECTED) onMark else onView,
@@ -293,14 +295,14 @@ private fun MemberTile(
         ) {
             if (review) {
                 Pill(
-                    text = DedupCopy.SUGGESTED_BADGE,
+                    text = stringResource(R.string.dedup_suggested_badge),
                     icon = Icons.Rounded.AutoAwesome,
                     color = Ink.Text,
                     background = Ink.Accent.copy(alpha = 0.85f),
                 )
             } else {
                 Pill(
-                    text = DedupCopy.KEEP_BADGE,
+                    text = stringResource(R.string.dedup_keep_badge),
                     icon = Icons.Rounded.Check,
                     color = Ink.Background,
                     background = Ink.Success,
@@ -309,7 +311,7 @@ private fun MemberTile(
         }
         if (member.isProtected && !member.isWinner) {
             Pill(
-                text = DedupCopy.PROTECTED_BADGE,
+                text = stringResource(R.string.dedup_protected_badge),
                 icon = Icons.Rounded.Shield,
                 color = Ink.Text,
                 background = Ink.Info.copy(alpha = 0.85f),

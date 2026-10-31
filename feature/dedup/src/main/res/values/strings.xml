@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dedup_title">Duplicates</string>
+    <string name="dedup_reclaimable">Can be freed</string>
+    <string name="dedup_keep_badge">Keep</string>
+    <string name="dedup_suggested_badge">Suggested</string>
+    <string name="dedup_protected_badge">Protected</string>
+    <string name="dedup_will_trash">Goes to trash</string>
+    <string name="dedup_view_mark">This one can go</string>
+    <string name="dedup_view_keep">Keep this one</string>
+    <string name="dedup_keep_suggested">Keep only the suggested one</string>
+    <string name="dedup_review_hint">Tap the pictures that can go; whatever you don\'t select stays. Press and hold to see one full size.</string>
+    <string name="dedup_all_action">Move selected to trash</string>
+    <plurals name="dedup_bar_noun">
+        <item quantity="one">file to trash</item>
+        <item quantity="other">files to trash</item>
+    </plurals>
+    <string name="dedup_group_action">Move to trash</string>
+    <string name="dedup_section_action">Move all to trash</string>
+    <string name="dedup_rescan">Search again</string>
+    <string name="dedup_first_scan">Start search</string>
+    <string name="dedup_empty_title">No duplicates</string>
+    <string name="dedup_scanning_title">Looking for duplicates</string>
+    <string name="dedup_scanning_text">We\'re going through the gallery. This can take a few minutes, and you can close the app meanwhile.</string>
+    <string name="dedup_trash_title">The trash takes up space too</string>
+    <string name="dedup_trash_text">Files in the trash stay on the phone for 30 more days, then the system deletes them.</string>
+
+    <string name="dedup_section_exact">Identical</string>
+    <string name="dedup_section_burst">Bursts</string>
+    <string name="dedup_section_similar">Similar</string>
+    <string name="dedup_lead_exact">Byte-for-byte copies. One copy stays, and the rest can safely go.</string>
+    <string name="dedup_lead_burst">Burst shots. A turned head or a smile can make the difference, so nothing here goes on its own: tap what can go. We suggest keeping the sharpest one.</string>
+    <string name="dedup_lead_similar">Similar but not identical pictures. Nothing here goes on its own: tap what can go.</string>
+
+    <plurals name="dedup_group_exact">
+        <item quantity="one">%1$s identical file</item>
+        <item quantity="other">%1$s identical files</item>
+    </plurals>
+    <plurals name="dedup_group_burst">
+        <item quantity="one">Burst of %1$s picture</item>
+        <item quantity="other">Burst of %1$s pictures</item>
+    </plurals>
+    <plurals name="dedup_group_similar">
+        <item quantity="one">%1$s similar picture</item>
+        <item quantity="other">%1$s similar pictures</item>
+    </plurals>
+    <plurals name="dedup_group_extra">
+        <item quantity="one">%1$s extra copy · %2$s</item>
+        <item quantity="other">%1$s extra copies · %2$s</item>
+    </plurals>
+    <plurals name="dedup_groups">
+        <item quantity="one">%1$s group</item>
+        <item quantity="other">%1$s groups</item>
+    </plurals>
+    <plurals name="dedup_files">
+        <item quantity="one">%1$s file</item>
+        <item quantity="other">%1$s files</item>
+    </plurals>
+    <plurals name="dedup_pictures">
+        <item quantity="one">%1$s picture</item>
+        <item quantity="other">%1$s pictures</item>
+    </plurals>
+    <string name="dedup_selected">%1$s selected</string>
+    <string name="dedup_nothing_selected">Nothing selected</string>
+    <string name="dedup_marked">%1$s to trash · %2$s</string>
+
+    <!-- %1$s is dedup_hero_copies, %2$s is dedup_hero_in_groups. -->
+    <string name="dedup_hero_exact">%1$s %2$s: one copy of each stays, and the rest can go.</string>
+    <plurals name="dedup_hero_copies">
+        <item quantity="one">%1$s byte-identical copy</item>
+        <item quantity="other">%1$s byte-identical copies</item>
+    </plurals>
+    <plurals name="dedup_hero_in_groups">
+        <item quantity="one">in %1$s group</item>
+        <item quantity="other">in %1$s groups</item>
+    </plurals>
+    <plurals name="dedup_hero_review">
+        <item quantity="one">%1$s burst or similar group is waiting for review; only what you select goes from it.</item>
+        <item quantity="other">%1$s burst and similar groups are waiting for review; only what you select goes from them.</item>
+    </plurals>
+    <string name="dedup_hero_zoom">You can view any picture full size.</string>
+
+    <string name="dedup_searching">Search in progress</string>
+    <string name="dedup_phase_quick">Quick comparison</string>
+    <string name="dedup_phase_full">Exact check</string>
+    <string name="dedup_phase_perceptual">Looking for similar pictures</string>
+    <string name="dedup_phase_idle">Starting search</string>
+    <string name="dedup_phase_done">Grouping</string>
+
+    <!-- %1$s is one of the dedup_last_scan sentences. -->
+    <string name="dedup_empty_text">We found no identical or very similar pictures. %1$s</string>
+    <string name="dedup_last_scan_never">We haven\'t searched yet.</string>
+    <string name="dedup_last_scan_today">Last searched today.</string>
+    <string name="dedup_last_scan_yesterday">Last searched yesterday.</string>
+    <plurals name="dedup_last_scan_days">
+        <item quantity="one">Last searched %1$s day ago.</item>
+        <item quantity="other">Last searched %1$s days ago.</item>
+    </plurals>
+
+    <!-- Written into the log, which shows it as written. -->
+    <string name="dedup_log_extra_copy">Extra copy</string>
+    <plurals name="dedup_log_identical">
+        <item quantity="one">%1$s identical copy</item>
+        <item quantity="other">%1$s identical copies</item>
+    </plurals>
+</resources>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Padlás</string>
+    <!-- A name, the same in every language. -->
+    <string name="app_name" translatable="false">Padlás</string>
 
     <!--
         Drive OAuth client id. Empty by default: the app is sideloaded and every user
@@ -8,6 +9,140 @@
     -->
     <string name="drive_web_client_id" translatable="false"></string>
 
-    <string name="work_channel_name">Háttérmunka</string>
-    <string name="work_channel_description">Feltöltés, tömörítés, beolvasás</string>
+    <string name="app_work_channel_name">Background work</string>
+    <string name="app_work_channel_description">Uploads, compression, scanning</string>
+
+    <string name="app_tab_overview">Overview</string>
+    <string name="app_tab_sort">Sort</string>
+    <string name="app_tab_storage">Storage</string>
+
+    <string name="home_settings">Settings</string>
+    <plurals name="home_header_count">
+        <item quantity="one">%1$s photo or video</item>
+        <item quantity="other">%1$s photos and videos</item>
+    </plurals>
+    <string name="home_header_empty">Storage and gallery in one place</string>
+    <string name="home_indexing">Scanning gallery · %1$s / %2$s</string>
+    <string name="home_wins_title">Quick wins</string>
+    <string name="home_onedrive_title">OneDrive sync may be on</string>
+    <string name="home_onedrive_text">If it is, deleting on the phone can delete from the cloud too. Turn off Samsung Gallery sync before you delete.</string>
+    <string name="home_tools_title">Tools</string>
+
+    <string name="home_access_title">Allow access to your photos</string>
+    <string name="home_access_partial_title">I can see only a few photos</string>
+    <string name="home_access_text">To sort and suggest cleanups, I need to see your photos and videos. Nothing leaves the phone.</string>
+    <string name="home_access_partial_text">Right now I can open only the pictures you picked. Full sorting and suggestions need every photo and video.</string>
+    <string name="home_access_grant">Allow access</string>
+
+    <string name="home_photos">Photos</string>
+    <string name="home_videos">Videos</string>
+    <string name="home_other">Everything else</string>
+    <string name="home_total">Total</string>
+    <string name="home_used">%1$s used</string>
+    <string name="home_measuring">Measuring…</string>
+    <string name="home_analyze">Analyze storage</string>
+
+    <string name="home_swipe_title">Sort with a swipe</string>
+    <string name="home_swipe_hint">Left to delete, right to keep, up to favorite</string>
+    <string name="home_reviewed">%1$s / %2$s reviewed</string>
+    <string name="home_nothing_to_review">Nothing to review yet</string>
+    <plurals name="home_pending">
+        <item quantity="one">%1$s item waiting for deletion · %2$s</item>
+        <item quantity="other">%1$s items waiting for deletion · %2$s</item>
+    </plurals>
+
+    <plurals name="home_win_duplicates">
+        <item quantity="one">%1$s duplicate</item>
+        <item quantity="other">%1$s duplicates</item>
+    </plurals>
+    <plurals name="home_win_discard">
+        <item quantity="one">%1$s throwaway picture</item>
+        <item quantity="other">%1$s throwaway pictures</item>
+    </plurals>
+    <plurals name="home_win_videos">
+        <item quantity="one">%1$s large video</item>
+        <item quantity="other">%1$s large videos</item>
+    </plurals>
+    <string name="home_win_trash">in the trash</string>
+    <plurals name="home_win_old_photos">
+        <item quantity="one">%1$s old photo</item>
+        <item quantity="other">%1$s old photos</item>
+    </plurals>
+
+    <string name="home_tool_storage">Storage analyzer</string>
+    <string name="home_tool_storage_text">What takes up space</string>
+    <string name="home_tool_duplicates">Duplicates</string>
+    <string name="home_tool_duplicates_text">Identical and similar pictures</string>
+    <string name="home_tool_videos">Large videos</string>
+    <string name="home_tool_videos_text">Compress without losing quality</string>
+    <string name="home_tool_discard">Throwaway pictures</string>
+    <string name="home_tool_discard_text">Screenshots and downloads</string>
+    <string name="home_tool_browse">Browse</string>
+    <string name="home_tool_browse_text">Folders and months in a grid</string>
+    <string name="home_tool_trash">Trash</string>
+    <string name="home_tool_trash_text">Restore or empty</string>
+    <string name="home_tool_cloud">Cloud archive</string>
+    <string name="home_tool_cloud_text">Back up to Google Drive</string>
+    <string name="home_tool_rules">Rules</string>
+    <string name="home_tool_rules_text">Automatic tidying</string>
+    <string name="home_tool_log">Log</string>
+    <string name="home_tool_log_text">Look back at every action</string>
+
+    <string name="settings_title">Settings</string>
+
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_live_background">Live background</string>
+    <string name="settings_live_background_text">The background colors drift slowly. Turn it off for a still image that spares the battery.</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_text">Pick the app\'s language in system settings</string>
+    <!-- The language these strings are written in, shown beside the row. -->
+    <string name="settings_language_current">English</string>
+
+    <string name="settings_section_delete">Deletion</string>
+    <string name="settings_mode_trash">Move to trash</string>
+    <string name="settings_mode_trash_text">You can restore files for 30 days. The space is freed when you empty the trash.</string>
+    <string name="settings_mode_permanent">Delete permanently</string>
+    <string name="settings_mode_permanent_text">Frees the space right away. You can\'t undo it.</string>
+    <string name="settings_delete_at_end">Delete at the end of the deck</string>
+    <string name="settings_delete_at_end_text">Deletes the marked items as soon as you reach the end.</string>
+    <string name="settings_no_prompt">Delete without asking</string>
+    <string name="settings_no_prompt_on">On: the system skips its prompt for each batch, and the app asks for its own confirmation.</string>
+    <string name="settings_no_prompt_off">Right now the system asks before every deletion. The “Media management” permission skips that.</string>
+
+    <string name="settings_section_access">Permissions</string>
+    <string name="settings_access_media">Photos and videos</string>
+    <string name="settings_access_media_text">For sorting and suggestions</string>
+    <string name="settings_access_all_files">All files access</string>
+    <string name="settings_access_all_files_text">For the storage analyzer and deleting files</string>
+    <string name="settings_access_usage">Usage access</string>
+    <string name="settings_access_usage_text">For app sizes and caches</string>
+    <string name="settings_access_notifications">Notifications</string>
+    <string name="settings_access_notifications_text">Progress of long background jobs</string>
+    <string name="settings_granted">Granted</string>
+    <string name="settings_missing">Missing</string>
+
+    <string name="settings_section_sort">Sorting</string>
+    <string name="settings_forget">Review everything again</string>
+    <string name="settings_forget_text">Clears your keep and favorite choices, so everything comes up again.</string>
+
+    <string name="settings_section_background">Background work</string>
+    <string name="settings_rescan">Rescan gallery</string>
+    <string name="settings_rescan_text">When something in the lists is missing or out of date.</string>
+    <string name="settings_stop_all">Stop all background work</string>
+    <string name="settings_stop_all_text">Uploads, compression, fingerprinting — right away.</string>
+
+    <string name="settings_section_about">About</string>
+    <string name="settings_about_text">Gallery sorter and storage manager</string>
+
+    <string name="settings_forget_done">Everything can be reviewed again</string>
+    <string name="settings_forget_failed">That didn\'t work. Is the storage full?</string>
+    <string name="settings_stopped">All background work stopped</string>
+    <string name="settings_rescan_started">Gallery rescan started</string>
+
+    <string name="settings_forget_title">Review everything again?</string>
+    <string name="settings_forget_dialog_text">Items marked for deletion stay marked. Only your keep and favorite choices are cleared.</string>
+    <string name="settings_forget_confirm">Yes, start over</string>
+    <string name="settings_stop_title">Stop background work?</string>
+    <string name="settings_stop_text">Uploads and compressions in progress are interrupted. You can restart them later.</string>
+    <string name="settings_stop_confirm">Stop</string>
 </resources>

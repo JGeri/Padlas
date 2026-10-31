@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="transcode_title">Nagy videók</string>
+    <string name="transcode_subtitle_hot">Szünetel · meleg a telefon</string>
+    <string name="transcode_in_progress">Tömörítés folyamatban</string>
+    <plurals name="transcode_videos">
+        <item quantity="one">%1$s videó</item>
+        <item quantity="other">%1$s videó</item>
+    </plurals>
+    <string name="transcode_stop">Tömörítés leállítása</string>
+    <string name="transcode_start">Tömörítés indítása</string>
+    <plurals name="transcode_bar_noun">
+        <item quantity="one">videó</item>
+        <item quantity="other">videó</item>
+    </plurals>
+    <string name="transcode_approx">kb.</string>
+
+    <string name="transcode_empty_title">Nincs nagy videó</string>
+    <string name="transcode_empty_text">Ide a %1$s-nál nagyobb videók kerülnek. Most egy sincs a telefonon.</string>
+
+    <string name="transcode_hero_label">Megspórolható</string>
+    <string name="transcode_hero_caption">Tömörítve nagyjából feleakkorák lesznek, a minőség szemre alig változik. Csak töltés közben fut, hogy ne merítse a telefont.</string>
+    <plurals name="transcode_saved_so_far">
+        <item quantity="one">Eddig %1$s megspórolva · %2$s videó</item>
+        <item quantity="other">Eddig %1$s megspórolva · %2$s videó</item>
+    </plurals>
+    <string name="transcode_list_title">Videók, a legnagyobbtól</string>
+
+    <string name="transcode_hot_title">Szünetel, mert meleg a telefon</string>
+    <string name="transcode_hot_text">Magától folytatódik, amint lehűlt. Így nem lassul be és nem melegszik tovább.</string>
+    <plurals name="transcode_remaining">
+        <item quantity="one">Még %1$s videó van hátra</item>
+        <item quantity="other">Még %1$s videó van hátra</item>
+    </plurals>
+    <string name="transcode_last">Az utolsó videó készül</string>
+    <string name="transcode_starting">Indul</string>
+    <string name="transcode_charger_title">Töltőre dugva indul</string>
+    <string name="transcode_charger_text">A tömörítés csak töltés közben és jó akkumulátorral fut. Hagyd éjszakára a töltőn.</string>
+    <plurals name="transcode_queued_title">
+        <item quantity="one">%1$s videó vár a sorban</item>
+        <item quantity="other">%1$s videó vár a sorban</item>
+    </plurals>
+    <string name="transcode_queued_text">Indítsd el a tömörítést, és töltés közben szép sorban elkészülnek.</string>
+
+    <plurals name="transcode_finished">
+        <item quantity="one">%1$s videó elkészült</item>
+        <item quantity="other">%1$s videó elkészült</item>
+    </plurals>
+    <string name="transcode_originals_waiting">Az eredetik még helyet foglalnak</string>
+    <string name="transcode_replace_text">Cseréld le az eredetiket a tömörített változatra. A régiek a kukába kerülnek.</string>
+    <string name="transcode_pending_removal_text">%1$s szabadul fel, ha a régi példányok a kukába kerülnek.</string>
+    <string name="transcode_replace">Eredetik cseréje</string>
+    <string name="transcode_trash_originals">Eredetik kukába</string>
+
+    <string name="transcode_failed_default">A tömörítés megszakadt.</string>
+    <string name="transcode_retry">Újra</string>
+    <string name="transcode_saved">megspórolva</string>
+    <string name="transcode_expected">várható</string>
+    <string name="transcode_status_running">Tömörítés…</string>
+    <string name="transcode_status_running_percent">Tömörítés · %1$s</string>
+    <string name="transcode_status_pending">Sorra kerül</string>
+    <string name="transcode_status_failed">Nem sikerült</string>
+    <string name="transcode_status_published">Kész · az eredeti még helyet foglal</string>
+    <string name="transcode_status_done">Kész · cserére vár</string>
+    <string name="transcode_status_cancelled">Leállítva</string>
+    <string name="transcode_status_candidate">Tömöríthető</string>
+
+    <string name="transcode_notification_title">Videók tömörítése</string>
+    <string name="transcode_notification_starting">Indul a tömörítés</string>
+
+    <string name="transcode_failure_missing_asset">Az eredeti videó eltűnt.</string>
+    <string name="transcode_failure_no_gain">A tömörítés nem hozott nyereséget.</string>
+    <string name="transcode_failure_retrial_failed">A kimenet az ellenőrzésnél megbukott.</string>
+    <string name="transcode_failure_missing_output">A kimeneti fájl nem jött létre.</string>
+    <string name="transcode_failure_truncated">A kimenet rövidebb az eredetinél.</string>
+    <string name="transcode_failure_no_video_track">A kimenetben nincs videósáv.</string>
+    <string name="transcode_failure_no_frame">A kimenetből nem sikerült képkockát kinyerni.</string>
+    <string name="transcode_failure_unreadable">A kimenet nem olvasható vissza.</string>
+    <string name="transcode_failure_empty_output">A kimeneti fájl üres maradt.</string>
+    <string name="transcode_failure_encoder_refused">A hardveres enkóder visszautasította a fájlt.</string>
+</resources>

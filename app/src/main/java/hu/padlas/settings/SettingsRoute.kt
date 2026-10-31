@@ -31,6 +31,7 @@ import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.QueryStats
@@ -50,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -61,6 +63,9 @@ import androidx.work.WorkManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import hu.padlas.BuildConfig
+import hu.padlas.R
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.design.component.ConfirmDialog
 import hu.padlas.core.design.component.IconBubble
 import hu.padlas.core.design.component.ListRow
@@ -70,6 +75,7 @@ import hu.padlas.core.design.component.Pill
 import hu.padlas.core.design.component.SectionHeader
 import hu.padlas.core.design.component.SelectionMark
 import hu.padlas.core.design.component.Toast
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.motionSpec
 import hu.padlas.core.design.theme.Ink
@@ -107,7 +113,7 @@ data class SettingsUiState(
     val deleteMode: DeleteMode = DeleteMode.TRASH,
     val deleteAtEnd: Boolean = true,
     val access: Access = Access(),
-    val message: String? = null,
+    val message: UiText? = null,
 )
 
 @HiltViewModel
@@ -121,7 +127,7 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val access = MutableStateFlow(readAccess())
-    private val message = MutableStateFlow<String?>(null)
+    private val message = MutableStateFlow<UiText?>(null)
 
     val state: StateFlow<SettingsUiState> = combine(
         combine(preferences.deleteMode, preferences.deleteAtEnd, appearance.liveBackground, ::Triple),
@@ -144,9 +150,9 @@ class SettingsViewModel @Inject constructor(
     fun forgetReviewed() {
         viewModelScope.launch {
             message.value = if (swipeRepository.forgetReviewed()) {
-                "Minden elem újra átnézhető"
+                uiText(R.string.settings_forget_done)
             } else {
-                "Nem sikerült. Megtelt a tárhely?"
+                uiText(R.string.settings_forget_failed)
             }
         }
     }
@@ -154,12 +160,12 @@ class SettingsViewModel @Inject constructor(
     /** INV-7: one switch stops every background job, immediately and visibly. */
     fun stopAllWork() {
         WorkManager.getInstance(context).cancelAllWork()
-        message.value = "Minden háttérmunka leállt"
+        message.value = uiText(R.string.settings_stopped)
     }
 
     fun rescan() {
         IndexScheduler.enqueueFullScan(context)
-        message.value = "A galéria újraolvasása elindult"
+        message.value = uiText(R.string.settings_rescan_started)
     }
 
     fun consumeMessage() = message.update { null }
@@ -190,28 +196,37 @@ fun SettingsRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: 
 
     Box(modifier = modifier.fillMaxSize().auroraBackground().systemBarsPadding()) {
         Column(Modifier.fillMaxSize()) {
-            PadlasTopBar(title = "Beállítások", onBack = onBack)
+            PadlasTopBar(title = stringResource(R.string.settings_title), onBack = onBack)
             LazyColumn(
                 contentPadding = PaddingValues(start = Space.page, end = Space.page, bottom = Space.xxl),
                 verticalArrangement = Arrangement.spacedBy(Space.s),
             ) {
-                item { SectionHeader(title = "Megjelenés") }
+                item { SectionHeader(title = stringResource(R.string.settings_section_appearance)) }
                 item {
                     ListRow(
-                        title = "Élő háttér",
-                        subtitle = "A háttér színei lassan mozognak. Kikapcsolva állóképes, és kíméli az akkut.",
+                        title = stringResource(R.string.settings_live_background),
+                        subtitle = stringResource(R.string.settings_live_background_text),
                         icon = Icons.Rounded.AutoAwesome,
                         onClick = { viewModel.setLiveBackground(!state.liveBackground) },
                         showChevron = false,
                         trailing = { PadlasSwitch(checked = state.liveBackground, onCheckedChange = viewModel::setLiveBackground) },
                     )
                 }
+                item {
+                    ListRow(
+                        title = stringResource(R.string.settings_language),
+                        subtitle = stringResource(R.string.settings_language_text),
+                        icon = Icons.Rounded.Language,
+                        value = stringResource(R.string.settings_language_current),
+                        onClick = { context.openSettings(Settings.ACTION_APP_LOCALE_SETTINGS, withPackage = true) },
+                    )
+                }
 
-                item { SectionHeader(title = "Törlés") }
+                item { SectionHeader(title = stringResource(R.string.settings_section_delete)) }
                 item {
                     ModeOption(
-                        title = "Kukába helyezés",
-                        text = "30 napig visszaállítható. A hely a kuka ürítésekor szabadul fel.",
+                        title = stringResource(R.string.settings_mode_trash),
+                        text = stringResource(R.string.settings_mode_trash_text),
                         icon = Icons.Rounded.DeleteOutline,
                         selected = state.deleteMode == DeleteMode.TRASH,
                         onClick = { viewModel.setDeleteMode(DeleteMode.TRASH) },
@@ -219,8 +234,8 @@ fun SettingsRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: 
                 }
                 item {
                     ModeOption(
-                        title = "Végleges törlés",
-                        text = "Azonnal felszabadítja a helyet. Nem vonható vissza.",
+                        title = stringResource(R.string.settings_mode_permanent),
+                        text = stringResource(R.string.settings_mode_permanent_text),
                         icon = Icons.Rounded.DeleteForever,
                         selected = state.deleteMode == DeleteMode.PERMANENT,
                         onClick = { viewModel.setDeleteMode(DeleteMode.PERMANENT) },
@@ -228,8 +243,8 @@ fun SettingsRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: 
                 }
                 item {
                     ListRow(
-                        title = "Törlés a pakli végén",
-                        subtitle = "Ha a végére értél, rögtön törli a megjelölteket.",
+                        title = stringResource(R.string.settings_delete_at_end),
+                        subtitle = stringResource(R.string.settings_delete_at_end_text),
                         icon = Icons.Rounded.DoneAll,
                         onClick = { viewModel.setDeleteAtEnd(!state.deleteAtEnd) },
                         showChevron = false,
@@ -238,12 +253,10 @@ fun SettingsRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: 
                 }
                 item {
                     ListRow(
-                        title = "Törlés rákérdezés nélkül",
-                        subtitle = if (state.access.manageMedia) {
-                            "Bekapcsolva: a rendszer nem kérdez rá minden kötegre, az app saját megerősítést kér."
-                        } else {
-                            "A rendszer most minden törlésnél külön rákérdez. A „Médiakezelés” engedéllyel ez elmarad."
-                        },
+                        title = stringResource(R.string.settings_no_prompt),
+                        subtitle = stringResource(
+                            if (state.access.manageMedia) R.string.settings_no_prompt_on else R.string.settings_no_prompt_off,
+                        ),
                         icon = Icons.Rounded.VerifiedUser,
                         iconTint = Ink.Info,
                         trailing = { StatusPill(state.access.manageMedia) },
@@ -251,63 +264,83 @@ fun SettingsRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: 
                     )
                 }
 
-                item { SectionHeader(title = "Hozzáférések") }
+                item { SectionHeader(title = stringResource(R.string.settings_section_access)) }
                 item {
-                    AccessRow("Fotók és videók", "A válogatáshoz és a javaslatokhoz", Icons.Rounded.PhotoLibrary, state.access.media) {
+                    AccessRow(
+                        stringResource(R.string.settings_access_media),
+                        stringResource(R.string.settings_access_media_text),
+                        Icons.Rounded.PhotoLibrary,
+                        state.access.media,
+                    ) {
                         context.openSettings(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, withPackage = true)
                     }
                 }
                 item {
-                    AccessRow("Teljes fájlhozzáférés", "A tárhely-elemzőhöz és a fájlok törléséhez", Icons.Rounded.FolderOpen, state.access.allFiles) {
+                    AccessRow(
+                        stringResource(R.string.settings_access_all_files),
+                        stringResource(R.string.settings_access_all_files_text),
+                        Icons.Rounded.FolderOpen,
+                        state.access.allFiles,
+                    ) {
                         context.openSettings(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, withPackage = true)
                     }
                 }
                 item {
-                    AccessRow("Használati adatok", "Az appok méretéhez és gyorsítótárához", Icons.Rounded.QueryStats, state.access.usage) {
+                    AccessRow(
+                        stringResource(R.string.settings_access_usage),
+                        stringResource(R.string.settings_access_usage_text),
+                        Icons.Rounded.QueryStats,
+                        state.access.usage,
+                    ) {
                         context.openSettings(Settings.ACTION_USAGE_ACCESS_SETTINGS, withPackage = false)
                     }
                 }
                 item {
-                    AccessRow("Értesítések", "Hosszú háttérmunkák állapota", Icons.Rounded.Notifications, state.access.notifications) {
+                    AccessRow(
+                        stringResource(R.string.settings_access_notifications),
+                        stringResource(R.string.settings_access_notifications_text),
+                        Icons.Rounded.Notifications,
+                        state.access.notifications,
+                    ) {
                         context.openSettings(Settings.ACTION_APP_NOTIFICATION_SETTINGS, withPackage = false)
                     }
                 }
 
-                item { SectionHeader(title = "Válogatás") }
+                item { SectionHeader(title = stringResource(R.string.settings_section_sort)) }
                 item {
                     ListRow(
-                        title = "Átnézett elemek újra",
-                        subtitle = "A megtartott és kedvenc döntések törlődnek, minden újra előkerül.",
+                        title = stringResource(R.string.settings_forget),
+                        subtitle = stringResource(R.string.settings_forget_text),
                         icon = Icons.Rounded.RestartAlt,
                         iconTint = Ink.Warning,
                         onClick = { confirmForget = true },
                     )
                 }
 
-                item { SectionHeader(title = "Háttérmunka") }
+                item { SectionHeader(title = stringResource(R.string.settings_section_background)) }
                 item {
                     ListRow(
-                        title = "Galéria újraolvasása",
-                        subtitle = "Ha valami hiányzik vagy elavult a listákban.",
+                        title = stringResource(R.string.settings_rescan),
+                        subtitle = stringResource(R.string.settings_rescan_text),
                         icon = Icons.Rounded.Refresh,
                         onClick = viewModel::rescan,
                     )
                 }
                 item {
                     ListRow(
-                        title = "Minden háttérmunka leállítása",
-                        subtitle = "Feltöltés, tömörítés, ujjlenyomat-készítés — azonnal.",
+                        title = stringResource(R.string.settings_stop_all),
+                        subtitle = stringResource(R.string.settings_stop_all_text),
                         icon = Icons.Rounded.StopCircle,
                         iconTint = Ink.Danger,
                         onClick = { confirmStop = true },
                     )
                 }
 
-                item { SectionHeader(title = "Névjegy") }
+                item { SectionHeader(title = stringResource(R.string.settings_section_about)) }
                 item {
                     ListRow(
-                        title = "Padlás",
-                        subtitle = "Galéria-válogató és tárhelykezelő",
+                        title = stringResource(R.string.app_name),
+                        subtitle = stringResource(R.string.settings_about_text),
                         icon = Icons.Rounded.Info,
                         value = BuildConfig.VERSION_NAME,
                         showChevron = false,
@@ -316,7 +349,7 @@ fun SettingsRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: 
             }
         }
         Toast(
-            message = state.message,
+            message = state.message?.asString(),
             onShown = viewModel::consumeMessage,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -326,9 +359,9 @@ fun SettingsRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: 
 
     if (confirmForget) {
         ConfirmDialog(
-            title = "Minden újra átnézhető legyen?",
-            text = "A törlésre jelölt elemek megmaradnak, csak a megtartott és kedvenc döntések törlődnek.",
-            confirmLabel = "Igen, újrakezdem",
+            title = stringResource(R.string.settings_forget_title),
+            text = stringResource(R.string.settings_forget_dialog_text),
+            confirmLabel = stringResource(R.string.settings_forget_confirm),
             icon = Icons.Rounded.RestartAlt,
             onConfirm = {
                 confirmForget = false
@@ -339,9 +372,9 @@ fun SettingsRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: 
     }
     if (confirmStop) {
         ConfirmDialog(
-            title = "Leállítsam a háttérmunkát?",
-            text = "A folyamatban lévő feltöltések és tömörítések megszakadnak. Később újraindíthatók.",
-            confirmLabel = "Leállítás",
+            title = stringResource(R.string.settings_stop_title),
+            text = stringResource(R.string.settings_stop_text),
+            confirmLabel = stringResource(R.string.settings_stop_confirm),
             destructive = true,
             icon = Icons.Rounded.StopCircle,
             onConfirm = {
@@ -404,7 +437,7 @@ private fun AccessRow(title: String, subtitle: String, icon: ImageVector, grante
 @Composable
 private fun StatusPill(granted: Boolean) {
     Pill(
-        text = if (granted) "Megadva" else "Hiányzik",
+        text = stringResource(if (granted) R.string.settings_granted else R.string.settings_missing),
         color = if (granted) Ink.Success else Ink.Warning,
         background = if (granted) Ink.SuccessSoft else Ink.WarningSoft,
     )

@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_work_channel_name">Háttérmunka</string>
+    <string name="app_work_channel_description">Feltöltés, tömörítés, beolvasás</string>
+
+    <string name="app_tab_overview">Áttekintés</string>
+    <string name="app_tab_sort">Válogatás</string>
+    <string name="app_tab_storage">Tárhely</string>
+
+    <string name="home_settings">Beállítások</string>
+    <plurals name="home_header_count">
+        <item quantity="one">%1$s fotó és videó</item>
+        <item quantity="other">%1$s fotó és videó</item>
+    </plurals>
+    <string name="home_header_empty">Tárhely és galéria egy helyen</string>
+    <string name="home_indexing">Galéria beolvasása · %1$s / %2$s</string>
+    <string name="home_wins_title">Gyors nyereség</string>
+    <string name="home_onedrive_title">A OneDrive-szinkron be lehet kapcsolva</string>
+    <string name="home_onedrive_text">Ilyenkor a helyi törlés a felhőből is törölhet. Törlés előtt kapcsold ki a Samsung Galéria szinkronját.</string>
+    <string name="home_tools_title">Eszközök</string>
+
+    <string name="home_access_title">Engedd meg a fotók elérését</string>
+    <string name="home_access_partial_title">Csak néhány fotót látok</string>
+    <string name="home_access_text">A válogatáshoz és a takarítási javaslatokhoz látnom kell a fotóidat és videóidat. Semmi nem hagyja el a telefont.</string>
+    <string name="home_access_partial_text">Most csak a kiválasztott képekhez férek hozzá. A teljes válogatáshoz és a javaslatokhoz minden fotó és videó kell.</string>
+    <string name="home_access_grant">Hozzáférés</string>
+
+    <string name="home_photos">Fotók</string>
+    <string name="home_videos">Videók</string>
+    <string name="home_other">Minden más</string>
+    <string name="home_total">Összesen</string>
+    <string name="home_used">%1$s foglalt</string>
+    <string name="home_measuring">Mérés…</string>
+    <string name="home_analyze">Tárhely elemzése</string>
+
+    <string name="home_swipe_title">Válogass swipe-pal</string>
+    <string name="home_swipe_hint">Balra törlés, jobbra marad, felfelé kedvenc</string>
+    <string name="home_reviewed">%1$s / %2$s átnézve</string>
+    <string name="home_nothing_to_review">Még nincs mit átnézni</string>
+    <plurals name="home_pending">
+        <item quantity="one">%1$s elem vár törlésre · %2$s</item>
+        <item quantity="other">%1$s elem vár törlésre · %2$s</item>
+    </plurals>
+
+    <plurals name="home_win_duplicates">
+        <item quantity="one">%1$s duplikátum</item>
+        <item quantity="other">%1$s duplikátum</item>
+    </plurals>
+    <plurals name="home_win_discard">
+        <item quantity="one">%1$s eldobható kép</item>
+        <item quantity="other">%1$s eldobható kép</item>
+    </plurals>
+    <plurals name="home_win_videos">
+        <item quantity="one">%1$s nagy videó</item>
+        <item quantity="other">%1$s nagy videó</item>
+    </plurals>
+    <string name="home_win_trash">a kukában</string>
+    <plurals name="home_win_old_photos">
+        <item quantity="one">%1$s régi fotó</item>
+        <item quantity="other">%1$s régi fotó</item>
+    </plurals>
+
+    <string name="home_tool_storage">Tárhely-elemző</string>
+    <string name="home_tool_storage_text">Mi foglalja a helyet</string>
+    <string name="home_tool_duplicates">Duplikátumok</string>
+    <string name="home_tool_duplicates_text">Azonos és hasonló képek</string>
+    <string name="home_tool_videos">Nagy videók</string>
+    <string name="home_tool_videos_text">Tömörítés minőségvesztés nélkül</string>
+    <string name="home_tool_discard">Eldobható képek</string>
+    <string name="home_tool_discard_text">Képernyőképek és letöltések</string>
+    <string name="home_tool_browse">Böngészés</string>
+    <string name="home_tool_browse_text">Mappák és hónapok rácsban</string>
+    <string name="home_tool_trash">Kuka</string>
+    <string name="home_tool_trash_text">Visszaállítás vagy ürítés</string>
+    <string name="home_tool_cloud">Felhő archívum</string>
+    <string name="home_tool_cloud_text">Mentés Google Drive-ra</string>
+    <string name="home_tool_rules">Szabályok</string>
+    <string name="home_tool_rules_text">Automatikus rendrakás</string>
+    <string name="home_tool_log">Napló</string>
+    <string name="home_tool_log_text">Minden művelet visszanézhető</string>
+
+    <string name="settings_title">Beállítások</string>
+
+    <string name="settings_section_appearance">Megjelenés</string>
+    <string name="settings_live_background">Élő háttér</string>
+    <string name="settings_live_background_text">A háttér színei lassan mozognak. Kikapcsolva állóképes, és kíméli az akkut.</string>
+    <string name="settings_language">Nyelv</string>
+    <string name="settings_language_text">Az app nyelvét a rendszerbeállításokban választhatod ki</string>
+    <string name="settings_language_current">Magyar</string>
+
+    <string name="settings_section_delete">Törlés</string>
+    <string name="settings_mode_trash">Kukába helyezés</string>
+    <string name="settings_mode_trash_text">30 napig visszaállítható. A hely a kuka ürítésekor szabadul fel.</string>
+    <string name="settings_mode_permanent">Végleges törlés</string>
+    <string name="settings_mode_permanent_text">Azonnal felszabadítja a helyet. Nem vonható vissza.</string>
+    <string name="settings_delete_at_end">Törlés a pakli végén</string>
+    <string name="settings_delete_at_end_text">Ha a végére értél, rögtön törli a megjelölteket.</string>
+    <string name="settings_no_prompt">Törlés rákérdezés nélkül</string>
+    <string name="settings_no_prompt_on">Bekapcsolva: a rendszer nem kérdez rá minden kötegre, az app saját megerősítést kér.</string>
+    <string name="settings_no_prompt_off">A rendszer most minden törlésnél külön rákérdez. A „Médiakezelés” engedéllyel ez elmarad.</string>
+
+    <string name="settings_section_access">Hozzáférések</string>
+    <string name="settings_access_media">Fotók és videók</string>
+    <string name="settings_access_media_text">A válogatáshoz és a javaslatokhoz</string>
+    <string name="settings_access_all_files">Teljes fájlhozzáférés</string>
+    <string name="settings_access_all_files_text">A tárhely-elemzőhöz és a fájlok törléséhez</string>
+    <string name="settings_access_usage">Használati adatok</string>
+    <string name="settings_access_usage_text">Az appok méretéhez és gyorsítótárához</string>
+    <string name="settings_access_notifications">Értesítések</string>
+    <string name="settings_access_notifications_text">Hosszú háttérmunkák állapota</string>
+    <string name="settings_granted">Megadva</string>
+    <string name="settings_missing">Hiányzik</string>
+
+    <string name="settings_section_sort">Válogatás</string>
+    <string name="settings_forget">Átnézett elemek újra</string>
+    <string name="settings_forget_text">A megtartott és kedvenc döntések törlődnek, minden újra előkerül.</string>
+
+    <string name="settings_section_background">Háttérmunka</string>
+    <string name="settings_rescan">Galéria újraolvasása</string>
+    <string name="settings_rescan_text">Ha valami hiányzik vagy elavult a listákban.</string>
+    <string name="settings_stop_all">Minden háttérmunka leállítása</string>
+    <string name="settings_stop_all_text">Feltöltés, tömörítés, ujjlenyomat-készítés — azonnal.</string>
+
+    <string name="settings_section_about">Névjegy</string>
+    <string name="settings_about_text">Galéria-válogató és tárhelykezelő</string>
+
+    <string name="settings_forget_done">Minden elem újra átnézhető</string>
+    <string name="settings_forget_failed">Nem sikerült. Megtelt a tárhely?</string>
+    <string name="settings_stopped">Minden háttérmunka leállt</string>
+    <string name="settings_rescan_started">A galéria újraolvasása elindult</string>
+
+    <string name="settings_forget_title">Minden újra átnézhető legyen?</string>
+    <string name="settings_forget_dialog_text">A törlésre jelölt elemek megmaradnak, csak a megtartott és kedvenc döntések törlődnek.</string>
+    <string name="settings_forget_confirm">Igen, újrakezdem</string>
+    <string name="settings_stop_title">Leállítsam a háttérmunkát?</string>
+    <string name="settings_stop_text">A folyamatban lévő feltöltések és tömörítések megszakadnak. Később újraindíthatók.</string>
+    <string name="settings_stop_confirm">Leállítás</string>
+</resources>

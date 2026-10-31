@@ -42,6 +42,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -82,6 +84,7 @@ import hu.padlas.core.design.motion.rememberEntrance
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
+import hu.padlas.feature.dedup.R
 
 @Composable
 internal fun DedupScreen(
@@ -119,13 +122,13 @@ internal fun DedupScreen(
             scrolled = scrolled,
             topBar = {
                 PadlasTopBar(
-                    title = DedupCopy.TITLE,
+                    title = stringResource(R.string.dedup_title),
                     onBack = onBack,
                     subtitle = if (state.loading) null else DedupCopy.topSubtitle(state, now),
                     action = {
                         PadlasIconButton(
                             icon = Icons.Rounded.Refresh,
-                            contentDescription = DedupCopy.RESCAN,
+                            contentDescription = stringResource(R.string.dedup_rescan),
                             onClick = onRescan,
                             enabled = !state.scanning,
                             size = 44.dp,
@@ -137,12 +140,12 @@ internal fun DedupScreen(
                 PinnedActionBar(visible = showBar, modifier = Modifier.align(Alignment.BottomCenter)) {
                     BarFigures(
                         count = Format.count(state.loserCount),
-                        noun = DedupCopy.BAR_NOUN,
+                        noun = pluralStringResource(R.plurals.dedup_bar_noun, state.loserCount),
                         value = Format.bytesValue(state.reclaimableBytes),
                         unit = Format.bytesUnit(state.reclaimableBytes),
                     )
                     PadlasButton(
-                        text = DedupCopy.ALL_ACTION,
+                        text = stringResource(R.string.dedup_all_action),
                         onClick = {
                             hapticFeedback?.collapse()
                             onResolveAll()
@@ -169,7 +172,7 @@ internal fun DedupScreen(
                 if (!state.isEmpty) {
                     item(key = "hero") {
                         ReclaimHero(
-                            label = DedupCopy.RECLAIMABLE,
+                            label = stringResource(R.string.dedup_reclaimable),
                             value = Format.bytesValue(state.reclaimableBytes),
                             unit = Format.bytesUnit(state.reclaimableBytes),
                             caption = DedupCopy.heroCaption(state.exact.loserCount, state.exact.groups.size, state.reviewGroupCount),
@@ -205,11 +208,13 @@ internal fun DedupScreen(
                                 ScanningCard(state)
                             } else {
                                 EmptyState(
-                                    title = DedupCopy.EMPTY_TITLE,
+                                    title = stringResource(R.string.dedup_empty_title),
                                     text = DedupCopy.emptyText(state.lastScanAt, now),
                                     icon = Icons.Rounded.CheckCircle,
                                     tint = Ink.Success,
-                                    actionLabel = if (state.lastScanAt > 0L) DedupCopy.RESCAN else DedupCopy.FIRST_SCAN,
+                                    actionLabel = stringResource(
+                                        if (state.lastScanAt > 0L) R.string.dedup_rescan else R.string.dedup_first_scan,
+                                    ),
                                     onAction = onRescan,
                                     modifier = Modifier.padding(top = Space.xxl),
                                 )
@@ -283,19 +288,19 @@ private fun ColumnScope.ZoomVerdict(
     ) { shown ->
         when (shown) {
             MemberFate.KEEP -> Pill(
-                text = DedupCopy.KEEP_BADGE,
+                text = stringResource(R.string.dedup_keep_badge),
                 icon = Icons.Rounded.Check,
                 color = Ink.Background,
                 background = Ink.Success,
             )
             MemberFate.PROTECTED -> Pill(
-                text = DedupCopy.PROTECTED_BADGE,
+                text = stringResource(R.string.dedup_protected_badge),
                 icon = Icons.Rounded.Shield,
                 color = Ink.Text,
                 background = Ink.Info.copy(alpha = 0.85f),
             )
             MemberFate.TRASH -> Pill(
-                text = DedupCopy.WILL_TRASH,
+                text = stringResource(R.string.dedup_will_trash),
                 icon = Icons.Rounded.DeleteOutline,
                 color = Ink.Text,
                 background = Ink.Danger.copy(alpha = 0.85f),
@@ -307,7 +312,7 @@ private fun ColumnScope.ZoomVerdict(
     if (group.needsReview && verdict != MemberFate.PROTECTED && group.id !in state.pendingGroupIds) {
         if (verdict == MemberFate.TRASH) {
             PadlasButton(
-                text = DedupCopy.VIEW_KEEP,
+                text = stringResource(R.string.dedup_view_keep),
                 onClick = {
                     hapticFeedback?.keep()
                     onToggleMark(group.id, member.assetId)
@@ -318,7 +323,7 @@ private fun ColumnScope.ZoomVerdict(
             )
         } else {
             PadlasButton(
-                text = DedupCopy.VIEW_MARK,
+                text = stringResource(R.string.dedup_view_mark),
                 onClick = {
                     hapticFeedback?.tick()
                     onToggleMark(group.id, member.assetId)
@@ -351,11 +356,11 @@ internal data class DedupZoomKey(val groupId: String, val assetId: Long)
 @Composable
 private fun TrashNotice(trashedBytes: Long, modifier: Modifier = Modifier) {
     ListRow(
-        title = DedupCopy.TRASH_TITLE,
-        subtitle = DedupCopy.TRASH_TEXT,
+        title = stringResource(R.string.dedup_trash_title),
+        subtitle = stringResource(R.string.dedup_trash_text),
         icon = Icons.Rounded.DeleteOutline,
         iconTint = Ink.Info,
-        value = if (trashedBytes > 0) DedupCopy.trashedValue(trashedBytes) else null,
+        value = if (trashedBytes > 0) Format.bytes(trashedBytes) else null,
         modifier = modifier,
     )
 }
@@ -407,10 +412,10 @@ private fun ScanningCard(state: DedupUiState) {
                 }
             }
             Spacer(Modifier.height(Space.l))
-            Text(text = DedupCopy.SCANNING_TITLE, style = PadlasTheme.type.title, color = Ink.Text)
+            Text(text = stringResource(R.string.dedup_scanning_title), style = PadlasTheme.type.title, color = Ink.Text)
             Spacer(Modifier.height(Space.xs))
             Text(
-                text = DedupCopy.SCANNING_TEXT,
+                text = stringResource(R.string.dedup_scanning_text),
                 style = PadlasTheme.type.body,
                 color = Ink.TextSecondary,
                 textAlign = TextAlign.Center,
@@ -430,18 +435,18 @@ private fun SectionHead(
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(top = Space.l)) {
         SectionHeader(
-            title = DedupCopy.sectionTitle(section.kind),
+            title = stringResource(DedupCopy.sectionTitle(section.kind)),
             // Only byte-identical copies can go by the section: a burst or a similar group
             // may hold the one frame worth keeping.
             actionLabel = if (enabled && section.kind == DupKind.EXACT && section.loserCount > 0) {
-                DedupCopy.SECTION_ACTION
+                stringResource(R.string.dedup_section_action)
             } else {
                 null
             },
             onAction = onResolveSection,
         )
         Text(
-            text = DedupCopy.sectionLead(section.kind),
+            text = stringResource(DedupCopy.sectionLead(section.kind)),
             style = PadlasTheme.type.body,
             color = Ink.TextSecondary,
         )

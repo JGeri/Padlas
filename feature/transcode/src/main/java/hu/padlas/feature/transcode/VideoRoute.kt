@@ -46,6 +46,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -150,14 +152,14 @@ private fun VideoScreen(
         modifier = modifier,
         topBar = {
             PadlasTopBar(
-                title = "Nagy videók",
+                title = stringResource(R.string.transcode_title),
                 onBack = onBack,
                 subtitle = when {
-                    state.throttled -> "Szünetel · meleg a telefon"
-                    state.running -> "Tömörítés folyamatban"
+                    state.throttled -> stringResource(R.string.transcode_subtitle_hot)
+                    state.running -> stringResource(R.string.transcode_in_progress)
                     state.videos.isEmpty() -> null
-                    else -> "${Format.count(state.videos.size)} videó · " +
-                        Format.bytes(state.videos.sumOf { it.originalBytes })
+                    else -> pluralStringResource(R.plurals.transcode_videos, state.videos.size, Format.count(state.videos.size)) +
+                        " · " + Format.bytes(state.videos.sumOf { it.originalBytes })
                 },
             )
         },
@@ -174,7 +176,7 @@ private fun VideoScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
                         if (running) {
                             PadlasButton(
-                                text = "Tömörítés leállítása",
+                                text = stringResource(R.string.transcode_stop),
                                 onClick = onStop,
                                 enabled = !state.busy,
                                 icon = Icons.Rounded.Stop,
@@ -184,13 +186,13 @@ private fun VideoScreen(
                         } else {
                             BarFigures(
                                 count = Format.count(waiting.size),
-                                noun = "videó",
+                                noun = pluralStringResource(R.plurals.transcode_bar_noun, waiting.size),
                                 value = Format.bytesValue(waitingEstimate),
                                 unit = Format.bytesUnit(waitingEstimate),
-                                valuePrefix = "kb.",
+                                valuePrefix = stringResource(R.string.transcode_approx),
                             )
                             PadlasButton(
-                                text = "Tömörítés indítása",
+                                text = stringResource(R.string.transcode_start),
                                 onClick = onStart,
                                 enabled = !state.busy,
                                 icon = Icons.Rounded.Compress,
@@ -204,8 +206,8 @@ private fun VideoScreen(
     ) {
         if (state.videos.isEmpty()) {
             EmptyState(
-                title = "Nincs nagy videó",
-                text = "Ide a 80 MB-nál nagyobb videók kerülnek. Most egy sincs a telefonon.",
+                title = stringResource(R.string.transcode_empty_title),
+                text = stringResource(R.string.transcode_empty_text, Format.bytes(TranscodeMath.MIN_CANDIDATE_BYTES)),
                 icon = Icons.Rounded.VideoLibrary,
                 tint = CategoryColor.Videos,
                 modifier = Modifier.padding(top = topBarClearance() + Space.xxl),
@@ -225,11 +227,10 @@ private fun VideoScreen(
         ) {
             item(key = "hero") {
                 ReclaimHero(
-                    label = "Megspórolható",
+                    label = stringResource(R.string.transcode_hero_label),
                     value = Format.bytesValue(estimate),
                     unit = Format.bytesUnit(estimate),
-                    caption = "Tömörítve nagyjából feleakkorák lesznek, a minőség szemre alig változik. " +
-                        "Csak töltés közben fut, hogy ne merítse a telefont.",
+                    caption = stringResource(R.string.transcode_hero_caption),
                     glow = CategoryColor.Videos,
                     modifier = Modifier.entrance(entrance),
                 ) {
@@ -249,8 +250,12 @@ private fun VideoScreen(
                                 )
                                 Spacer(Modifier.width(Space.s))
                                 Text(
-                                    text = "Eddig ${Format.bytes(state.saved.totalBytes)} megspórolva · " +
-                                        "${Format.count(state.saved.itemCount)} videó",
+                                    text = pluralStringResource(
+                                        R.plurals.transcode_saved_so_far,
+                                        state.saved.itemCount,
+                                        Format.bytes(state.saved.totalBytes),
+                                        Format.count(state.saved.itemCount),
+                                    ),
                                     style = PadlasTheme.type.label,
                                     color = Ink.Text,
                                     maxLines = 1,
@@ -292,7 +297,7 @@ private fun VideoScreen(
 
             item(key = "list-head") {
                 SectionHeader(
-                    title = "Videók, a legnagyobbtól",
+                    title = stringResource(R.string.transcode_list_title),
                     modifier = Modifier.entrance(entrance).then(itemMotion()),
                 )
             }
@@ -325,8 +330,8 @@ private fun StatusCard(status: RunPhase, state: VideoUiState) {
         RunPhase.HOT -> StatusRow(
             icon = Icons.Rounded.Thermostat,
             tint = Ink.Warning,
-            title = "Szünetel, mert meleg a telefon",
-            text = "Magától folytatódik, amint lehűlt. Így nem lassul be és nem melegszik tovább.",
+            title = stringResource(R.string.transcode_hot_title),
+            text = stringResource(R.string.transcode_hot_text),
         )
 
         RunPhase.WORKING -> PadlasCard(modifier = Modifier.fillMaxWidth()) {
@@ -343,16 +348,16 @@ private fun StatusCard(status: RunPhase, state: VideoUiState) {
                     Spacer(Modifier.width(Space.m))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Tömörítés folyamatban",
+                            text = stringResource(R.string.transcode_in_progress),
                             style = PadlasTheme.type.bodyStrong,
                             color = Ink.Text,
                             maxLines = 1,
                         )
                         Text(
                             text = if (state.pendingJobs > 0) {
-                                "Még ${Format.count(state.pendingJobs)} videó van hátra"
+                                pluralStringResource(R.plurals.transcode_remaining, state.pendingJobs, Format.count(state.pendingJobs))
                             } else {
-                                "Az utolsó videó készül"
+                                stringResource(R.string.transcode_last)
                             },
                             style = PadlasTheme.type.caption,
                             color = Ink.TextSecondary,
@@ -363,7 +368,8 @@ private fun StatusCard(status: RunPhase, state: VideoUiState) {
                 Spacer(Modifier.height(Space.l))
                 ProgressStrip(
                     fraction = state.run.fraction,
-                    label = state.run.label.ifBlank { "Indul" } + " · " + Format.percent(state.run.fraction),
+                    label = state.run.label.ifBlank { stringResource(R.string.transcode_starting) } + " · " +
+                        Format.percent(state.run.fraction),
                 )
             }
         }
@@ -371,15 +377,15 @@ private fun StatusCard(status: RunPhase, state: VideoUiState) {
         RunPhase.WAITING_FOR_CHARGER -> StatusRow(
             icon = Icons.Rounded.BatteryChargingFull,
             tint = Ink.Info,
-            title = "Töltőre dugva indul",
-            text = "A tömörítés csak töltés közben és jó akkumulátorral fut. Hagyd éjszakára a töltőn.",
+            title = stringResource(R.string.transcode_charger_title),
+            text = stringResource(R.string.transcode_charger_text),
         )
 
         RunPhase.QUEUED -> StatusRow(
             icon = Icons.Rounded.HourglassTop,
             tint = Ink.TextSecondary,
-            title = "${Format.count(state.pendingJobs)} videó vár a sorban",
-            text = "Indítsd el a tömörítést, és töltés közben szép sorban elkészülnek.",
+            title = pluralStringResource(R.plurals.transcode_queued_title, state.pendingJobs, Format.count(state.pendingJobs)),
+            text = stringResource(R.string.transcode_queued_text),
         )
     }
 }
@@ -424,9 +430,9 @@ private fun ReplaceCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = if (ready) {
-                            "${Format.count(finished)} videó elkészült"
+                            pluralStringResource(R.plurals.transcode_finished, finished, Format.count(finished))
                         } else {
-                            "Az eredetik még helyet foglalnak"
+                            stringResource(R.string.transcode_originals_waiting)
                         },
                         style = PadlasTheme.type.bodyStrong,
                         color = Ink.Text,
@@ -434,9 +440,9 @@ private fun ReplaceCard(
                     Spacer(Modifier.height(Space.xxs))
                     Text(
                         text = if (ready) {
-                            "Cseréld le az eredetiket a tömörített változatra. A régiek a kukába kerülnek."
+                            stringResource(R.string.transcode_replace_text)
                         } else {
-                            "${Format.bytes(pendingRemovalBytes)} szabadul fel, ha a régi példányok a kukába kerülnek."
+                            stringResource(R.string.transcode_pending_removal_text, Format.bytes(pendingRemovalBytes))
                         },
                         style = PadlasTheme.type.caption,
                         color = Ink.TextSecondary,
@@ -445,7 +451,7 @@ private fun ReplaceCard(
             }
             Spacer(Modifier.height(Space.l))
             PadlasButton(
-                text = if (ready) "Eredetik cseréje" else "Eredetik kukába",
+                text = stringResource(if (ready) R.string.transcode_replace else R.string.transcode_trash_originals),
                 onClick = onReplace,
                 enabled = !busy,
                 style = if (ready) ButtonStyle.Success else ButtonStyle.Secondary,
