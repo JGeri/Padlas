@@ -63,6 +63,9 @@ internal class BrowseViewModel @Inject constructor(
     private val local = MutableStateFlow(LocalState())
     private var pendingTrash: TrashRequest? = null
 
+    /** What the rounds of one "Kukába" have binned so far; the last round reports the total. */
+    private var trashedSoFar = 0L
+
     val items: Flow<PagingData<Asset>> = filter
         .flatMapLatest { current ->
             val query = BrowseSql.page(current, now())
@@ -209,6 +212,12 @@ internal class BrowseViewModel @Inject constructor(
 
     /** Two phase (INV-2): the system bin first, and the bytes are still occupied there. */
     fun trashSelected() {
+        if (pendingTrash != null) return
+        trashedSoFar = 0L
+        nextTrashRound()
+    }
+
+    private fun nextTrashRound() {
         val ids = local.value.selected.toList()
         if (ids.isEmpty() || pendingTrash != null) return
         viewModelScope.launch {
@@ -262,6 +271,7 @@ internal class BrowseViewModel @Inject constructor(
                     )
                 }.isSuccess
             }
+            trashedSoFar += batch.bytes
             local.update {
                 it.copy(
                     busy = false,
@@ -269,13 +279,13 @@ internal class BrowseViewModel @Inject constructor(
                     selectedBytes = if (batch.more) (it.selectedBytes - batch.bytes).coerceAtLeast(0) else 0,
                     message = when {
                         !recorded -> NOT_WRITTEN
-                        batch.more -> "${Format.bytes(batch.bytes)} a kukában · jön a következő adag"
-                        else -> "${Format.bytes(batch.bytes)} a kukában. Amíg ott van, helyet foglal."
+                        batch.more -> "${Format.bytes(trashedSoFar)} a kukában · jön a következő adag"
+                        else -> "${Format.bytes(trashedSoFar)} a kukában. Amíg ott van, helyet foglal."
                     },
                 )
             }
             recomputeTotals()
-            if (batch.more) trashSelected()
+            if (batch.more) nextTrashRound()
         }
     }
 

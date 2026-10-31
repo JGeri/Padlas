@@ -12,6 +12,7 @@ import hu.padlas.core.database.model.SizeAndCount
 import hu.padlas.core.database.model.SwipeBucketStat
 import hu.padlas.core.database.model.SwipeMonthStat
 import hu.padlas.feature.sort.DeleteBatch
+import hu.padlas.feature.sort.DeleteTally
 import hu.padlas.feature.sort.HungarianDates
 import hu.padlas.feature.sort.MediaFilter
 import hu.padlas.feature.sort.SwipeFilter
@@ -135,6 +136,7 @@ internal class SwipeSetupViewModel @Inject constructor(
     private val _deleteRequests = Channel<DeleteBatch>(Channel.BUFFERED)
     val deleteRequests: Flow<DeleteBatch> = _deleteRequests.receiveAsFlow()
     private var pendingBatch: DeleteBatch? = null
+    private val tally = DeleteTally()
 
     private val media = filter.map { it.media }.distinctUntilChanged()
     private val monthStats = media.flatMapLatest { repository.monthStats(it) }
@@ -235,9 +237,14 @@ internal class SwipeSetupViewModel @Inject constructor(
 
     private var opening = false
 
-
     fun deleteNow() {
-        if (local.value.busy) return
+        if (local.value.busy || pendingBatch != null) return
+        tally.reset()
+        nextRound()
+    }
+
+    private fun nextRound() {
+        if (local.value.busy || pendingBatch != null) return
         viewModelScope.launch {
             local.update { it.copy(busy = true) }
             val pending = repository.pendingNow()
@@ -262,11 +269,7 @@ internal class SwipeSetupViewModel @Inject constructor(
         }
         viewModelScope.launch {
             val recorded = repository.onDeleted(batch)
-            val text = if (batch.permanent) {
-                "${Format.bytes(batch.bytes)} felszabadítva"
-            } else {
-                "${Format.count(batch.ids.size)} elem a kukába került"
-            }
+            val text = tally.add(batch)
             local.update {
                 it.copy(
                     busy = false,
@@ -278,7 +281,7 @@ internal class SwipeSetupViewModel @Inject constructor(
                 )
             }
             // More was marked than one dialog carries: the next round follows on its own.
-            if (recorded && batch.truncated) deleteNow()
+            if (recorded && batch.truncated) nextRound()
         }
     }
 

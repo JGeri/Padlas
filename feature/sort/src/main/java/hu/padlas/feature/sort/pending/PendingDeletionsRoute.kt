@@ -52,6 +52,7 @@ import hu.padlas.core.design.theme.Space
 import hu.padlas.core.media.MediaOps
 import hu.padlas.core.media.MediaThumb
 import hu.padlas.feature.sort.DeleteBatch
+import hu.padlas.feature.sort.DeleteTally
 import hu.padlas.feature.sort.SwipeRepository
 import hu.padlas.feature.sort.ui.ZoomViewer
 import javax.inject.Inject
@@ -95,6 +96,7 @@ internal class PendingViewModel @Inject constructor(
     private val _requests = Channel<DeleteBatch>(Channel.BUFFERED)
     val requests: Flow<DeleteBatch> = _requests.receiveAsFlow()
     private var batch: DeleteBatch? = null
+    private val tally = DeleteTally()
 
     init {
         viewModelScope.launch {
@@ -122,6 +124,12 @@ internal class PendingViewModel @Inject constructor(
 
     fun delete() {
         if (_state.value.busy || batch != null) return
+        tally.reset()
+        nextRound()
+    }
+
+    private fun nextRound() {
+        if (_state.value.busy || batch != null) return
         val assets = _state.value.marked.map { it.asset }
         if (assets.isEmpty()) return
         _state.update { it.copy(busy = true) }
@@ -146,11 +154,7 @@ internal class PendingViewModel @Inject constructor(
         viewModelScope.launch {
             val recorded = repository.onDeleted(request)
             val gone = request.ids.toSet()
-            val text = if (request.permanent) {
-                "${Format.bytes(request.bytes)} felszabadítva"
-            } else {
-                "${Format.count(request.ids.size)} elem a kukába került"
-            }
+            val text = tally.add(request)
             _state.update { state ->
                 val left = state.items.filterNot { it.asset.mediaStoreId in gone }
                 state.copy(
@@ -165,7 +169,7 @@ internal class PendingViewModel @Inject constructor(
                 )
             }
             // More was marked than one dialog carries; what is left is smaller every round.
-            if (request.truncated) delete()
+            if (request.truncated) nextRound()
         }
     }
 

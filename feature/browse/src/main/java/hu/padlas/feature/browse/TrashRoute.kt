@@ -128,6 +128,10 @@ internal class TrashViewModel @Inject constructor(
     val requests: Flow<IntentSender> = _requests.receiveAsFlow()
     private var request: BinRequest? = null
 
+    /** What the rounds of one operation have done so far; the last round reports the total. */
+    private var doneCount = 0
+    private var doneBytes = 0L
+
     init {
         reload()
     }
@@ -155,11 +159,11 @@ internal class TrashViewModel @Inject constructor(
         it.copy(selected = if (it.selected.size == it.items.size) emptySet() else it.items.map { item -> item.id }.toSet())
     }
 
-    fun emptyAll() = startRound(TrashOp.EMPTY, _state.value.items)
+    fun emptyAll() = begin(TrashOp.EMPTY, _state.value.items)
 
-    fun deleteSelected() = startRound(TrashOp.DELETE_SELECTED, _state.value.items.filter { it.id in _state.value.selected })
+    fun deleteSelected() = begin(TrashOp.DELETE_SELECTED, _state.value.items.filter { it.id in _state.value.selected })
 
-    fun restoreSelected() = startRound(TrashOp.RESTORE, _state.value.items.filter { it.id in _state.value.selected })
+    fun restoreSelected() = begin(TrashOp.RESTORE, _state.value.items.filter { it.id in _state.value.selected })
 
     fun skipsSystemDialog(): Boolean = mediaOps.canManageMedia()
 
@@ -197,10 +201,12 @@ internal class TrashViewModel @Inject constructor(
                     )
                 }.isSuccess
             }
+            doneCount += ids.size
+            doneBytes += bytes
             val text = if (current.op == TrashOp.RESTORE) {
-                "${Format.count(ids.size)} elem visszaállítva"
+                "${Format.count(doneCount)} elem visszaállítva"
             } else {
-                "${Format.bytes(bytes)} felszabadítva"
+                "${Format.bytes(doneBytes)} felszabadítva"
             }
             _state.update {
                 it.copy(
@@ -219,6 +225,13 @@ internal class TrashViewModel @Inject constructor(
     }
 
     fun consumeMessage() = _state.update { it.copy(message = null) }
+
+    private fun begin(op: TrashOp, items: List<TrashedMedia>) {
+        if (request != null || _state.value.busy) return
+        doneCount = 0
+        doneBytes = 0L
+        startRound(op, items)
+    }
 
     private fun startRound(op: TrashOp, items: List<TrashedMedia>) {
         if (items.isEmpty() || request != null || _state.value.busy) return

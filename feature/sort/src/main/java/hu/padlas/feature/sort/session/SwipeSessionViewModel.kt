@@ -10,6 +10,7 @@ import hu.padlas.core.database.entity.SwipeChoice
 import hu.padlas.core.database.model.SizeAndCount
 import hu.padlas.feature.sort.DeleteBatch
 import hu.padlas.feature.sort.DeleteMode
+import hu.padlas.feature.sort.DeleteTally
 import hu.padlas.feature.sort.FavoriteBatch
 import hu.padlas.feature.sort.HungarianDates
 import hu.padlas.feature.sort.MediaFilter
@@ -88,6 +89,7 @@ internal class SwipeSessionViewModel @Inject constructor(
     private val history = ArrayDeque<Swiped>()
     private val sessionFavorites = LinkedHashSet<Long>()
     private var pendingBatch: DeleteBatch? = null
+    private val tally = DeleteTally()
     private var pendingFavorites: FavoriteBatch? = null
     private var autoDeleteDone = false
     private var undoTicket = 0L
@@ -181,6 +183,12 @@ internal class SwipeSessionViewModel @Inject constructor(
     /** "Törlés most": everything marked so far leaves through one system dialog. */
     fun deleteNow() {
         if (_state.value.busy || pendingBatch != null) return
+        tally.reset()
+        nextRound()
+    }
+
+    private fun nextRound() {
+        if (_state.value.busy || pendingBatch != null) return
         viewModelScope.launch {
             _state.update { it.copy(busy = true) }
             val pending = repository.pendingNow()
@@ -242,11 +250,7 @@ internal class SwipeSessionViewModel @Inject constructor(
         }
         viewModelScope.launch {
             val recorded = repository.onDeleted(batch)
-            val text = if (batch.permanent) {
-                "${Format.bytes(batch.bytes)} felszabadítva"
-            } else {
-                "${Format.count(batch.ids.size)} elem a kukába került"
-            }
+            val text = tally.add(batch)
             _state.update {
                 it.copy(
                     busy = false,
@@ -262,7 +266,7 @@ internal class SwipeSessionViewModel @Inject constructor(
             // More was marked than one dialog carries: the next round follows on its own.
             // Each round clears its own decisions, so the pile shrinks until it is empty.
             if (recorded && batch.truncated) {
-                deleteNow()
+                nextRound()
             } else if (_state.value.finished) {
                 offerFavoriteSync()
             }
