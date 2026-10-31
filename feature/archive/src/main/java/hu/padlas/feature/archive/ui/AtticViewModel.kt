@@ -5,17 +5,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.common.format.Format
-import hu.padlas.core.common.result.Outcome
 import hu.padlas.core.common.result.outcomeOf
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiPlural
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.UploadJobDao
 import hu.padlas.core.database.entity.Asset
 import hu.padlas.core.database.entity.AssetState
 import hu.padlas.core.database.model.SizeAndCount
 import hu.padlas.core.media.MediaOps
+import hu.padlas.feature.archive.R
 import hu.padlas.feature.archive.data.ArchivePreferences
 import hu.padlas.feature.archive.data.ArchiveRepository
 import hu.padlas.feature.archive.data.GhostBatch
+import hu.padlas.feature.archive.data.GhostPreparation
 import hu.padlas.feature.archive.data.UploadProgress
 import hu.padlas.feature.archive.drive.AuthState
 import hu.padlas.feature.archive.drive.DriveAuth
@@ -96,13 +100,17 @@ internal class AtticViewModel @Inject constructor(
             local.update { it.copy(busy = true) }
             if (!outcomeOf { repository.enqueue(ids) }.isSuccess) {
                 local.update {
-                    it.copy(busy = false, message = "A feltöltési sort nem sikerült menteni. Megtelt a tárhely?", messageOk = false)
+                    it.copy(busy = false, message = uiText(R.string.archive_queue_failed), messageOk = false)
                 }
                 return@launch
             }
             selection.value = emptySet()
             local.update {
-                it.copy(busy = false, message = "${Format.count(ids.size)} fájl vár feltöltésre.", messageOk = true)
+                it.copy(
+                    busy = false,
+                    message = uiPlural(R.plurals.archive_queued, ids.size, Format.count(ids.size)),
+                    messageOk = true,
+                )
             }
             onQueued(ids)
         }
@@ -125,14 +133,14 @@ internal class AtticViewModel @Inject constructor(
         if (ids.isEmpty() || pendingGhost != null) return
         viewModelScope.launch {
             local.update { it.copy(busy = true) }
-            when (val outcome = repository.prepareGhosting(ids)) {
-                is Outcome.Success -> {
-                    pendingGhost = outcome.value
-                    local.update { it.copy(request = outcome.value) }
+            when (val preparation = repository.prepareGhosting(ids)) {
+                is GhostPreparation.Ready -> {
+                    pendingGhost = preparation.batch
+                    local.update { it.copy(request = preparation.batch) }
                 }
 
-                is Outcome.Failure -> local.update {
-                    it.copy(busy = false, message = outcome.message, messageOk = false)
+                is GhostPreparation.Refused -> local.update {
+                    it.copy(busy = false, message = preparation.reason, messageOk = false)
                 }
             }
         }
@@ -145,7 +153,7 @@ internal class AtticViewModel @Inject constructor(
         if (batch == null) return
         if (!confirmed) {
             local.update {
-                it.copy(busy = false, message = "Nem töröltünk semmit, minden a helyén maradt.", messageOk = false)
+                it.copy(busy = false, message = uiText(R.string.archive_ghost_cancelled), messageOk = false)
             }
             return
         }
@@ -157,17 +165,17 @@ internal class AtticViewModel @Inject constructor(
                 when {
                     bytes == null -> it.copy(
                         busy = false,
-                        message = "A hely felszabadult, de a nyilvántartás nem frissült. Megtelt a tárhely?",
+                        message = uiText(R.string.archive_ghost_records_failed),
                         messageOk = false,
                     )
                     more -> it.copy(
                         busy = false,
-                        message = "${Format.bytes(bytes)} felszabadult · jön a következő adag",
+                        message = uiText(R.string.archive_ghost_freed_more, Format.bytes(bytes)),
                         messageOk = true,
                     )
                     else -> it.copy(
                         busy = false,
-                        message = "${Format.bytes(bytes)} felszabadult a telefonon.",
+                        message = uiText(R.string.archive_ghost_freed, Format.bytes(bytes)),
                         messageOk = true,
                     )
                 }
@@ -184,7 +192,7 @@ internal class AtticViewModel @Inject constructor(
     private data class LocalState(
         val busy: Boolean = false,
         val request: GhostBatch? = null,
-        val message: String? = null,
+        val message: UiText? = null,
         val messageOk: Boolean = true,
     )
 
@@ -202,7 +210,7 @@ internal data class AtticUiState(
     val progress: UploadProgress = UploadProgress(),
     val desktopNoticeRead: Boolean = true,
     val ghostRequest: GhostBatch? = null,
-    val message: String? = null,
+    val message: UiText? = null,
     /** False for a cancel or a failure, so the toast does not wear a success tick. */
     val messageOk: Boolean = true,
     val busy: Boolean = false,

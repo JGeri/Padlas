@@ -54,12 +54,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.text.UiText
 import hu.padlas.core.database.entity.Asset
 import hu.padlas.core.database.entity.RuleEntity
 import hu.padlas.core.design.component.ButtonSize
@@ -77,6 +80,7 @@ import hu.padlas.core.design.component.Pill
 import hu.padlas.core.design.component.RollingNumber
 import hu.padlas.core.design.component.SectionHeader
 import hu.padlas.core.design.component.Toast
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.component.hairlineBottom
 import hu.padlas.core.design.component.navigationBarBottom
 import hu.padlas.core.design.component.topBarClearance
@@ -120,18 +124,18 @@ fun RulesRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier,
         topBar = {
             PadlasTopBar(
-                title = "Automatikus szabályok",
+                title = stringResource(R.string.rules_title),
                 onBack = onBack,
                 subtitle = when {
                     state.loading -> null
-                    active == 0 -> "Mind kikapcsolva"
-                    else -> "${Format.count(active)} bekapcsolva · hetente futnak"
+                    active == 0 -> stringResource(R.string.rules_subtitle_all_off)
+                    else -> pluralStringResource(R.plurals.rules_subtitle_active, active, Format.count(active))
                 },
             )
         },
         overlay = {
             Toast(
-                message = state.message,
+                message = state.message?.asString(),
                 onShown = viewModel::dismissMessage,
                 icon = if (state.messageOk) Icons.Rounded.CheckCircle else Icons.Rounded.Info,
                 tint = if (state.messageOk) Ink.Success else Ink.Info,
@@ -155,8 +159,8 @@ fun RulesRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
             if (state.rules.isEmpty() && !state.loading) {
                 item(key = "empty") {
                     EmptyState(
-                        title = "Még nincs szabály",
-                        text = "A beépített szabályok az app következő indításakor jelennek meg.",
+                        title = stringResource(R.string.rules_empty_title),
+                        text = stringResource(R.string.rules_empty_text),
                         icon = Icons.Rounded.AutoMode,
                         modifier = Modifier.entrance(entrance),
                     )
@@ -186,12 +190,12 @@ fun RulesRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
             item(key = "delta-head") {
                 Column(modifier = Modifier.entrance(entrance).padding(top = Space.l)) {
                     SectionHeader(
-                        title = "Heti változás",
-                        actionLabel = "Mérés most",
+                        title = stringResource(R.string.rules_delta_title),
+                        actionLabel = stringResource(R.string.rules_delta_measure),
                         onAction = viewModel::refreshDeltas,
                     )
                     Text(
-                        text = "Mely mappák és appok nőttek vagy fogytak az elmúlt héten.",
+                        text = stringResource(R.string.rules_delta_intro),
                         style = PadlasTheme.type.body,
                         color = Ink.TextSecondary,
                     )
@@ -207,9 +211,9 @@ fun RulesRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
     deleting?.let { rule ->
         ConfirmDialog(
-            title = "Törlöd a szabályt?",
-            text = "„${RuleCopy.displayName(rule)}” többé nem fut le. A fájljaidhoz nem nyúlunk.",
-            confirmLabel = "Szabály törlése",
+            title = stringResource(R.string.rules_delete_title),
+            text = stringResource(R.string.rules_delete_text, RuleCopy.displayName(rule).asString()),
+            confirmLabel = stringResource(R.string.rules_delete_rule),
             onConfirm = {
                 deleting = null
                 viewModel.delete(rule)
@@ -224,8 +228,7 @@ fun RulesRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
 @Composable
 private fun Intro(modifier: Modifier = Modifier) {
     Text(
-        text = "A bekapcsolt szabályok hetente maguktól lefutnak. Véglegesen soha nem törölnek, " +
-            "és bekapcsolás előtt mindig megnézheted, mit érintenének.",
+        text = stringResource(R.string.rules_intro),
         style = PadlasTheme.type.body,
         color = Ink.TextSecondary,
         modifier = modifier,
@@ -235,7 +238,7 @@ private fun Intro(modifier: Modifier = Modifier) {
 private sealed interface RuleResult {
     data object Busy : RuleResult
     data class Dry(val result: DryRunResult) : RuleResult
-    data class Last(val line: String) : RuleResult
+    data class Last(val line: UiText) : RuleResult
     data object Empty : RuleResult
 }
 
@@ -262,14 +265,14 @@ private fun RuleCard(
                 Spacer(Modifier.width(Space.m))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = RuleCopy.displayName(rule),
+                        text = RuleCopy.displayName(rule).asString(),
                         style = PadlasTheme.type.bodyStrong,
                         color = Ink.Text,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = RuleCopy.actionSentence(rule.action),
+                        text = stringResource(RuleCopy.actionSentence(rule.action)),
                         style = PadlasTheme.type.caption,
                         color = Ink.TextSecondary,
                         maxLines = 2,
@@ -292,7 +295,7 @@ private fun RuleCard(
                 verticalArrangement = Arrangement.spacedBy(Space.xs),
             ) {
                 RuleCopy.conditions(rule).forEach { condition ->
-                    Pill(text = condition, color = Ink.TextSecondary, background = Ink.SurfaceHigh)
+                    Pill(text = condition.asString(), color = Ink.TextSecondary, background = Ink.SurfaceHigh)
                 }
             }
 
@@ -310,9 +313,9 @@ private fun RuleCard(
                 label = "ruleResult",
             ) { shown ->
                 when (shown) {
-                    RuleResult.Busy -> ResultLine(text = "Számolás…", color = Ink.TextTertiary)
+                    RuleResult.Busy -> ResultLine(text = stringResource(R.string.rules_counting), color = Ink.TextTertiary)
                     is RuleResult.Dry -> DryRunPanel(dryRun = shown.result, expanded = expanded, onClose = onClose)
-                    is RuleResult.Last -> ResultLine(text = shown.line, color = Ink.TextTertiary)
+                    is RuleResult.Last -> ResultLine(text = shown.line.asString(), color = Ink.TextTertiary)
                     RuleResult.Empty -> Spacer(Modifier.fillMaxWidth())
                 }
             }
@@ -320,7 +323,7 @@ private fun RuleCard(
             Spacer(Modifier.height(Space.l))
             Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
                 PadlasButton(
-                    text = if (dryRun == null) "Mit érintene?" else "Újraszámolás",
+                    text = stringResource(if (dryRun == null) R.string.rules_dry_run else R.string.rules_recount),
                     onClick = onDryRun,
                     enabled = !busy,
                     style = ButtonStyle.Secondary,
@@ -334,7 +337,7 @@ private fun RuleCard(
                     modifier = Modifier.weight(1f),
                 ) {
                     PadlasButton(
-                        text = "Futtatás most",
+                        text = stringResource(R.string.rules_run_now),
                         onClick = onRunNow,
                         enabled = !busy,
                         size = ButtonSize.Medium,
@@ -344,7 +347,7 @@ private fun RuleCard(
             }
             if (!rule.builtIn) {
                 PadlasTextButton(
-                    text = "Szabály törlése",
+                    text = stringResource(R.string.rules_delete_rule),
                     onClick = onDelete,
                     color = Ink.Danger,
                     modifier = Modifier.padding(top = Space.xs).offset(x = -Space.m),
@@ -381,17 +384,34 @@ private fun DryRunPanel(dryRun: DryRunResult, expanded: Boolean, onClose: () -> 
             Spacer(Modifier.width(Space.s))
             if (dryRun.matchCount == 0) {
                 Text(
-                    text = RuleCopy.dryRunLine(dryRun.matchCount, dryRun.matchBytes),
+                    text = RuleCopy.dryRunLine(dryRun.matchCount, dryRun.matchBytes).asString(),
                     style = PadlasTheme.type.label,
                     color = Ink.Text,
                     modifier = Modifier.weight(1f),
                 )
             } else {
+                // The sentence is split at its placeholders so both figures can roll while each
+                // language keeps its own word order around them.
+                val sentence = pluralStringResource(R.plurals.rules_dry_run_line, dryRun.matchCount)
+                val figures = listOf(Format.count(dryRun.matchCount), Format.bytes(dryRun.matchBytes))
                 Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Most ", style = PadlasTheme.type.label, color = Ink.Text, maxLines = 1)
-                    RollingNumber(value = Format.count(dryRun.matchCount), style = PadlasTheme.type.label, color = Ink.Text)
-                    Text(text = " fájlt érintene · ", style = PadlasTheme.type.label, color = Ink.Text, maxLines = 1)
-                    RollingNumber(value = Format.bytes(dryRun.matchBytes), style = PadlasTheme.type.label, color = Ink.Text)
+                    var from = 0
+                    FigurePlaceholder.findAll(sentence).forEach { placeholder ->
+                        val words = sentence.substring(from, placeholder.range.first)
+                        if (words.isNotEmpty()) {
+                            Text(text = words, style = PadlasTheme.type.label, color = Ink.Text, maxLines = 1)
+                        }
+                        RollingNumber(
+                            value = figures.getOrElse(placeholder.groupValues[1].toInt() - 1) { "" },
+                            style = PadlasTheme.type.label,
+                            color = Ink.Text,
+                        )
+                        from = placeholder.range.last + 1
+                    }
+                    val tail = sentence.substring(from)
+                    if (tail.isNotEmpty()) {
+                        Text(text = tail, style = PadlasTheme.type.label, color = Ink.Text, maxLines = 1)
+                    }
                 }
             }
         }
@@ -409,12 +429,12 @@ private fun DryRunPanel(dryRun: DryRunResult, expanded: Boolean, onClose: () -> 
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "Véletlen minta a találatokból",
+                        text = stringResource(R.string.rules_sample_caption),
                         style = PadlasTheme.type.caption,
                         color = Ink.TextTertiary,
                         modifier = Modifier.weight(1f),
                     )
-                    PadlasTextButton(text = "Elrejtés", onClick = onClose)
+                    PadlasTextButton(text = stringResource(R.string.rules_hide), onClick = onClose)
                 }
             }
         }
@@ -454,6 +474,8 @@ private fun SampleThumb(asset: Asset, order: Int) {
 
 private const val SampleStepMs = 30L
 
+private val FigurePlaceholder = Regex("%(\\d)\\\$s")
+
 @Composable
 private fun DeltaCard(deltas: List<BucketDelta>) {
     if (deltas.isEmpty()) {
@@ -462,8 +484,7 @@ private fun DeltaCard(deltas: List<BucketDelta>) {
                 IconBubble(icon = Icons.Rounded.QueryStats, tint = Ink.TextSecondary)
                 Spacer(Modifier.width(Space.m))
                 Text(
-                    text = "Még nincs mihez hasonlítani. Az app hetente feljegyzi, mennyi helyet foglal " +
-                        "egy-egy mappa, és egy hét múlva itt látod, mi nőtt.",
+                    text = stringResource(R.string.rules_delta_empty),
                     style = PadlasTheme.type.caption,
                     color = Ink.TextSecondary,
                     modifier = Modifier.weight(1f),

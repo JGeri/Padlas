@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rules_title">Automatic rules</string>
+    <string name="rules_subtitle_all_off">All off</string>
+    <plurals name="rules_subtitle_active">
+        <item quantity="one">%1$s rule on · runs weekly</item>
+        <item quantity="other">%1$s rules on · run weekly</item>
+    </plurals>
+    <string name="rules_intro">Rules you turn on run by themselves every week. They never delete anything permanently, and before you turn one on, you can always see what it would affect.</string>
+    <string name="rules_empty_title">No rules yet</string>
+    <string name="rules_empty_text">The built-in rules show up the next time you open the app.</string>
+    <string name="rules_delta_title">Weekly change</string>
+    <string name="rules_delta_measure">Measure now</string>
+    <string name="rules_delta_intro">Which folders and apps grew or shrank over the past week.</string>
+    <string name="rules_delta_empty">Nothing to compare yet. Every week the app notes how much space each folder takes, so in a week you\'ll see here what grew.</string>
+    <string name="rules_delete_title">Delete this rule?</string>
+    <string name="rules_delete_text">“%1$s” will stop running. We won\'t touch your files.</string>
+    <string name="rules_delete_rule">Delete rule</string>
+    <string name="rules_counting">Counting…</string>
+    <string name="rules_dry_run">What would it affect?</string>
+    <string name="rules_recount">Recount</string>
+    <string name="rules_run_now">Run now</string>
+    <string name="rules_sample_caption">A random sample of the matches</string>
+    <string name="rules_hide">Hide</string>
+    <plurals name="rules_dry_run_line">
+        <item quantity="one">Would affect %1$s file · %2$s</item>
+        <item quantity="other">Would affect %1$s files · %2$s</item>
+    </plurals>
+    <string name="rules_dry_run_none">Wouldn\'t affect any files right now.</string>
+    <plurals name="rules_last_run">
+        <item quantity="one">Last run %1$s: %2$s file · %3$s</item>
+        <item quantity="other">Last run %1$s: %2$s files · %3$s</item>
+    </plurals>
+    <string name="rules_dry_run_first">First check what it would affect.</string>
+    <string name="rules_failed">That didn\'t work. Try again.</string>
+
+    <string name="rules_builtin_old_whatsapp">Old WhatsApp photos to the cloud</string>
+    <string name="rules_builtin_old_camera">Photos older than a year to the cloud</string>
+    <string name="rules_builtin_large_videos">Compress large videos</string>
+    <string name="rules_builtin_old_screenshots">Old screenshots to throwaways</string>
+
+    <string name="rules_action_archive">Uploads them to Google Drive</string>
+    <string name="rules_action_trash">Puts them with the throwaway pictures for you to approve</string>
+    <string name="rules_action_protect">Protects them so nothing deletes them</string>
+    <string name="rules_action_transcode">Marks them for compression</string>
+
+    <string name="rules_condition_broken">Broken rule</string>
+    <string name="rules_condition_whatsapp">WhatsApp folder</string>
+    <string name="rules_condition_camera">Camera folder</string>
+    <string name="rules_condition_screenshots">Screenshots folder</string>
+    <string name="rules_condition_downloads">Downloads folder</string>
+    <string name="rules_condition_folder">Folder: %1$s</string>
+    <string name="rules_condition_larger">Over %1$s</string>
+    <string name="rules_condition_video">Video</string>
+    <string name="rules_condition_picture">Picture</string>
+    <string name="rules_condition_audio">Audio</string>
+    <string name="rules_condition_own_photo">Your own photo</string>
+    <string name="rules_condition_replaceable">Replaceable</string>
+    <string name="rules_condition_throwaway">Screenshot or throwaway picture</string>
+    <string name="rules_condition_receipt">Receipt</string>
+    <string name="rules_condition_ticket">Ticket</string>
+    <string name="rules_condition_secret">Protected data</string>
+    <string name="rules_condition_place">Address or map</string>
+    <string name="rules_condition_chat">Chat</string>
+    <string name="rules_condition_other_screenshot">Other screenshot</string>
+    <string name="rules_condition_selected_folder">Selected folder</string>
+    <string name="rules_condition_not">Not: %1$s</string>
+    <plurals name="rules_condition_older_years">
+        <item quantity="one">Older than %1$s year</item>
+        <item quantity="other">Older than %1$s years</item>
+    </plurals>
+    <plurals name="rules_condition_older_months">
+        <item quantity="one">Older than %1$s month</item>
+        <item quantity="other">Older than %1$s months</item>
+    </plurals>
+    <plurals name="rules_condition_older_days">
+        <item quantity="one">Older than %1$s day</item>
+        <item quantity="other">Older than %1$s days</item>
+    </plurals>
+    <string name="rules_join_and">%1$s and %2$s</string>
+    <string name="rules_join_or">%1$s or %2$s</string>
+
+    <string name="rules_describe_path">path contains \"%1$s\"</string>
+    <plurals name="rules_describe_older">
+        <item quantity="one">older than %1$s day</item>
+        <item quantity="other">older than %1$s days</item>
+    </plurals>
+    <string name="rules_describe_larger">larger than %1$s</string>
+    <string name="rules_describe_mime">type is %1$s</string>
+    <string name="rules_describe_value_class">classified as %1$s</string>
+    <string name="rules_describe_irreplaceable">irreplaceable</string>
+    <string name="rules_describe_replaceable">replaceable</string>
+    <string name="rules_describe_ephemeral">throwaway</string>
+    <string name="rules_describe_shot_kind">screenshot kind is %1$s</string>
+    <string name="rules_describe_bucket">folder ID is %1$s</string>
+    <string name="rules_describe_not">not (%1$s)</string>
+
+    <string name="rules_run_unreadable">This rule can\'t be read.</string>
+    <string name="rules_run_no_matches">No matches.</string>
+    <plurals name="rules_run_archive">
+        <item quantity="one">%1$s file is queued to upload to the cloud.</item>
+        <item quantity="other">%1$s files are queued to upload to the cloud.</item>
+    </plurals>
+    <plurals name="rules_run_trash">
+        <item quantity="one">%1$s file is waiting for your approval in Throwaway pictures.</item>
+        <item quantity="other">%1$s files are waiting for your approval in Throwaway pictures.</item>
+    </plurals>
+    <plurals name="rules_run_protect">
+        <item quantity="one">%1$s file is now protected.</item>
+        <item quantity="other">%1$s files are now protected.</item>
+    </plurals>
+    <plurals name="rules_run_transcode">
+        <item quantity="one">%1$s video is queued for compression.</item>
+        <item quantity="other">%1$s videos are queued for compression.</item>
+    </plurals>
+</resources>

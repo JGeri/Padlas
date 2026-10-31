@@ -1,8 +1,13 @@
 package hu.padlas.feature.rules
 
+import android.content.Context
 import androidx.sqlite.db.SimpleSQLiteQuery
+import dagger.hilt.android.qualifiers.ApplicationContext
 import hu.padlas.core.common.di.IoDispatcher
 import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiPlural
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.dao.RuleDao
@@ -32,7 +37,7 @@ data class RuleRunResult(
     val ruleId: Long,
     val affected: Int,
     val bytes: Long,
-    val message: String,
+    val message: UiText,
 )
 
 /**
@@ -42,6 +47,7 @@ data class RuleRunResult(
  */
 @Singleton
 class RuleEngine @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val assetDao: AssetDao,
     private val ruleDao: RuleDao,
     private val auditDao: AuditDao,
@@ -75,7 +81,7 @@ class RuleEngine @Inject constructor(
     suspend fun apply(rule: RuleEntity, now: Long = System.currentTimeMillis()): RuleRunResult =
         withContext(io) {
             val predicate = PredicateJson.decode(rule.predicateJson)
-                ?: return@withContext RuleRunResult(rule.id, 0, 0, "A szabály nem értelmezhető.")
+                ?: return@withContext RuleRunResult(rule.id, 0, 0, uiText(R.string.rules_run_unreadable))
 
             val listing = PredicateCompiler.selectAssets(predicate, now)
             val matches = assetDao.rawAssets(SimpleSQLiteQuery(listing.where, listing.args.toTypedArray()))
@@ -83,7 +89,7 @@ class RuleEngine @Inject constructor(
 
             if (matches.isEmpty()) {
                 ruleDao.recordRun(rule.id, now, 0, 0)
-                return@withContext RuleRunResult(rule.id, 0, 0, "Nincs találat.")
+                return@withContext RuleRunResult(rule.id, 0, 0, uiText(R.string.rules_run_no_matches))
             }
 
             val bytes = matches.sumOf { it.sizeBytes }
@@ -91,6 +97,7 @@ class RuleEngine @Inject constructor(
             // "Older than a year" matches most of a library; SQLite refuses an IN list that
             // long, so the writes go through in chunks it accepts.
             val chunks = ids.chunked(SQLITE_ARGUMENT_LIMIT)
+            val count = Format.count(ids.size)
 
             val message = when (rule.action) {
                 RuleAction.ARCHIVE -> {
@@ -105,7 +112,7 @@ class RuleEngine @Inject constructor(
                         },
                     )
                     chunks.forEach { chunk -> assetDao.setState(chunk, AssetState.UPLOADING) }
-                    "${Format.count(ids.size)} fájl vár feltöltésre a felhőbe."
+                    uiPlural(R.plurals.rules_run_archive, ids.size, count)
                 }
 
                 RuleAction.TRASH -> {
@@ -113,19 +120,22 @@ class RuleEngine @Inject constructor(
                     // so automation stages the batch and the Kidobo screen finishes it.
                     // Pretending otherwise would make the trash counter lie (INV-1b, INV-2).
                     chunks.forEach { chunk -> assetDao.defer(chunk, now) }
-                    "${Format.count(ids.size)} fájl vár jóváhagyásra az Eldobható képek között."
+                    uiPlural(R.plurals.rules_run_trash, ids.size, count)
                 }
 
                 RuleAction.PROTECT -> {
                     chunks.forEach { chunk -> assetDao.setProtected(chunk, true) }
-                    "${Format.count(ids.size)} fájl védett lett."
+                    uiPlural(R.plurals.rules_run_protect, ids.size, count)
                 }
 
                 RuleAction.TRANSCODE -> {
-                    "${Format.count(ids.size)} videó vár tömörítésre."
+                    uiPlural(R.plurals.rules_run_transcode, ids.size, count)
                 }
             }
 
+            // The log stores text, not resource ids, so the entry is written in the language
+            // the app runs in when the rule fires.
+            val resources = context.resources
             auditDao.insert(
                 AuditEntry(
                     timestamp = now,
@@ -133,7 +143,7 @@ class RuleEngine @Inject constructor(
                     assetId = null,
                     sizeBytes = bytes,
                     reversible = rule.action == RuleAction.TRASH,
-                    note = "${rule.name}: $message",
+                    note = "${RuleCopy.displayName(rule).resolve(resources)}: ${message.resolve(resources)}",
                 ),
             )
             ruleDao.recordRun(rule.id, now, ids.size, bytes)

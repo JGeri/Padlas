@@ -1,5 +1,10 @@
 package hu.padlas.feature.rules
 
+import androidx.annotation.StringRes
+import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiPlural
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.entity.ShotKind
 import hu.padlas.core.database.entity.ValueClass
 import kotlinx.serialization.json.Json
@@ -125,22 +130,27 @@ object PredicateJson {
         runCatching { this[key]?.jsonPrimitive?.content }.getOrNull()?.takeIf { it.isNotEmpty() }
 }
 
-/** Hungarian one-liner for the rule list; the builder shows the same wording. */
-fun Predicate.describe(): String = when (this) {
-    is Predicate.PathContains -> "az útvonal tartalmazza: \"$value\""
-    is Predicate.OlderThan -> "régebbi mint $days nap"
-    is Predicate.LargerThan -> "nagyobb mint ${hu.padlas.core.common.format.Format.bytes(bytes)}"
-    is Predicate.MimeIs -> "típusa $prefix"
-    is Predicate.ValueClassIs -> "besorolása ${valueClass.hungarian()}"
-    is Predicate.ShotKindIs -> "képernyőkép típusa ${kind.name.lowercase()}"
-    is Predicate.BucketIs -> "mappaazonosítója $bucketId"
-    is Predicate.And -> terms.joinToString(" és ") { it.describe() }
-    is Predicate.Or -> terms.joinToString(" vagy ") { it.describe() }
-    is Predicate.Not -> "nem (${term.describe()})"
+/** A one-liner for a whole predicate tree, in the language the screen resolves it in. */
+fun Predicate.describe(): UiText = when (this) {
+    is Predicate.PathContains -> uiText(R.string.rules_describe_path, value)
+    is Predicate.OlderThan -> uiPlural(R.plurals.rules_describe_older, days, Format.count(days))
+    is Predicate.LargerThan -> uiText(R.string.rules_describe_larger, Format.bytes(bytes))
+    is Predicate.MimeIs -> uiText(R.string.rules_describe_mime, prefix)
+    is Predicate.ValueClassIs -> uiText(R.string.rules_describe_value_class, uiText(valueClass.describedAs()))
+    is Predicate.ShotKindIs -> uiText(R.string.rules_describe_shot_kind, kind.name.lowercase())
+    is Predicate.BucketIs -> uiText(R.string.rules_describe_bucket, bucketId.toString())
+    is Predicate.And -> terms.map { it.describe() }.joined(R.string.rules_join_and)
+    is Predicate.Or -> terms.map { it.describe() }.joined(R.string.rules_join_or)
+    is Predicate.Not -> uiText(R.string.rules_describe_not, term.describe())
 }
 
-private fun ValueClass.hungarian(): String = when (this) {
-    ValueClass.IRREPLACEABLE -> "pótolhatatlan"
-    ValueClass.REPLACEABLE -> "pótolható"
-    ValueClass.EPHEMERAL -> "eldobható"
+/** Pairwise, because word order around "and" is the translation's business, not a separator's. */
+internal fun List<UiText>.joined(@StringRes pair: Int): UiText =
+    reduceOrNull { joined, next -> uiText(pair, joined, next) } ?: UiText.Raw("")
+
+@StringRes
+private fun ValueClass.describedAs(): Int = when (this) {
+    ValueClass.IRREPLACEABLE -> R.string.rules_describe_irreplaceable
+    ValueClass.REPLACEABLE -> R.string.rules_describe_replaceable
+    ValueClass.EPHEMERAL -> R.string.rules_describe_ephemeral
 }
