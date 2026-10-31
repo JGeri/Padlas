@@ -45,10 +45,14 @@ interface DupDao {
     @Query("SELECT * FROM dup_group WHERE id = :id")
     suspend fun group(id: String): DupGroupWithMembers?
 
+    /**
+     * What the overview may promise. Only byte-identical copies free space without a human
+     * choice; a burst or a similar group may hold the one frame worth keeping.
+     */
     @Query(
         """
         SELECT COUNT(*) AS itemCount, COALESCE(SUM(reclaimableBytes), 0) AS totalBytes
-        FROM dup_group WHERE resolvedAt IS NULL
+        FROM dup_group WHERE resolvedAt IS NULL AND kind = 'EXACT'
         """,
     )
     fun observeOpenTotals(): Flow<SizeAndCount>
@@ -61,9 +65,6 @@ interface DupDao {
 
     @Query("UPDATE dup_group SET resolvedAt = :now WHERE id IN (:ids)")
     suspend fun markResolvedAll(ids: List<String>, now: Long)
-
-    @Query("UPDATE dup_member SET isWinner = (assetId = :winnerId) WHERE groupId = :groupId")
-    suspend fun setWinner(groupId: String, winnerId: Long)
 
     @Query("SELECT assetId FROM dup_member WHERE groupId = :groupId AND isWinner = 0")
     suspend fun losersOf(groupId: String): List<Long>

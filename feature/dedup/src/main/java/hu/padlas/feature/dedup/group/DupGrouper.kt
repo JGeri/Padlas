@@ -212,6 +212,15 @@ data class DupGrouping(
 ) {
     val reclaimableBytes: Long get() = groups.sumOf { it.reclaimableBytes }
     val loserCount: Int get() = members.count { !it.isWinner }
+
+    /** What can go without anyone looking: bursts and similar shots wait for a human. */
+    val exactReclaimableBytes: Long get() = groups.filter { it.kind == DupKind.EXACT }.sumOf { it.reclaimableBytes }
+
+    val exactLoserCount: Int
+        get() {
+            val exact = groups.filter { it.kind == DupKind.EXACT }.mapTo(HashSet()) { it.id }
+            return members.count { !it.isWinner && it.groupId in exact }
+        }
 }
 
 /** Union-find over asset ids; the components are the duplicate groups. */

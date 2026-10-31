@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -63,9 +64,17 @@ internal class DedupViewModel @Inject constructor(
     /** Losers already sent to the bin from this screen, so a following round never asks twice. */
     private val trashed = HashSet<Long>()
 
-    private val groups: Flow<List<DupGroupUi>> = dupDao.observeOpenGroups()
-        .map { open -> open.toUi() }
-        .flowOn(io)
+    /** What the user marked in each burst and similar group, by group id. */
+    private val marks = MutableStateFlow<Map<String, Set<Long>>>(emptyMap())
+
+    private val groups: Flow<List<DupGroupUi>> = combine(
+        dupDao.observeOpenGroups().map { open -> open.toUi() }.flowOn(io),
+        marks,
+    ) { open, marked ->
+        open.map { group ->
+            if (group.needsReview) group.copy(marked = marked[group.id].orEmpty()) else group
+        }
+    }
 
     private val lastScanAt: Flow<Long> = auditDao.observeRecent(AUDIT_WINDOW)
         .map { entries -> entries.firstOrNull { it.action == AuditAction.HASHED }?.timestamp ?: 0L }
@@ -100,9 +109,23 @@ internal class DedupViewModel @Inject constructor(
         DedupScheduler.enqueueScan(context)
     }
 
-    /** The similar section is the only one where the keeper is a human decision. */
-    fun pickWinner(groupId: String, assetId: Long) {
-        viewModelScope.launch(io) { outcomeOf { dupDao.setWinner(groupId, assetId) } }
+    /** A burst or similar picture goes to the bin only once the user taps it. */
+    fun toggleMark(groupId: String, assetId: Long) {
+        if (groupId in pendingGroups.value) return
+        marks.update { all ->
+            val current = all[groupId].orEmpty()
+            all + (groupId to if (assetId in current) current - assetId else current + assetId)
+        }
+    }
+
+    /** The one-tap shortcut, still a deliberate tap: everything but the suggested frame. */
+    fun keepOnlySuggested(groupId: String) {
+        if (groupId in pendingGroups.value) return
+        val group = state.value.sections.flatMap { it.groups }.firstOrNull { it.id == groupId } ?: return
+        val winner = group.winner ?: return
+        marks.update { all ->
+            all + (groupId to group.members.filter { it.assetId != winner.assetId && !it.isProtected }.map { it.assetId }.toSet())
+        }
     }
 
     /**
@@ -146,6 +169,7 @@ internal class DedupViewModel @Inject constructor(
         }
         val ids = batch.losers.map { it.first }
         trashed += ids
+        marks.update { all -> all - batch.groupIds.toSet() }
         viewModelScope.launch {
             // The files are in the bin either way; a failed write (a full disk) is left for
             // the next scan to square instead of taking the screen down.
@@ -204,7 +228,10 @@ internal class DedupViewModel @Inject constructor(
         }
         val ui = DupGroupUi(id = group.id, kind = group.kind, members = live)
         val hasWinner = ui.winner != null
-        return if (live.size > 1 && hasWinner && ui.losers.isNotEmpty()) ui else null
+        // A review group has no losers until the user marks some; it only needs something
+        // that could be marked.
+        val actionable = if (ui.needsReview) live.any { !it.isProtected } else ui.losers.isNotEmpty()
+        return if (live.size > 1 && hasWinner && actionable) ui else null
     }
 
     private data class PendingTrash(

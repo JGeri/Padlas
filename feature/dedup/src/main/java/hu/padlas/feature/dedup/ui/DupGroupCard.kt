@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DeleteOutline
@@ -53,6 +54,7 @@ import hu.padlas.core.design.component.ButtonSize
 import hu.padlas.core.design.component.ButtonStyle
 import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasCard
+import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.Pill
 import hu.padlas.core.design.component.ZoomableImage
 import hu.padlas.core.design.motion.LocalReducedMotion
@@ -74,7 +76,8 @@ private const val FOLDED_SCALE = 0.84f
 private const val PICKED_DIP = 0.88f
 
 /**
- * One group: every member in a row, the keeper ringed and labelled. While the losers wait
+ * One group: every member in a row. An exact group rings and labels its keeper; a burst or
+ * similar group only suggests one, and the user taps what goes. While the losers wait
  * behind the system dialog they fold away one after the other; a cancelled dialog brings
  * them back on the snapback spring, so the card always shows what is really on the phone.
  */
@@ -84,17 +87,15 @@ internal fun DupGroupCard(
     pending: Boolean,
     enabled: Boolean,
     onResolve: (String) -> Unit,
-    onPickWinner: (String, Long) -> Unit,
+    onToggleMark: (String, Long) -> Unit,
+    onKeepSuggested: (String) -> Unit,
     onView: (DupMemberUi) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val hapticFeedback = haptics()
-    val pickable = group.kind == DupKind.SIMILAR && !pending
-    val loserOrder = remember(group.members) {
-        group.members
-            .filter { !it.isWinner && !it.isProtected }
-            .mapIndexed { order, member -> member.assetId to order }
-            .toMap()
+    val markable = group.needsReview && !pending
+    val loserOrder = remember(group.members, group.marked) {
+        group.losers.mapIndexed { order, member -> member.assetId to order }.toMap()
     }
 
     PadlasCard(modifier = modifier.fillMaxWidth(), contentPadding = 0.dp) {
@@ -112,7 +113,11 @@ internal fun DupGroupCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = DedupCopy.groupSubtitle(group.losers.size, group.reclaimableBytes),
+                        text = if (group.needsReview) {
+                            DedupCopy.reviewSubtitle(group.losers.size, group.reclaimableBytes)
+                        } else {
+                            DedupCopy.groupSubtitle(group.losers.size, group.reclaimableBytes)
+                        },
                         style = PadlasTheme.type.caption,
                         color = Ink.TextSecondary,
                         maxLines = 1,
@@ -140,13 +145,15 @@ internal fun DupGroupCard(
                 items(group.members, key = { member -> member.assetId }) { member ->
                     MemberTile(
                         member = member,
+                        fate = group.fateOf(member),
+                        review = group.needsReview,
                         zoomKey = DedupZoomKey(group.id, member.assetId),
                         foldOrder = loserOrder[member.assetId],
                         folded = pending,
-                        pickable = pickable,
-                        onPick = {
+                        markable = markable,
+                        onMark = {
                             hapticFeedback?.tick()
-                            onPickWinner(group.id, member.assetId)
+                            onToggleMark(group.id, member.assetId)
                         },
                         onView = {
                             hapticFeedback?.tick(0.2f)
@@ -155,14 +162,26 @@ internal fun DupGroupCard(
                     )
                 }
             }
-            if (group.kind == DupKind.SIMILAR) {
+            if (group.needsReview) {
                 Spacer(Modifier.height(Space.m))
                 Text(
-                    text = DedupCopy.PICK_KEEPER,
+                    text = DedupCopy.REVIEW_HINT,
                     style = PadlasTheme.type.caption,
                     color = Ink.TextTertiary,
                     modifier = Modifier.padding(horizontal = Space.l),
                 )
+                val suggested = group.winner
+                val others = group.members.count { it.assetId != suggested?.assetId && !it.isProtected }
+                if (markable && suggested != null && others > 0 && group.losers.size < others) {
+                    PadlasTextButton(
+                        text = DedupCopy.KEEP_SUGGESTED,
+                        onClick = {
+                            hapticFeedback?.tick()
+                            onKeepSuggested(group.id)
+                        },
+                        modifier = Modifier.padding(start = Space.s),
+                    )
+                }
             }
         }
     }
@@ -172,11 +191,13 @@ internal fun DupGroupCard(
 @Composable
 private fun MemberTile(
     member: DupMemberUi,
+    fate: MemberFate,
+    review: Boolean,
     zoomKey: Any,
     foldOrder: Int?,
     folded: Boolean,
-    pickable: Boolean,
-    onPick: () -> Unit,
+    markable: Boolean,
+    onMark: () -> Unit,
     onView: () -> Unit,
 ) {
     val reduced = LocalReducedMotion.current
@@ -197,17 +218,21 @@ private fun MemberTile(
             fold.animateTo(0f, foldOut)
         }
     }
-    // The new keeper dips and springs back, so the choice registers where the finger is.
-    var wasWinner by remember { mutableStateOf(member.isWinner) }
-    LaunchedEffect(member.isWinner) {
-        if (member.isWinner && !wasWinner && !reduced) {
+    // A mark dips and springs back, so the choice registers where the finger is.
+    var wasFate by remember { mutableStateOf(fate) }
+    LaunchedEffect(fate) {
+        if (fate != wasFate && !reduced) {
             dip.snapTo(PICKED_DIP)
             dip.animateTo(1f, pop)
         }
-        wasWinner = member.isWinner
+        wasFate = fate
     }
     val ring by animateColorAsState(
-        targetValue = if (member.isWinner) Ink.Success else Color.Transparent,
+        targetValue = when {
+            review && fate == MemberFate.TRASH -> Ink.Danger
+            !review && member.isWinner -> Ink.Success
+            else -> Color.Transparent
+        },
         animationSpec = motionSpec(Motion.settle()),
         label = "keeperRing",
     )
@@ -227,10 +252,14 @@ private fun MemberTile(
             .combinedClickable(
                 interactionSource = interaction,
                 indication = null,
-                role = if (pickable) Role.RadioButton else Role.Image,
-                onClickLabel = if (pickable) DedupCopy.KEEP_BADGE else null,
+                role = if (markable) Role.Checkbox else Role.Image,
+                onClickLabel = when {
+                    !markable -> null
+                    fate == MemberFate.TRASH -> DedupCopy.VIEW_KEEP
+                    else -> DedupCopy.VIEW_MARK
+                },
                 onLongClick = onView,
-                onClick = if (pickable) onPick else onView,
+                onClick = if (markable && fate != MemberFate.PROTECTED) onMark else onView,
             ),
     ) {
         ZoomableImage(key = zoomKey, modifier = Modifier.matchParentSize()) { imageModifier, onLoaded ->
@@ -257,17 +286,26 @@ private fun MemberTile(
             modifier = Modifier.align(Alignment.BottomStart).padding(start = 6.dp, bottom = 5.dp),
         )
         AnimatedVisibility(
-            visible = member.isWinner,
+            visible = member.isWinner && fate == MemberFate.KEEP,
             enter = popIn(reduced),
             exit = scaleOut(finite(reduced), targetScale = 0.6f) + fadeOut(finite(reduced)),
             modifier = Modifier.align(Alignment.TopStart).padding(5.dp),
         ) {
-            Pill(
-                text = DedupCopy.KEEP_BADGE,
-                icon = Icons.Rounded.Check,
-                color = Ink.Background,
-                background = Ink.Success,
-            )
+            if (review) {
+                Pill(
+                    text = DedupCopy.SUGGESTED_BADGE,
+                    icon = Icons.Rounded.AutoAwesome,
+                    color = Ink.Text,
+                    background = Ink.Accent.copy(alpha = 0.85f),
+                )
+            } else {
+                Pill(
+                    text = DedupCopy.KEEP_BADGE,
+                    icon = Icons.Rounded.Check,
+                    color = Ink.Background,
+                    background = Ink.Success,
+                )
+            }
         }
         if (member.isProtected && !member.isWinner) {
             Pill(
@@ -278,8 +316,11 @@ private fun MemberTile(
                 modifier = Modifier.align(Alignment.TopStart).padding(5.dp),
             )
         }
+        if (review && fate == MemberFate.TRASH) {
+            Box(Modifier.matchParentSize().background(Ink.Danger.copy(alpha = 0.22f)))
+        }
         AnimatedVisibility(
-            visible = !member.isWinner && !member.isProtected,
+            visible = fate == MemberFate.TRASH,
             enter = popIn(reduced),
             exit = scaleOut(finite(reduced), targetScale = 0.6f) + fadeOut(finite(reduced)),
             modifier = Modifier.align(Alignment.TopEnd).padding(5.dp),

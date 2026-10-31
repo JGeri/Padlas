@@ -90,7 +90,8 @@ internal fun DedupScreen(
     onResolveGroup: (String) -> Unit,
     onResolveSection: (DupKind) -> Unit,
     onResolveAll: () -> Unit,
-    onPickWinner: (String, Long) -> Unit,
+    onToggleMark: (String, Long) -> Unit,
+    onKeepSuggested: (String) -> Unit,
     onRescan: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -112,7 +113,7 @@ internal fun DedupScreen(
         state = zoom,
         picture = { target, placeholder, pictureModifier -> ZoomPicture(target, placeholder, pictureModifier) },
         modifier = modifier.fillMaxSize(),
-        actions = { target -> ZoomVerdict(target = target, state = state, onPickWinner = onPickWinner) },
+        actions = { target -> ZoomVerdict(target = target, state = state, onToggleMark = onToggleMark) },
     ) {
         GlassScreen(
             scrolled = scrolled,
@@ -171,7 +172,7 @@ internal fun DedupScreen(
                             label = DedupCopy.RECLAIMABLE,
                             value = Format.bytesValue(state.reclaimableBytes),
                             unit = Format.bytesUnit(state.reclaimableBytes),
-                            caption = DedupCopy.heroCaption(state.loserCount, state.groupCount),
+                            caption = DedupCopy.heroCaption(state.exact.loserCount, state.exact.groups.size, state.reviewGroupCount),
                             modifier = Modifier.entrance(entrance).then(itemMotion()),
                         ) {
                             AnimatedVisibility(
@@ -235,7 +236,8 @@ internal fun DedupScreen(
                             pending = group.id in state.pendingGroupIds,
                             enabled = !busy,
                             onResolve = onResolveGroup,
-                            onPickWinner = onPickWinner,
+                            onToggleMark = onToggleMark,
+                            onKeepSuggested = onKeepSuggested,
                             onView = { member ->
                                 zoom.open(
                                     ZoomTarget(
@@ -263,18 +265,14 @@ internal fun DedupScreen(
 private fun ColumnScope.ZoomVerdict(
     target: ZoomTarget,
     state: DedupUiState,
-    onPickWinner: (String, Long) -> Unit,
+    onToggleMark: (String, Long) -> Unit,
 ) {
     val key = target.key as? DedupZoomKey ?: return
     val group = state.sections.firstNotNullOfOrNull { section -> section.groups.firstOrNull { it.id == key.groupId } } ?: return
     val member = group.members.firstOrNull { it.assetId == key.assetId } ?: return
     val hapticFeedback = haptics()
     val reduced = LocalReducedMotion.current
-    val verdict = when {
-        member.isWinner -> Verdict.KEEP
-        member.isProtected -> Verdict.PROTECTED
-        else -> Verdict.TRASH
-    }
+    val verdict = group.fateOf(member)
     AnimatedContent(
         targetState = verdict,
         transitionSpec = {
@@ -284,19 +282,19 @@ private fun ColumnScope.ZoomVerdict(
         modifier = Modifier.align(Alignment.CenterHorizontally),
     ) { shown ->
         when (shown) {
-            Verdict.KEEP -> Pill(
+            MemberFate.KEEP -> Pill(
                 text = DedupCopy.KEEP_BADGE,
                 icon = Icons.Rounded.Check,
                 color = Ink.Background,
                 background = Ink.Success,
             )
-            Verdict.PROTECTED -> Pill(
+            MemberFate.PROTECTED -> Pill(
                 text = DedupCopy.PROTECTED_BADGE,
                 icon = Icons.Rounded.Shield,
                 color = Ink.Text,
                 background = Ink.Info.copy(alpha = 0.85f),
             )
-            Verdict.TRASH -> Pill(
+            MemberFate.TRASH -> Pill(
                 text = DedupCopy.WILL_TRASH,
                 icon = Icons.Rounded.DeleteOutline,
                 color = Ink.Text,
@@ -304,21 +302,34 @@ private fun ColumnScope.ZoomVerdict(
             )
         }
     }
-    if (group.kind == DupKind.SIMILAR && verdict == Verdict.TRASH && group.id !in state.pendingGroupIds) {
-        PadlasButton(
-            text = DedupCopy.VIEW_KEEP,
-            onClick = {
-                hapticFeedback?.keep()
-                onPickWinner(group.id, member.assetId)
-            },
-            icon = Icons.Rounded.Check,
-            style = ButtonStyle.Success,
-            modifier = Modifier.fillMaxWidth(),
-        )
+    // In a burst or similar group the decision is the user's, and can be made right here,
+    // looking at the picture at full size.
+    if (group.needsReview && verdict != MemberFate.PROTECTED && group.id !in state.pendingGroupIds) {
+        if (verdict == MemberFate.TRASH) {
+            PadlasButton(
+                text = DedupCopy.VIEW_KEEP,
+                onClick = {
+                    hapticFeedback?.keep()
+                    onToggleMark(group.id, member.assetId)
+                },
+                icon = Icons.Rounded.Check,
+                style = ButtonStyle.Success,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            PadlasButton(
+                text = DedupCopy.VIEW_MARK,
+                onClick = {
+                    hapticFeedback?.tick()
+                    onToggleMark(group.id, member.assetId)
+                },
+                icon = Icons.Rounded.DeleteOutline,
+                style = ButtonStyle.Secondary,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
-
-private enum class Verdict { KEEP, PROTECTED, TRASH }
 
 /** The full picture, on top of the tile's cached thumbnail until it has loaded. */
 @Composable
@@ -420,7 +431,13 @@ private fun SectionHead(
     Column(modifier = modifier.fillMaxWidth().padding(top = Space.l)) {
         SectionHeader(
             title = DedupCopy.sectionTitle(section.kind),
-            actionLabel = if (enabled && section.loserCount > 0) DedupCopy.SECTION_ACTION else null,
+            // Only byte-identical copies can go by the section: a burst or a similar group
+            // may hold the one frame worth keeping.
+            actionLabel = if (enabled && section.kind == DupKind.EXACT && section.loserCount > 0) {
+                DedupCopy.SECTION_ACTION
+            } else {
+                null
+            },
             onAction = onResolveSection,
         )
         Text(
@@ -430,7 +447,11 @@ private fun SectionHead(
         )
         Spacer(Modifier.height(Space.xs))
         Text(
-            text = DedupCopy.sectionTotals(section.groups.size, section.loserCount, section.reclaimableBytes),
+            text = if (section.kind == DupKind.EXACT) {
+                DedupCopy.sectionTotals(section.groups.size, section.loserCount, section.reclaimableBytes)
+            } else {
+                DedupCopy.reviewTotals(section.groups.size, section.groups.sumOf { it.members.size }, section.loserCount)
+            },
             style = PadlasTheme.type.numeric,
             color = Ink.TextTertiary,
             maxLines = 1,

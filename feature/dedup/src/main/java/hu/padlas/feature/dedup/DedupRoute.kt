@@ -35,7 +35,8 @@ fun DedupRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
             viewModel.requestTrash(section?.groups.orEmpty().map { it.id })
         },
         onResolveAll = { viewModel.requestTrash(state.allGroupIds) },
-        onPickWinner = viewModel::pickWinner,
+        onToggleMark = viewModel::toggleMark,
+        onKeepSuggested = viewModel::keepOnlySuggested,
         onRescan = viewModel::rescan,
         modifier = modifier,
     )

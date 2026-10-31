@@ -43,7 +43,7 @@ class DupWorker @AssistedInject constructor(
             val now = System.currentTimeMillis()
             val grouping = grouper.group(loadCandidates(), now)
             dupDao.replaceAll(grouping.groups, grouping.members)
-            record(now, grouping.reclaimableBytes, "${grouping.groups.size} csoport, ${grouping.loserCount} felesleges másolat")
+            record(now, grouping.exactReclaimableBytes, "${grouping.groups.size} csoport, ${grouping.exactLoserCount} azonos másolat")
             Result.success()
         } catch (cancellation: CancellationException) {
             throw cancellation

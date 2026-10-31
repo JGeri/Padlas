@@ -11,12 +11,15 @@ internal object DedupCopy {
     const val TITLE = "Duplikátumok"
     const val RECLAIMABLE = "Felszabadítható"
     const val KEEP_BADGE = "Marad"
+    const val SUGGESTED_BADGE = "Javasolt"
+    const val VIEW_MARK = "Ez mehet"
+    const val KEEP_SUGGESTED = "Csak a javasolt marad"
+    const val REVIEW_HINT = "Koppints a képekre, amelyek mehetnek; amit nem jelölsz ki, az marad. Hosszan nyomva nagyban is megnézheted."
     const val PROTECTED_BADGE = "Védett"
-    const val PICK_KEEPER = "Koppints arra a képre, amelyiket megtartanád. Hosszan nyomva nagyban is megnézheted."
     const val VIEW_KEEP = "Ezt tartom meg"
     const val WILL_TRASH = "Kukába kerül"
-    const val ALL_ACTION = "Mind kukába"
-    const val BAR_NOUN = "felesleges fájl"
+    const val ALL_ACTION = "Kijelöltek kukába"
+    const val BAR_NOUN = "fájl kukába"
     const val GROUP_ACTION = "Kukába"
     const val SECTION_ACTION = "Mind kukába"
     const val RESCAN = "Keresés újra"
@@ -37,8 +40,9 @@ internal object DedupCopy {
 
     fun sectionLead(kind: DupKind): String = when (kind) {
         DupKind.EXACT -> "Bájtra egyező másolatok. Egy példány marad, a többi nyugodtan mehet."
-        DupKind.BURST -> "Sorozatfelvételek. A legélesebb kép marad."
-        DupKind.SIMILAR -> "Hasonló, de nem egyforma képek. Csoportonként te döntöd el, melyik marad."
+        DupKind.BURST -> "Sorozatfelvételek. Egy fejfordítás vagy egy mosoly is lehet a különbség, ezért innen semmi " +
+            "nem megy magától: koppints arra, ami mehet. A legélesebbet javasoljuk megtartani."
+        DupKind.SIMILAR -> "Hasonló, de nem egyforma képek. Innen semmi nem megy magától: koppints arra, ami mehet."
     }
 
     fun groupTitle(kind: DupKind, memberCount: Int): String = when (kind) {
@@ -53,9 +57,23 @@ internal object DedupCopy {
     fun sectionTotals(groupCount: Int, loserCount: Int, bytes: Long): String =
         "${Format.count(groupCount)} csoport · ${Format.count(loserCount)} fájl · ${Format.bytes(bytes)}"
 
-    fun heroCaption(loserCount: Int, groupCount: Int): String =
-        "${Format.count(loserCount)} felesleges másolat ${Format.count(groupCount)} csoportban. " +
-            "A „$KEEP_BADGE” jelölésű képek megmaradnak, és bármelyiket megnézheted nagyban."
+    fun reviewTotals(groupCount: Int, memberCount: Int, markedCount: Int): String =
+        "${Format.count(groupCount)} csoport · ${Format.count(memberCount)} kép · ${Format.count(markedCount)} kijelölve"
+
+    fun reviewSubtitle(markedCount: Int, bytes: Long): String =
+        if (markedCount == 0) "Semmi nincs kijelölve" else "${Format.count(markedCount)} kukába · ${Format.bytes(bytes)}"
+
+    fun heroCaption(exactLosers: Int, exactGroups: Int, reviewGroups: Int): String = buildString {
+        if (exactGroups > 0) {
+            append("${Format.count(exactLosers)} bájtra egyező másolat ${Format.count(exactGroups)} csoportban: ")
+            append("ezekből egy példány marad, a többi mehet. ")
+        }
+        if (reviewGroups > 0) {
+            append("${Format.count(reviewGroups)} sorozat és hasonló csoport vár átnézésre; ")
+            append("azokból csak az megy, amit te jelölsz ki. ")
+        }
+        append("Bármelyik képet megnézheted nagyban.")
+    }
 
     fun trashedValue(bytes: Long): String = Format.bytes(bytes)
 

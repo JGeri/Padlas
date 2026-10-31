@@ -17,18 +17,42 @@ internal data class DupMemberUi(
     val distance: Int,
 )
 
+/**
+ * Only byte-identical copies are decided by the app. A burst or a similar group may hold
+ * the one frame where somebody turned their head, so there [winner] is a suggestion and
+ * nothing is on its way out until the user marks it.
+ */
 @Immutable
 internal data class DupGroupUi(
     val id: String,
     val kind: DupKind,
     val members: List<DupMemberUi>,
+    /** Members of a review group the user marked for the bin. */
+    val marked: Set<Long> = emptySet(),
 ) {
+    /** The keeper of an exact group; for a review group the sharpest, as a suggestion. */
     val winner: DupMemberUi? get() = members.firstOrNull { it.isWinner }
 
-    val losers: List<DupMemberUi> get() = members.filter { !it.isWinner && !it.isProtected }
+    val needsReview: Boolean get() = kind != DupKind.EXACT
+
+    val losers: List<DupMemberUi>
+        get() = if (needsReview) {
+            members.filter { it.assetId in marked && !it.isProtected }
+        } else {
+            members.filter { !it.isWinner && !it.isProtected }
+        }
 
     val reclaimableBytes: Long get() = losers.sumOf { it.sizeBytes }
+
+    fun fateOf(member: DupMemberUi): MemberFate = when {
+        member.isProtected -> MemberFate.PROTECTED
+        losers.any { it.assetId == member.assetId } -> MemberFate.TRASH
+        else -> MemberFate.KEEP
+    }
 }
+
+/** What happens to one picture if the bin button is pressed now. */
+internal enum class MemberFate { KEEP, PROTECTED, TRASH }
 
 @Immutable
 internal data class DedupSectionUi(
@@ -66,6 +90,9 @@ internal data class DedupUiState(
     val loserCount: Int get() = sections.sumOf { it.loserCount }
 
     val groupCount: Int get() = sections.sumOf { it.groups.size }
+
+    /** Bursts and similar groups: nothing goes from these until the user marks it. */
+    val reviewGroupCount: Int get() = burst.groups.size + similar.groups.size
 
     val allGroupIds: List<String> get() = sections.flatMap { section -> section.groups.map { it.id } }
 }
