@@ -1,213 +1,141 @@
 # Padlás
 
-Galéria-válogató és tárhelykezelő Androidra. Swipe-pal mész végig a fotóidon és videóidon
-— hónapok vagy mappák szerint —, és közben látod, mi foglalja a helyet a telefonon.
+**English** · [Magyar](README.hu.md)
 
-Android 14+ (minSdk 34, target 36), sideload terjesztés, Samsung Galaxy S22 Ultra az
-elsődleges eszköz. A modulhatárok a [`CONTRACT.md`](CONTRACT.md)-ben, az eredeti
-termékspecifikáció a [`padlas-spec.md`](padlas-spec.md)-ben.
+[![CI](https://github.com/JGeri/Padlas/actions/workflows/release.yml/badge.svg)](https://github.com/JGeri/Padlas/actions/workflows/release.yml)
+![Android 14+](https://img.shields.io/badge/Android-14%2B-3DDC84)
+![Kotlin](https://img.shields.io/badge/Kotlin-Compose-7F52FF)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
-## Megjelenés
+A gallery sorter and storage manager for Android. Swipe through your photos and videos
+month by month or folder by folder, and see what is actually filling the phone while you
+do it. *Padlás* is Hungarian for attic: the place where things you want to keep, but not
+in the living room, go.
 
-**Aurora**: majdnem fekete alap, mögötte lassan sodródó ibolya–türkiz–bíbor fények, előtte
-matt üveg-felületek. A mozgás rugós; az elemek egymásba alakulnak (közös-elem átmenet):
-egy eszköz-csempe a megnyíló képernyővé nő, egy hónap borítója a swipe-paklivá, és
-visszafelé ugyanoda zsugorodik. Az élő háttér a Beállításokban kikapcsolható.
+Everything happens on the device. Nothing is uploaded unless you set up the optional
+Google Drive archive yourself.
 
-## Három fül
+## What it does
 
-- **Áttekintés** — tárhely-gyűrű (szabad hely, fotók, videók, minden más), a válogatás
-  állása, javaslatok byte-sorrendben (duplikátumok, nagy videók, eldobható képek, kuka,
-  régi fotók) és az összes eszköz egy rácsban.
-- **Válogatás** — hónapok évek szerint és mappák, mindegyiknél az átnézett arány. Bármi
-  kombinálható: hónapok × mappák × fotó/videó × csak át nem nézett × sorrend.
-- **Tárhely** — WizTree-szerű elemző: treemap, mappafa, fájltípusok, legnagyobb fájlok,
-  appok mérete és gyorsítótára, okos takarítás (APK-k, régi letöltések, üres mappák).
-
-## Válogatás (swipe)
-
-| mozdulat | jelentés |
+| | |
 |---|---|
-| balra | törlésre jelöl |
-| jobbra | megtartod |
-| felfelé | kedvenc (a pakli végén a telefon Galériájába is átvihető) |
-| koppintás | kép nagyítása / videó megállítása |
+| **Sort** | Tinder-style deck over any mix of months, folders, photos or videos. Left marks for deletion, right keeps, up favourites. Decisions are saved as you go; the marked pile leaves through one system dialog at the end of the deck or whenever you press *Delete now*. |
+| **Storage analyzer** | A WizTree-style map of the whole phone: squarified treemap, folder tree, file types, largest files, app sizes and caches, smart cleanup (old APKs and downloads, empty folders). |
+| **Duplicates** | Byte-identical copies are found in three hashing passes and can go in one tap. Bursts and look-alike shots are only *suggested*: nothing leaves those groups until you mark it, because the frame where somebody turned their head is the one worth keeping. |
+| **Throwaway pictures** | Screenshots grouped by the app they were taken in (Android writes it into the file name): navigation, home screen, games arrive marked; social and media arrive kept. On-device OCR (ML Kit) finds receipts, tickets and anything that looks like a password or recovery code, which is locked away from deletion. |
+| **Large videos** | Media3 Transformer re-encodes big videos with a thermal governor; originals leave only after the compressed copy is verified and published. |
+| **Trash, log, rules** | The system trash with restore and empty, a full action log with undo and CSV export, and a rule engine that only runs after a dry run. |
 
-- A videók a felső kártyán némítva, ismételve lejátszódnak; a hang egy gombbal bekapcsolható.
-- Semmi nem törlődik swipe közben. A megjelöltek a pakli végén **egyetlen rendszer-
-  párbeszédben** törlődnek, vagy bármikor a jobb felső **Törlés** gombbal.
-- A döntések adatbázisban vannak, így egy félbehagyott pakli ott folytatódik, ahol abbamaradt.
-- Törlés előtt a „Törlésre jelölve” rácsban bármi visszamenthető.
-- Alapból a rendszer kukájába kerülnek (30 napig visszaállíthatók); a Beállításokban
-  átállítható végleges törlésre. A **Kuka** képernyőn visszaállítható vagy üríthető.
-- A „Médiakezelés” engedéllyel (Beállítások → Törlés rákérdezés nélkül) a rendszer nem
-  kérdez rá minden kötegre; ilyenkor az app saját megerősítést kér.
+The app is fully localised in English and Hungarian (per-app language in system settings).
 
-## Modulok
+## Design
 
-```
-:app                    három fül, navigáció, Áttekintés, Beállítások, képbetöltő
-:core:common            dispatcherek, formázás
-:core:design            design rendszer: színek, típus, komponensek, mozgás, haptika
-:core:database          Room entitások, DAO-k (swipe_decision: 2. séma)
-:core:media             MediaStore adapter, EXIF, hash, thumbnail, kuka, kedvencek
-:feature:index          bejáró + inkrementális szinkron
-:feature:map            tárhely-elemző (treemap, mappák, típusok, fájlok, appok)
-:feature:dedup          hash pipeline, csoportosítás, élességpont
-:feature:triage         képernyőkép-felismerés, eldobható képek, mappa-takarítás
-:feature:transcode      Media3 Transformer, hőfojtás-kezelés
-:feature:archive        Drive REST kliens, resumable feltöltés, verifikáció
-:feature:browse         rácsos böngészés mappa/hónap szerint, Kuka
-:feature:sort           swipe válogatás: beállító, pakli, összegzés, törlési lista
-:feature:rules          szabálymotor, dry-run, delta követés
-:feature:audit          napló, visszavonás, CSV export
-```
+**Aurora**: a near-black base with slowly drifting violet, cyan and magenta light behind
+frosted glass. Motion is spring-based, and screens grow out of what you tapped: a tool tile
+expands into its screen, a month's cover flies into the deck's first card and shrinks back
+on close (shared-element transitions). The live background can be turned off.
 
-## Fordítás
+## Engineering notes
 
-```bash
-./gradlew :app:assembleDebug        # telepíthető debug APK
-./gradlew :app:assembleProfile      # release-kód debug csomagnéven, frame-idő méréshez
-./gradlew testDebugUnitTest         # unit tesztek
-./gradlew :app:assembleRelease      # release APK (aláírásról lásd lent)
-```
+A few problems that shaped the code, with the numbers measured on a Galaxy S22 Ultra:
 
-JDK 21 kell (az Android Studio JBR is jó), Android SDK platform 36 + build-tools 36.0.0.
-A `local.properties` az SDK útvonalát tartalmazza, és nincs verziókövetve.
+- **Big deletes go in rounds.** A MediaStore trash or delete request carries its URIs
+  through the binder twice; thousands of them overflow it. Every request is capped at
+  1 000 items and returns null instead of throwing, and the screens continue with the next
+  round on their own after the user confirms. 5 000 files are five dialogs, not a crash.
+- **A full phone must not crash the app.** The people who need a storage cleaner run at
+  0–1 % free space, where SQLite throws `SQLiteFullException`. Every write after a system
+  dialog is guarded; the screen says the files went but the bookkeeping did not, and the
+  next index pass squares it.
+- **Grids without blur.** Blurring a photo grid behind glass bars cost the whole frame
+  budget at 1440p; tinted panes instead took the throwaway grid's scroll from 26.6 ms to
+  17.5 ms median frame time. The aurora renders on its own layer at ~30 Hz and goes fully
+  idle (0 frames) when switched off.
+- **Indexing that keeps up.** A MediaStore observer runs a cheap incremental sync while
+  the app is open. The sync uses a modification-time watermark *and* an id diff, because a
+  photo copied in from a PC keeps its old timestamp. Trashed files keep their rows for the
+  bin's 30 days so the log can still undo them.
+- **Safety invariants** (from the spec, enforced in code): automation never deletes
+  permanently, anything classified as secret is never offered for deletion, every
+  permanent delete is one batched system dialog, and the rule engine needs a dry run.
 
-## Aláírás
+## Architecture
 
-A release build ebben a sorrendben keresi az aláíró anyagot:
+Single-activity Compose app, multi-module, unidirectional data flow (`StateFlow` from
+`ViewModel`s), Hilt, Room, WorkManager for every background pass.
 
-1. `keystore.properties` a repó gyökerében (git-ignorált):
-
-   ```properties
-   storeFile=/abszolut/ut/padlas.jks
-   storePassword=...
-   keyAlias=padlas
-   keyPassword=...
-   ```
-
-2. `PADLAS_KEYSTORE_FILE`, `PADLAS_KEYSTORE_PASSWORD`, `PADLAS_KEY_ALIAS`,
-   `PADLAS_KEY_PASSWORD` környezeti változók (ezt használja a CI).
-
-Ha egyik sincs, a release build a debug kulccsal íródik alá, hogy a `assembleRelease`
-helyben is fusson.
-
-Kulcs létrehozása:
-
-```bash
-keytool -genkeypair -v -keystore padlas.jks -storetype PKCS12 \
-  -alias padlas -keyalg RSA -keysize 4096 -validity 10000
+```mermaid
+graph TD
+  app[":app — shell, overview, settings"] --> sort[":feature:sort"]
+  app --> map[":feature:map"]
+  app --> dedup[":feature:dedup"]
+  app --> triage[":feature:triage"]
+  app --> browse[":feature:browse"]
+  app --> transcode[":feature:transcode"]
+  app --> archive[":feature:archive"]
+  app --> rules[":feature:rules"]
+  app --> audit[":feature:audit"]
+  app --> index[":feature:index"]
+  sort & map & dedup & triage & browse & transcode & archive & rules & audit & index --> design[":core:design"]
+  sort & dedup & triage & browse & transcode & archive & rules & audit & index --> media[":core:media"]
+  media --> database[":core:database"]
+  design & media & database --> common[":core:common"]
 ```
 
-## CI
-
-`.github/workflows/release.yml`:
-
-- **check**: `testDebugUnitTest` + `:app:lintRelease`, riportok artifactként.
-- **release-apk**: aláírt release APK, `apksigner verify` ellenőrzéssel, `padlas-<verzió>.apk`
-  néven artifactként; `v*` tag esetén GitHub Release-be is felkerül a SHA-256 mellett.
-
-Repository secretek (Settings → Secrets and variables → Actions):
-
-| secret | tartalom |
+| Module | Responsibility |
 |---|---|
-| `PADLAS_KEYSTORE_BASE64` | `base64 -w0 padlas.jks` kimenete |
-| `PADLAS_KEYSTORE_PASSWORD` | store jelszó |
-| `PADLAS_KEY_ALIAS` | kulcs alias |
-| `PADLAS_KEY_PASSWORD` | kulcs jelszó |
+| `:core:common` | dispatchers, `Format` (locale-aware numbers and sizes), `UiText`, `Outcome` |
+| `:core:design` | Aurora design system: tokens, glass, motion, haptics, shared components |
+| `:core:database` | Room entities and DAOs, exported schemas and auto-migrations |
+| `:core:media` | MediaStore adapter, hashing, thumbnails, trash/delete/favourite requests |
+| `:feature:*` | one feature each, depending only on `core` modules |
 
-Ha a secretek nincsenek beállítva, a CI **eldobható kulcsot generál**, hogy az APK akkor is
-aláírt legyen — de két ilyen build nem frissíti egymást a készüléken, mert más az aláírás.
+Module boundaries and conventions are written down in [`CONTRACT.md`](CONTRACT.md); the
+original product spec (Hungarian) is [`padlas-spec.md`](padlas-spec.md).
 
-Kiadás:
+**Stack:** Kotlin, Jetpack Compose, Material 3, Hilt, Room, WorkManager, Paging 3,
+Media3 (ExoPlayer, Transformer), Coil 3, ML Kit (text and barcode), Haze.
 
-```bash
-git tag v2.1.3 && git push origin v2.1.3
-```
-
-## Böngészés mappa és hónap szerint
-
-Az Áttekintés „egy évnél régebbi fotó” javaslata és a **Böngészés** eszköz ide vezet.
-Fent két sín: **mappák** és **hónapok**, többszörös kijelöléssel és a rájuk eső mérettel,
-plusz gyorsszűrők (1 évnél régebbi, fél évnél régebbi, csak fotó, csak videó). A rács
-lapozva tölt (Paging 3), tehát 25 000 elemnél is azonnal nyílik. A kijelölésre három
-művelet jár:
-
-- **Felhőbe** — feltöltési sorba teszi (a helyi példány marad, amíg a Padláson nem
-  ellenőrzött a másolat, INV-1),
-- **Kukába** — kétfázisú rendszerkuka egyetlen dialógusban (INV-2, INV-3),
-- **Védetté teszem** — kiveszi minden automatizmus alól (INV-4).
-
-A „Mind kijelöl" a szűrő teljes találathalmazát jelöli ki, 2 000 elemnél megállva, és ezt
-ki is írja — egy koppintás ne jelenthessen 25 000 fájlt.
-
-## Telepítés a telefonra
-
-A build **sideload**, tehát az APK-t a rendszer ismeretlen forrásnak látja. Ha a
-telepítés elakad, az szinte mindig nem az aláírás, hanem a készülék védelme:
-
-1. **Samsung Auto Blocker** (One UI 6.1+, alapból bekapcsolva) minden oldalról telepítést
-   blokkol: *Beállítások → Biztonság és adatvédelem → Auto Blocker* → kikapcsolás, vagy az
-   "Alkalmazások telepítése ismeretlen forrásból" kapcsoló engedélyezése.
-2. **Ismeretlen alkalmazások telepítése**: *Beállítások → Alkalmazások → (a fájlkezelő,
-   amiből telepítesz) → Ismeretlen alkalmazások telepítése* → engedélyezés.
-3. **Play Protect** ("Nem biztonságos alkalmazás blokkolva"): a Play Áruházban
-   *Profil → Play Protect → Beállítások* alatt kapcsold ki az ismeretlen appok
-   vizsgálatát, vagy a figyelmeztetésnél válaszd a "Mégis telepítem" opciót.
-4. Ha korábban telepítve volt egy másik kulccsal aláírt Padlás, előbb távolítsd el:
-   ugyanaz a package más aláírással `INSTALL_FAILED_UPDATE_INCOMPATIBLE` hibát ad.
-
-Ellenőrzés géppel, ha bizonytalan a hiba oka:
+## Build
 
 ```bash
-adb install -r padlas-2.1.3.apk   # a pontos hibakódot ez írja ki
+./gradlew :app:assembleDebug        # installable debug APK (package hu.padlas.debug)
+./gradlew :app:assembleProfile      # release code under the debug package, for frame timing
+./gradlew testDebugUnitTest         # unit and Robolectric tests
+./gradlew :app:assembleRelease      # release APK, signing below
 ```
 
-## Google Drive
+Requires JDK 21 (Android Studio's JBR works) and Android SDK platform 36.
+`local.properties` holds the SDK path and is not tracked.
 
-A Drive REST v3-at használjuk, nem SAF-ot, egyetlen okból: a `files.get?fields=md5Checksum`
-szerveroldali MD5-öt ad, és eredetit csak bizonyítottan bitre azonos másolat után törlünk.
+**Signing.** The release build reads `keystore.properties` in the repository root
+(`storeFile`, `storePassword`, `keyAlias`, `keyPassword`; git-ignored) or the
+`PADLAS_KEYSTORE_FILE` / `PADLAS_KEYSTORE_PASSWORD` / `PADLAS_KEY_ALIAS` /
+`PADLAS_KEY_PASSWORD` environment variables. Without either, it signs with the debug key.
 
-Beállítás (kb. 20 perc, egyszer):
+**CI.** `.github/workflows/release.yml` runs the tests and lint on every push and pull
+request, and builds a signed, `apksigner`-verified APK. A `v*` tag publishes it to GitHub
+Releases with its SHA-256.
 
-1. GCP projekt, Drive API bekapcsolva.
-2. OAuth kliens: Android típus, package `hu.padlas`, az aláíró kulcsod SHA-1-ével.
-   A helyi release kulcs ujjlenyomatát így kapod meg:
+## Install
 
-   ```bash
-   keytool -list -v -keystore padlas.jks -alias padlas | grep SHA1
-   ```
-3. Egy Web kliens azonosító is kell az Identity API-hoz; tedd be a
-   `drive_web_client_id` string resource-ba (`app/src/main/res/values/strings.xml`)
-   vagy adj hozzá egy `app/src/main/res/values/secrets.xml`-t, amit nem commitolsz.
-4. A publishing status legyen **Production** — a `drive.file` scope nem sensitive, így nem
-   kell Google verification, viszont Testing státuszban pár naponta lejárna a token.
+Grab the APK from [Releases](https://github.com/JGeri/Padlas/releases). It is sideloaded,
+so Android treats it as coming from an unknown source; on Samsung phones *Auto Blocker*
+has to allow it first.
 
-A `drive.file` scope csak azokat a fájlokat látja, amiket ez az app hozott létre.
+**Permissions**, and why: photos and videos (the gallery itself) and their location
+metadata, *manage media* (optional: trash without a confirmation dialog per batch),
+all-files access (optional: the storage analyzer), usage access and the installed-app list
+(app sizes, and telling which app a screenshot came from), notifications (progress of
+long background passes), network (only for the optional Drive archive).
 
-## Törlési garanciák
+**Google Drive archive (optional).** Bring your own Google Cloud project: enable the
+Drive API, create an Android OAuth client for `hu.padlas` with your signing key's SHA-1
+and a Web client whose id goes into the `drive_web_client_id` string resource. The app
+uses the `drive.file` scope, so it only ever sees files it created, and deletes a local
+original only after Drive reports a byte-identical MD5.
 
-A spec 4. fejezete kötelező érvényű, és a kód is így épül:
+## License
 
-- **INV-1** a súrlódás az értékosztálytól függ; pótolhatatlan tartalom csak ellenőrzött
-  Drive-másolat után törölhető.
-- **INV-1b** automatizmus soha nem töröl véglegesen, csak padlásra visz vagy kukába rak.
-- **INV-1c** a `SECRET` besorolású screenshot védett, és nem kerül törlési ajánlásba.
-- **INV-2** a törlés alapból kétfázisú (`MediaStore.createTrashRequest`), és az app kiírja,
-  hogy a kukában lévő fájl még helyet foglal. Végleges törlés csak a felhasználó kifejezett
-  döntésére történik: a Beállításokban választott módban, a Kuka ürítésekor, vagy a
-  tárhely-elemzőben külön megerősítés után.
-- **INV-3** minden törlés kötegelt: egy rendszerdialógus, nem háromszáz.
-- **INV-4** védett halmaz: `DCIM/Camera` utolsó 30 nap, kedvencek, kézzel védett, és a
-  háromnál kevesebb elemű mappák.
-- **INV-5** minden művelet naplózva, CSV-be exportálható.
-- **INV-6** a szabálymotor csak dry-run után futhat.
-- **INV-7** globális kill switch a Beállításokban (Minden háttérmunka leállítása).
-
-## Samsung-figyelmeztetés
-
-Ha a Samsung Gallery ↔ OneDrive szinkron aktív, a lokális törlés a felhőből is törölhet.
-Az app ezt indításkor detektálja, és blokkoló figyelmeztetést mutat. A Samsung Gallery
-saját kukája külön él a MediaStore trashtől; az app mindkettő méretét külön mutatja.
+[MIT](LICENSE). Bundled fonts are under the SIL Open Font License; see
+[`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md).
