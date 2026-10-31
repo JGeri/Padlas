@@ -1,9 +1,14 @@
 package hu.padlas.feature.archive.data
 
+import android.content.Context
 import android.content.IntentSender
+import androidx.annotation.StringRes
+import dagger.hilt.android.qualifiers.ApplicationContext
 import hu.padlas.core.common.di.IoDispatcher
 import hu.padlas.core.common.result.Outcome
 import hu.padlas.core.common.result.outcomeOf
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.dao.UploadJobDao
@@ -16,6 +21,7 @@ import hu.padlas.core.database.entity.UploadJobEntity
 import hu.padlas.core.media.Hasher
 import hu.padlas.core.media.MediaOps
 import hu.padlas.core.media.ThumbnailStore
+import hu.padlas.feature.archive.R
 import hu.padlas.feature.archive.drive.ArchiveKind
 import hu.padlas.feature.archive.drive.ChunkOutcome
 import hu.padlas.feature.archive.drive.DriveClient
@@ -25,6 +31,7 @@ import hu.padlas.feature.archive.drive.ManifestEntry
 import hu.padlas.feature.archive.drive.ResumableRange
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -40,6 +47,7 @@ import kotlinx.coroutines.withContext
  */
 @Singleton
 class ArchiveRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val assetDao: AssetDao,
     private val uploadJobDao: UploadJobDao,
     private val auditDao: AuditDao,
@@ -90,7 +98,7 @@ class ArchiveRepository @Inject constructor(
     private suspend fun upload(job: UploadJobEntity): Outcome<Unit> {
         val now = System.currentTimeMillis()
         val asset = assetDao.byId(job.assetId)
-            ?: return fail(job, "Az asset eltűnt az indexből.").also { uploadJobDao.delete(listOf(job.assetId)) }
+            ?: return fail(job, uiText(R.string.archive_error_asset_gone)).also { uploadJobDao.delete(listOf(job.assetId)) }
 
         uploadJobDao.setState(job.assetId, JobState.RUNNING, null, now)
         _progress.value = UploadProgress(
@@ -103,7 +111,7 @@ class ArchiveRepository @Inject constructor(
 
         val kind = if (asset.isVideo) ArchiveKind.VIDEO else ArchiveKind.PHOTO
         val folderId = folders.folderFor(kind, asset.dateTaken)
-            ?: return fail(job, "A Drive mappa nem jött létre.")
+            ?: return fail(job, uiText(R.string.archive_error_folder))
 
         var session = job.uploadUri
         if (session == null) {
@@ -112,7 +120,7 @@ class ArchiveRepository @Inject constructor(
                 parentId = folderId,
                 mimeType = asset.mimeType,
                 totalBytes = asset.sizeBytes,
-            ) ?: return fail(job, "A feltöltési munkamenet nem indult el.")
+            ) ?: return fail(job, uiText(R.string.archive_error_session))
             // Persisted before the first byte moves, per spec 3.3 step 1.
             uploadJobDao.setSessionUri(job.assetId, session, System.currentTimeMillis())
         }
@@ -121,7 +129,7 @@ class ArchiveRepository @Inject constructor(
             is TransferResult.Done -> outcome.fileId
             is TransferResult.Restart -> {
                 uploadJobDao.upsert(job.copy(uploadUri = null, bytesSent = 0, state = JobState.PENDING))
-                return Outcome.Failure("A munkamenet lejárt, újrakezdjük.")
+                return Outcome.Failure(text(R.string.archive_error_session_expired))
             }
 
             is TransferResult.Failed -> return fail(job, outcome.message)
@@ -139,14 +147,15 @@ class ArchiveRepository @Inject constructor(
             is ChunkOutcome.Retryable -> 0L
         }
 
-        val stream = mediaOps.openInputStream(asset.uri.toUriOrNull() ?: return TransferResult.Failed("Hibás URI."))
-            ?: return TransferResult.Failed("A fájl nem olvasható.")
+        val uri = asset.uri.toUriOrNull() ?: return TransferResult.Failed(uiText(R.string.archive_error_bad_uri))
+        val stream = mediaOps.openInputStream(uri)
+            ?: return TransferResult.Failed(uiText(R.string.archive_error_unreadable))
 
         stream.use { input ->
             var skipped = 0L
             while (skipped < offset) {
                 val jumped = input.skip(offset - skipped)
-                if (jumped <= 0) return TransferResult.Failed("A fájl rövidebb, mint a feltöltött rész.")
+                if (jumped <= 0) return TransferResult.Failed(uiText(R.string.archive_error_shorter))
                 skipped += jumped
             }
 
@@ -155,7 +164,7 @@ class ArchiveRepository @Inject constructor(
                 currentCoroutineContext().ensureActive()
                 val expected = ResumableRange.chunkLength(offset, asset.sizeBytes)
                 val read = input.readNBytesCompat(buffer, expected)
-                if (read <= 0) return TransferResult.Failed("A fájl váratlanul véget ért.")
+                if (read <= 0) return TransferResult.Failed(uiText(R.string.archive_error_ended))
                 val chunk = if (read == buffer.size) buffer else buffer.copyOf(read)
 
                 when (val outcome = client.uploadChunk(sessionUri, chunk, offset, asset.sizeBytes)) {
@@ -176,13 +185,13 @@ class ArchiveRepository @Inject constructor(
                 }
             }
         }
-        return TransferResult.Failed("A feltöltés nem ért véget.")
+        return TransferResult.Failed(uiText(R.string.archive_error_unfinished))
     }
 
     /** Spec 3.3 step 5: server MD5 against the locally computed one, or it did not happen. */
     private suspend fun verify(asset: Asset, fileId: String, folderId: String): Outcome<Unit> = outcomeOf {
         val remote = client.getFile(fileId)
-        val localMd5 = hasher.md5(asset.uri.toUriOrNull() ?: error("Hibás URI."))
+        val localMd5 = hasher.md5(asset.uri.toUriOrNull() ?: error(text(R.string.archive_error_bad_uri)))
         val remoteMd5 = remote?.md5
 
         if (remoteMd5 == null || localMd5 == null || !remoteMd5.equals(localMd5, ignoreCase = true)) {
@@ -190,10 +199,10 @@ class ArchiveRepository @Inject constructor(
             uploadJobDao.setState(
                 asset.mediaStoreId,
                 JobState.FAILED,
-                "Az ellenőrző összeg nem egyezik.",
+                text(R.string.archive_error_checksum),
                 System.currentTimeMillis(),
             )
-            error("Az ellenőrző összeg nem egyezik, a másolatot töröltük.")
+            error(text(R.string.archive_error_checksum_deleted))
         }
 
         val now = System.currentTimeMillis()
@@ -243,25 +252,33 @@ class ArchiveRepository @Inject constructor(
      * Freeing the local bytes is a separate, explicit step (INV-1): being on Drive is a
      * precondition for deleting, never a trigger for it.
      */
-    suspend fun prepareGhosting(assetIds: List<Long>): Outcome<GhostBatch> = withContext(io) {
-        outcomeOf("A helyi törlés előkészítése nem sikerült.") {
+    suspend fun prepareGhosting(assetIds: List<Long>): GhostPreparation = withContext(io) {
+        try {
             val rows = assetIds.chunked(SQLITE_ARGUMENT_LIMIT).flatMap { assetDao.byIds(it) }.filter {
                 it.state == AssetState.ARCHIVED && it.driveMd5 != null
             }
-            require(rows.isNotEmpty()) { "Csak ellenőrzött másolat után lehet helyet felszabadítani." }
+            if (rows.isEmpty()) {
+                return@withContext GhostPreparation.Refused(uiText(R.string.archive_ghost_needs_verified))
+            }
             val batch = rows.take(MediaOps.MAX_REQUEST)
             batch.forEach { asset ->
                 asset.uri.toUriOrNull()?.let { uri ->
                     thumbnails.writeGhostThumbnail(asset.mediaStoreId, uri)
                 }
             }
-            GhostBatch(
-                sizes = batch.associate { it.mediaStoreId to it.sizeBytes },
-                intentSender = mediaOps.deleteRequest(
-                    batch.map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) },
-                ) ?: error("A rendszer most nem engedte a törlést."),
-                more = rows.size > batch.size,
+            val intentSender = mediaOps.deleteRequest(batch.map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) })
+                ?: return@withContext GhostPreparation.Refused(uiText(R.string.archive_ghost_system_refused))
+            GhostPreparation.Ready(
+                GhostBatch(
+                    sizes = batch.associate { it.mediaStoreId to it.sizeBytes },
+                    intentSender = intentSender,
+                    more = rows.size > batch.size,
+                ),
             )
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (failure: Exception) {
+            GhostPreparation.Refused(uiText(R.string.archive_ghost_prepare_failed))
         }
     }
 
@@ -309,7 +326,7 @@ class ArchiveRepository @Inject constructor(
                         assetId = asset.mediaStoreId,
                         sizeBytes = asset.sizeBytes,
                         reversible = false,
-                        note = "A Drive-on már nincs meg: ${asset.displayName}",
+                        note = context.getString(R.string.archive_audit_missing_on_drive, asset.displayName),
                     ),
                 )
             }
@@ -317,16 +334,20 @@ class ArchiveRepository @Inject constructor(
         drifted
     }
 
-    private suspend fun fail(job: UploadJobEntity, message: String): Outcome<Unit> {
-        uploadJobDao.setState(job.assetId, JobState.FAILED, message, System.currentTimeMillis())
+    /** The screen gets the sentence; the job row and the outcome keep it as text, in the app's language. */
+    private suspend fun fail(job: UploadJobEntity, message: UiText): Outcome<Unit> {
+        val reason = message.resolve(context.resources)
+        uploadJobDao.setState(job.assetId, JobState.FAILED, reason, System.currentTimeMillis())
         _progress.value = _progress.value.copy(active = false, message = message)
-        return Outcome.Failure(message)
+        return Outcome.Failure(reason)
     }
+
+    private fun text(@StringRes id: Int): String = context.getString(id)
 
     private sealed interface TransferResult {
         data class Done(val fileId: String) : TransferResult
         data object Restart : TransferResult
-        data class Failed(val message: String) : TransferResult
+        data class Failed(val message: UiText) : TransferResult
     }
 
     private companion object {
@@ -341,9 +362,15 @@ data class UploadProgress(
     val bytesSent: Long = 0,
     val totalBytes: Long = 0,
     val active: Boolean = false,
-    val message: String? = null,
+    val message: UiText? = null,
 ) {
     val fraction: Float get() = ResumableRange.progress(bytesSent, totalBytes)
+}
+
+/** A batch ready for the system dialog, or the reason none can be shown. */
+sealed interface GhostPreparation {
+    data class Ready(val batch: GhostBatch) : GhostPreparation
+    data class Refused(val reason: UiText) : GhostPreparation
 }
 
 data class GhostBatch(

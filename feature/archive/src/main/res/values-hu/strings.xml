@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="archive_title">Felhő archívum</string>
+    <string name="archive_subtitle_selected">%1$s kijelölve</string>
+    <string name="archive_subtitle_drive">Google Drive</string>
+    <plurals name="archive_subtitle_files">
+        <item quantity="one">Google Drive · %1$s fájl</item>
+        <item quantity="other">Google Drive · %1$s fájl</item>
+    </plurals>
+    <string name="archive_cancel">Mégse</string>
+    <string name="archive_select">Kijelölöm</string>
+    <string name="archive_deselect">Kijelölés megszüntetése</string>
+    <string name="archive_bar_selected">kijelölve</string>
+    <plurals name="archive_bar_freeable">
+        <item quantity="one">fájl felszabadítható</item>
+        <item quantity="other">fájl felszabadítható</item>
+    </plurals>
+    <string name="archive_upload">Feltöltés</string>
+    <string name="archive_free">Felszabadítás</string>
+    <string name="archive_free_up_space">Hely felszabadítása</string>
+    <string name="archive_hero_label">Felszabadítható a telefonon</string>
+    <string name="archive_hero_caption">Ezek a fájlok már biztonságban vannak a Drive-on, a telefonról törölhetők. Helyükön egy kis előnézet marad.</string>
+    <string name="archive_empty_title">Még üres az archívum</string>
+    <string name="archive_empty_text">A Böngészés vagy a Válogatás képernyőn jelölhetsz ki képeket, amelyeket a Drive-odra mentünk.</string>
+    <string name="archive_grid_title">A felhőben</string>
+    <string name="archive_grid_hint">Koppints a képekre a kijelöléshez, hosszan nyomva nagyban is megnézheted őket. A halvány képek már csak a felhőben vannak meg.</string>
+    <string name="archive_where_cloud_only">csak a felhőben</string>
+    <string name="archive_where_both">a telefonon és a felhőben</string>
+    <string name="archive_where_uploading">feltöltés alatt</string>
+    <string name="archive_where_waiting">feltöltésre vár</string>
+    <string name="archive_badge_uploading">Feltöltés</string>
+
+    <string name="archive_drive_connected">Google Drive csatlakoztatva</string>
+    <plurals name="archive_drive_in_cloud">
+        <item quantity="one">%1$s fájl a felhőben · %2$s</item>
+        <item quantity="other">%1$s fájl a felhőben · %2$s</item>
+    </plurals>
+    <string name="archive_drive_unconfigured_title">A Drive-kapcsolat nincs beállítva</string>
+    <string name="archive_drive_unconfigured_text">Ebből a változatból hiányzik a Google-azonosító, ezért most nem lehet feltölteni.</string>
+    <string name="archive_connect_failed">Nem sikerült csatlakozni</string>
+    <string name="archive_retry">Újrapróbálom</string>
+    <string name="archive_connect_title">Kösd össze a Google Drive-oddal</string>
+    <string name="archive_connect_text">A képek a saját Drive-od egy külön mappájába kerülnek. Az app csak az általa feltöltött fájlokat látja.</string>
+    <string name="archive_connect_action">Google Drive összekötése</string>
+
+    <string name="archive_upload_active">Feltöltés folyamatban</string>
+    <plurals name="archive_upload_waiting">
+        <item quantity="one">%1$s fájl vár feltöltésre</item>
+        <item quantity="other">%1$s fájl vár feltöltésre</item>
+    </plurals>
+    <string name="archive_upload_stopped">A feltöltés megállt</string>
+    <string name="archive_upload_waiting_detail">%1$s · Wi-Fi-n, töltés közben halad</string>
+    <string name="archive_upload_retry_detail">Wi-Fi-n, töltés közben újra megpróbáljuk.</string>
+    <plurals name="archive_upload_progress_more">
+        <item quantity="one">%1$s / %2$s · még %3$s fájl</item>
+        <item quantity="other">%1$s / %2$s · még %3$s fájl</item>
+    </plurals>
+    <string name="archive_desktop_title">Az első nagy feltöltést számítógépről érdemes</string>
+    <string name="archive_desktop_text">A telefon naponta csak kb. hat órát tölthet fel a háttérben, így egy teljes galéria hetekig tartana. Utána az app már csak az újakat viszi fel.</string>
+    <string name="archive_got_it">Értem</string>
+
+    <string name="archive_queue_failed">A feltöltési sort nem sikerült menteni. Megtelt a tárhely?</string>
+    <plurals name="archive_queued">
+        <item quantity="one">%1$s fájl vár feltöltésre.</item>
+        <item quantity="other">%1$s fájl vár feltöltésre.</item>
+    </plurals>
+    <string name="archive_ghost_cancelled">Nem töröltünk semmit, minden a helyén maradt.</string>
+    <string name="archive_ghost_records_failed">A hely felszabadult, de a nyilvántartás nem frissült. Megtelt a tárhely?</string>
+    <string name="archive_ghost_freed_more">%1$s felszabadult · jön a következő adag</string>
+    <string name="archive_ghost_freed">%1$s felszabadult a telefonon.</string>
+    <string name="archive_ghost_prepare_failed">A helyi törlés előkészítése nem sikerült.</string>
+    <string name="archive_ghost_needs_verified">Csak ellenőrzött másolat után lehet helyet felszabadítani.</string>
+    <string name="archive_ghost_system_refused">A rendszer most nem engedte a törlést.</string>
+
+    <string name="archive_error_asset_gone">Az asset eltűnt az indexből.</string>
+    <string name="archive_error_folder">A Drive mappa nem jött létre.</string>
+    <string name="archive_error_session">A feltöltési munkamenet nem indult el.</string>
+    <string name="archive_error_session_expired">A munkamenet lejárt, újrakezdjük.</string>
+    <string name="archive_error_bad_uri">Hibás URI.</string>
+    <string name="archive_error_unreadable">A fájl nem olvasható.</string>
+    <string name="archive_error_shorter">A fájl rövidebb, mint a feltöltött rész.</string>
+    <string name="archive_error_ended">A fájl váratlanul véget ért.</string>
+    <string name="archive_error_unfinished">A feltöltés nem ért véget.</string>
+    <string name="archive_error_checksum">Az ellenőrző összeg nem egyezik.</string>
+    <string name="archive_error_checksum_deleted">Az ellenőrző összeg nem egyezik, a másolatot töröltük.</string>
+    <string name="archive_error_network">Hálózati hiba.</string>
+    <string name="archive_error_no_file_id">Hiányzó fájlazonosító.</string>
+    <string name="archive_error_drive_busy">A Drive most nem fogadja a köteget.</string>
+
+    <string name="archive_auth_failed">A Drive-engedélyezés nem sikerült.</string>
+    <string name="archive_auth_no_consent">A hozzájárulás nem érkezett meg.</string>
+    <string name="archive_auth_no_token">A Google nem adott hozzáférési jogot.</string>
+
+    <string name="archive_notification_upload">Feltöltés a Google Drive-ra</string>
+    <string name="archive_notification_cards">Cédulák mentése</string>
+    <plurals name="archive_audit_cards_written">
+        <item quantity="one">%1$s cédula felkerült ide: %2$s</item>
+        <item quantity="other">%1$s cédula felkerült ide: %2$s</item>
+    </plurals>
+    <string name="archive_audit_missing_on_drive">A Drive-on már nincs meg: %1$s</string>
+</resources>

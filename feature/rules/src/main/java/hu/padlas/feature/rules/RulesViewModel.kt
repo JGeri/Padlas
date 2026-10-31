@@ -3,6 +3,8 @@ package hu.padlas.feature.rules
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.dao.RuleDao
 import hu.padlas.core.database.entity.RuleEntity
 import javax.inject.Inject
@@ -66,7 +68,7 @@ internal class RulesViewModel @Inject constructor(
     /** INV-6: a rule cannot be switched on before its dry run has been looked at. */
     fun setEnabled(rule: RuleEntity, enabled: Boolean) {
         if (enabled && local.value.dryRuns[rule.id] == null) {
-            local.update { it.copy(message = "Előbb nézd meg, mit érintene.", messageOk = false) }
+            local.update { it.copy(message = uiText(R.string.rules_dry_run_first), messageOk = false) }
             return
         }
         launchSafely { ruleDao.setEnabled(rule.id, enabled) }
@@ -114,12 +116,12 @@ internal class RulesViewModel @Inject constructor(
         val openDryRun: Long? = null,
         val deltas: List<BucketDelta> = emptyList(),
         val busyRuleId: Long? = null,
-        val message: String? = null,
+        val message: UiText? = null,
         val messageOk: Boolean = true,
     )
 
     private companion object {
-        const val FAILED = "Ez most nem sikerült. Próbáld újra."
+        val FAILED = uiText(R.string.rules_failed)
     }
 }
 
@@ -130,7 +132,7 @@ internal data class RulesUiState(
     val openDryRun: Long? = null,
     val deltas: List<BucketDelta> = emptyList(),
     val busyRuleId: Long? = null,
-    val message: String? = null,
+    val message: UiText? = null,
     /** False when the message is a refusal rather than a result. */
     val messageOk: Boolean = true,
 )

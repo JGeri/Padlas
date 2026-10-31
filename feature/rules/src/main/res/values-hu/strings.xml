@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rules_title">Automatikus szabályok</string>
+    <string name="rules_subtitle_all_off">Mind kikapcsolva</string>
+    <plurals name="rules_subtitle_active">
+        <item quantity="one">%1$s bekapcsolva · hetente futnak</item>
+        <item quantity="other">%1$s bekapcsolva · hetente futnak</item>
+    </plurals>
+    <string name="rules_intro">A bekapcsolt szabályok hetente maguktól lefutnak. Véglegesen soha nem törölnek, és bekapcsolás előtt mindig megnézheted, mit érintenének.</string>
+    <string name="rules_empty_title">Még nincs szabály</string>
+    <string name="rules_empty_text">A beépített szabályok az app következő indításakor jelennek meg.</string>
+    <string name="rules_delta_title">Heti változás</string>
+    <string name="rules_delta_measure">Mérés most</string>
+    <string name="rules_delta_intro">Mely mappák és appok nőttek vagy fogytak az elmúlt héten.</string>
+    <string name="rules_delta_empty">Még nincs mihez hasonlítani. Az app hetente feljegyzi, mennyi helyet foglal egy-egy mappa, és egy hét múlva itt látod, mi nőtt.</string>
+    <string name="rules_delete_title">Törlöd a szabályt?</string>
+    <string name="rules_delete_text">„%1$s” többé nem fut le. A fájljaidhoz nem nyúlunk.</string>
+    <string name="rules_delete_rule">Szabály törlése</string>
+    <string name="rules_counting">Számolás…</string>
+    <string name="rules_dry_run">Mit érintene?</string>
+    <string name="rules_recount">Újraszámolás</string>
+    <string name="rules_run_now">Futtatás most</string>
+    <string name="rules_sample_caption">Véletlen minta a találatokból</string>
+    <string name="rules_hide">Elrejtés</string>
+    <plurals name="rules_dry_run_line">
+        <item quantity="one">Most %1$s fájlt érintene · %2$s</item>
+        <item quantity="other">Most %1$s fájlt érintene · %2$s</item>
+    </plurals>
+    <string name="rules_dry_run_none">Most egy fájlt sem érintene.</string>
+    <plurals name="rules_last_run">
+        <item quantity="one">Legutóbb %1$s: %2$s fájl · %3$s</item>
+        <item quantity="other">Legutóbb %1$s: %2$s fájl · %3$s</item>
+    </plurals>
+    <string name="rules_dry_run_first">Előbb nézd meg, mit érintene.</string>
+    <string name="rules_failed">Ez most nem sikerült. Próbáld újra.</string>
+
+    <string name="rules_builtin_old_whatsapp">Régi WhatsApp-képek a felhőbe</string>
+    <string name="rules_builtin_old_camera">Egy évnél régebbi fotók a felhőbe</string>
+    <string name="rules_builtin_large_videos">Nagy videók tömörítése</string>
+    <string name="rules_builtin_old_screenshots">Régi képernyőképek az eldobhatók közé</string>
+
+    <string name="rules_action_archive">Feltölti a Google Drive-ra</string>
+    <string name="rules_action_trash">Az eldobható képek közé teszi, te hagyod jóvá</string>
+    <string name="rules_action_protect">Védetté teszi, így semmi nem törli</string>
+    <string name="rules_action_transcode">Tömörítésre jelöli</string>
+
+    <string name="rules_condition_broken">Hibás szabály</string>
+    <string name="rules_condition_whatsapp">WhatsApp-mappa</string>
+    <string name="rules_condition_camera">Kamera mappa</string>
+    <string name="rules_condition_screenshots">Képernyőképek mappa</string>
+    <string name="rules_condition_downloads">Letöltések mappa</string>
+    <string name="rules_condition_folder">Mappa: %1$s</string>
+    <string name="rules_condition_larger">%1$s fölött</string>
+    <string name="rules_condition_video">Videó</string>
+    <string name="rules_condition_picture">Kép</string>
+    <string name="rules_condition_audio">Hang</string>
+    <string name="rules_condition_own_photo">Saját fotó</string>
+    <string name="rules_condition_replaceable">Pótolható</string>
+    <string name="rules_condition_throwaway">Képernyőkép vagy eldobható kép</string>
+    <string name="rules_condition_receipt">Nyugta</string>
+    <string name="rules_condition_ticket">Jegy</string>
+    <string name="rules_condition_secret">Védett adat</string>
+    <string name="rules_condition_place">Cím vagy térkép</string>
+    <string name="rules_condition_chat">Chat</string>
+    <string name="rules_condition_other_screenshot">Egyéb képernyőkép</string>
+    <string name="rules_condition_selected_folder">Kiválasztott mappa</string>
+    <string name="rules_condition_not">Nem: %1$s</string>
+    <plurals name="rules_condition_older_years">
+        <item quantity="one">%1$s évnél régebbi</item>
+        <item quantity="other">%1$s évnél régebbi</item>
+    </plurals>
+    <plurals name="rules_condition_older_months">
+        <item quantity="one">%1$s hónapnál régebbi</item>
+        <item quantity="other">%1$s hónapnál régebbi</item>
+    </plurals>
+    <plurals name="rules_condition_older_days">
+        <item quantity="one">%1$s napnál régebbi</item>
+        <item quantity="other">%1$s napnál régebbi</item>
+    </plurals>
+    <string name="rules_join_and">%1$s és %2$s</string>
+    <string name="rules_join_or">%1$s vagy %2$s</string>
+
+    <string name="rules_describe_path">az útvonal tartalmazza: \"%1$s\"</string>
+    <plurals name="rules_describe_older">
+        <item quantity="one">régebbi mint %1$s nap</item>
+        <item quantity="other">régebbi mint %1$s nap</item>
+    </plurals>
+    <string name="rules_describe_larger">nagyobb mint %1$s</string>
+    <string name="rules_describe_mime">típusa %1$s</string>
+    <string name="rules_describe_value_class">besorolása %1$s</string>
+    <string name="rules_describe_irreplaceable">pótolhatatlan</string>
+    <string name="rules_describe_replaceable">pótolható</string>
+    <string name="rules_describe_ephemeral">eldobható</string>
+    <string name="rules_describe_shot_kind">képernyőkép típusa %1$s</string>
+    <string name="rules_describe_bucket">mappaazonosítója %1$s</string>
+    <string name="rules_describe_not">nem (%1$s)</string>
+
+    <string name="rules_run_unreadable">A szabály nem értelmezhető.</string>
+    <string name="rules_run_no_matches">Nincs találat.</string>
+    <plurals name="rules_run_archive">
+        <item quantity="one">%1$s fájl vár feltöltésre a felhőbe.</item>
+        <item quantity="other">%1$s fájl vár feltöltésre a felhőbe.</item>
+    </plurals>
+    <plurals name="rules_run_trash">
+        <item quantity="one">%1$s fájl vár jóváhagyásra az Eldobható képek között.</item>
+        <item quantity="other">%1$s fájl vár jóváhagyásra az Eldobható képek között.</item>
+    </plurals>
+    <plurals name="rules_run_protect">
+        <item quantity="one">%1$s fájl védett lett.</item>
+        <item quantity="other">%1$s fájl védett lett.</item>
+    </plurals>
+    <plurals name="rules_run_transcode">
+        <item quantity="one">%1$s videó vár tömörítésre.</item>
+        <item quantity="other">%1$s videó vár tömörítésre.</item>
+    </plurals>
+</resources>

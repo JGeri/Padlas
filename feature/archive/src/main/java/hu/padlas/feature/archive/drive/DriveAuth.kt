@@ -3,12 +3,16 @@ package hu.padlas.feature.archive.drive
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import androidx.annotation.StringRes
 import com.google.android.gms.auth.api.identity.AuthorizationRequest
 import com.google.android.gms.auth.api.identity.AuthorizationResult
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.api.Scope
 import com.google.android.gms.tasks.Task
 import dagger.hilt.android.qualifiers.ApplicationContext
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiText
+import hu.padlas.feature.archive.R
 import hu.padlas.feature.archive.data.ArchivePreferences
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,7 +31,7 @@ sealed interface AuthState {
     data object Disconnected : AuthState
     data class ConsentNeeded(val intent: PendingIntent) : AuthState
     data object Connected : AuthState
-    data class Failed(val message: String) : AuthState
+    data class Failed(val message: UiText) : AuthState
 }
 
 /**
@@ -68,7 +72,7 @@ class DriveAuth @Inject constructor(
         val cached = cachedToken
         if (cached != null && System.currentTimeMillis() < cachedUntil) return cached
         val result = runCatching { authorize() }.getOrElse { failure ->
-            _state.value = AuthState.Failed(failure.message ?: AUTH_FAILED)
+            _state.value = AuthState.Failed(failure.reason(R.string.archive_auth_failed))
             return null
         }
         val pending = result.pendingIntent
@@ -84,7 +88,7 @@ class DriveAuth @Inject constructor(
         val result = runCatching {
             Identity.getAuthorizationClient(context).getAuthorizationResultFromIntent(data)
         }.getOrElse { failure ->
-            _state.value = AuthState.Failed(failure.message ?: CONSENT_FAILED)
+            _state.value = AuthState.Failed(failure.reason(R.string.archive_auth_no_consent))
             return false
         }
         adopt(result) != null
@@ -126,7 +130,7 @@ class DriveAuth @Inject constructor(
     private suspend fun adopt(result: AuthorizationResult): String? {
         val token = result.accessToken
         if (token.isNullOrBlank()) {
-            _state.value = AuthState.Failed(NO_TOKEN)
+            _state.value = AuthState.Failed(uiText(R.string.archive_auth_no_token))
             return null
         }
         cachedToken = token
@@ -136,13 +140,13 @@ class DriveAuth @Inject constructor(
         return token
     }
 
+    /** Play Services' own words when it has any, ours when it does not. */
+    private fun Throwable.reason(@StringRes fallback: Int): UiText = message?.let { UiText.Raw(it) } ?: uiText(fallback)
+
     private companion object {
         const val CLIENT_ID_RESOURCE = "drive_web_client_id"
         const val DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file"
         /** Google issues one-hour tokens; expiring early costs one silent re-authorize. */
         const val TOKEN_LIFETIME_MS = 45L * 60L * 1000L
-        const val AUTH_FAILED = "A Drive-engedélyezés nem sikerült."
-        const val CONSENT_FAILED = "A hozzájárulás nem érkezett meg."
-        const val NO_TOKEN = "A Google nem adott hozzáférési jogot."
     }
 }

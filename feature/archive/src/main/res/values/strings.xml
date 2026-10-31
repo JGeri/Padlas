@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="archive_title">Cloud archive</string>
+    <string name="archive_subtitle_selected">%1$s selected</string>
+    <string name="archive_subtitle_drive">Google Drive</string>
+    <plurals name="archive_subtitle_files">
+        <item quantity="one">Google Drive · %1$s file</item>
+        <item quantity="other">Google Drive · %1$s files</item>
+    </plurals>
+    <string name="archive_cancel">Cancel</string>
+    <string name="archive_select">Select</string>
+    <string name="archive_deselect">Deselect</string>
+    <string name="archive_bar_selected">selected</string>
+    <plurals name="archive_bar_freeable">
+        <item quantity="one">file can be freed</item>
+        <item quantity="other">files can be freed</item>
+    </plurals>
+    <string name="archive_upload">Upload</string>
+    <string name="archive_free">Free up</string>
+    <string name="archive_free_up_space">Free up space</string>
+    <string name="archive_hero_label">Can be freed on your phone</string>
+    <string name="archive_hero_caption">These files are already safe on Drive, so you can delete them from your phone. A small preview stays in their place.</string>
+    <string name="archive_empty_title">Your archive is empty</string>
+    <string name="archive_empty_text">Select photos on the Browse or Sort screen, and we\'ll save them to your Drive.</string>
+    <string name="archive_grid_title">In the cloud</string>
+    <string name="archive_grid_hint">Tap photos to select them, or touch and hold to see them up close. Faded photos now exist only in the cloud.</string>
+    <string name="archive_where_cloud_only">only in the cloud</string>
+    <string name="archive_where_both">on your phone and in the cloud</string>
+    <string name="archive_where_uploading">uploading</string>
+    <string name="archive_where_waiting">waiting to upload</string>
+    <string name="archive_badge_uploading">Uploading</string>
+
+    <string name="archive_drive_connected">Google Drive connected</string>
+    <plurals name="archive_drive_in_cloud">
+        <item quantity="one">%1$s file in the cloud · %2$s</item>
+        <item quantity="other">%1$s files in the cloud · %2$s</item>
+    </plurals>
+    <string name="archive_drive_unconfigured_title">Drive connection isn\'t set up</string>
+    <string name="archive_drive_unconfigured_text">This version is missing its Google client ID, so uploading isn\'t possible right now.</string>
+    <string name="archive_connect_failed">Couldn\'t connect</string>
+    <string name="archive_retry">Try again</string>
+    <string name="archive_connect_title">Connect your Google Drive</string>
+    <string name="archive_connect_text">Photos go into a separate folder on your own Drive. The app sees only the files it uploaded.</string>
+    <string name="archive_connect_action">Connect Google Drive</string>
+
+    <string name="archive_upload_active">Upload in progress</string>
+    <plurals name="archive_upload_waiting">
+        <item quantity="one">%1$s file waiting to upload</item>
+        <item quantity="other">%1$s files waiting to upload</item>
+    </plurals>
+    <string name="archive_upload_stopped">Upload stopped</string>
+    <string name="archive_upload_waiting_detail">%1$s · uploads on Wi-Fi while charging</string>
+    <string name="archive_upload_retry_detail">We\'ll try again on Wi-Fi while charging.</string>
+    <plurals name="archive_upload_progress_more">
+        <item quantity="one">%1$s / %2$s · %3$s more file</item>
+        <item quantity="other">%1$s / %2$s · %3$s more files</item>
+    </plurals>
+    <string name="archive_desktop_title">Do the first big upload from a computer</string>
+    <string name="archive_desktop_text">Your phone can upload in the background for only about six hours a day, so a full gallery would take weeks. After that, the app uploads only new ones.</string>
+    <string name="archive_got_it">Got it</string>
+
+    <string name="archive_queue_failed">Couldn\'t save the upload queue. Is your storage full?</string>
+    <plurals name="archive_queued">
+        <item quantity="one">%1$s file queued for upload.</item>
+        <item quantity="other">%1$s files queued for upload.</item>
+    </plurals>
+    <string name="archive_ghost_cancelled">We didn\'t delete anything. Everything stayed in place.</string>
+    <string name="archive_ghost_records_failed">The space is free, but the records didn\'t update. Is your storage full?</string>
+    <string name="archive_ghost_freed_more">%1$s freed · next batch coming up</string>
+    <string name="archive_ghost_freed">%1$s freed on your phone.</string>
+    <string name="archive_ghost_prepare_failed">Couldn\'t get the local deletion ready.</string>
+    <string name="archive_ghost_needs_verified">You can free up space only once there\'s a verified copy.</string>
+    <string name="archive_ghost_system_refused">The system didn\'t allow the deletion right now.</string>
+
+    <string name="archive_error_asset_gone">The file disappeared from the index.</string>
+    <string name="archive_error_folder">Couldn\'t create the Drive folder.</string>
+    <string name="archive_error_session">Couldn\'t start the upload session.</string>
+    <string name="archive_error_session_expired">The session expired. Starting over.</string>
+    <string name="archive_error_bad_uri">Invalid URI.</string>
+    <string name="archive_error_unreadable">Can\'t read the file.</string>
+    <string name="archive_error_shorter">The file is shorter than the part already uploaded.</string>
+    <string name="archive_error_ended">The file ended unexpectedly.</string>
+    <string name="archive_error_unfinished">The upload didn\'t finish.</string>
+    <string name="archive_error_checksum">The checksum doesn\'t match.</string>
+    <string name="archive_error_checksum_deleted">The checksum doesn\'t match, so we deleted the copy.</string>
+    <string name="archive_error_network">Network error.</string>
+    <string name="archive_error_no_file_id">Missing file ID.</string>
+    <string name="archive_error_drive_busy">Drive isn\'t accepting the chunk right now.</string>
+
+    <string name="archive_auth_failed">Drive authorization failed.</string>
+    <string name="archive_auth_no_consent">The consent didn\'t come through.</string>
+    <string name="archive_auth_no_token">Google didn\'t grant access.</string>
+
+    <string name="archive_notification_upload">Uploading to Google Drive</string>
+    <string name="archive_notification_cards">Saving file cards</string>
+    <plurals name="archive_audit_cards_written">
+        <item quantity="one">%1$s file card uploaded to %2$s</item>
+        <item quantity="other">%1$s file cards uploaded to %2$s</item>
+    </plurals>
+    <string name="archive_audit_missing_on_drive">No longer on Drive: %1$s</string>
+</resources>

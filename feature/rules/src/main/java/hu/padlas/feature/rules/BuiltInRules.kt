@@ -10,9 +10,18 @@ import hu.padlas.core.database.entity.ValueClass
  */
 object BuiltInRules {
 
+    /**
+     * Stored as the rule's name in every database seeded so far, so these are keys now:
+     * [RuleCopy] turns them into the screen's language and they stay exactly as they shipped.
+     */
+    internal const val OLD_WHATSAPP = "Régi WhatsApp-képek a felhőbe"
+    internal const val OLD_CAMERA = "Egy évnél régebbi fotók a felhőbe"
+    internal const val LARGE_VIDEOS = "Nagy videók tömörítése"
+    internal const val OLD_SCREENSHOTS = "Régi képernyőképek az eldobhatók közé"
+
     fun all(): List<RuleEntity> = listOf(
         rule(
-            name = "Régi WhatsApp-képek a felhőbe",
+            name = OLD_WHATSAPP,
             action = RuleAction.ARCHIVE,
             predicate = Predicate.And(
                 listOf(
@@ -22,7 +31,7 @@ object BuiltInRules {
             ),
         ),
         rule(
-            name = "Egy évnél régebbi fotók a felhőbe",
+            name = OLD_CAMERA,
             action = RuleAction.ARCHIVE,
             predicate = Predicate.And(
                 listOf(
@@ -33,7 +42,7 @@ object BuiltInRules {
             ),
         ),
         rule(
-            name = "Nagy videók tömörítése",
+            name = LARGE_VIDEOS,
             action = RuleAction.TRANSCODE,
             predicate = Predicate.And(
                 listOf(
@@ -43,7 +52,7 @@ object BuiltInRules {
             ),
         ),
         rule(
-            name = "Régi képernyőképek az eldobhatók közé",
+            name = OLD_SCREENSHOTS,
             action = RuleAction.TRASH,
             predicate = Predicate.And(
                 listOf(

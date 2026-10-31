@@ -3,6 +3,7 @@ package hu.padlas.feature.archive.ui
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
@@ -53,6 +54,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -88,6 +91,7 @@ import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.ZoomHost
 import hu.padlas.core.design.component.ZoomTarget
 import hu.padlas.core.design.component.ZoomableImage
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.component.navigationBarBottom
 import hu.padlas.core.design.component.rememberSystemRequest
 import hu.padlas.core.design.component.rememberZoomState
@@ -103,6 +107,7 @@ import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
 import hu.padlas.feature.archive.ArchiveScheduler
+import hu.padlas.feature.archive.R
 import hu.padlas.feature.archive.drive.AuthState
 import java.io.File
 
@@ -160,7 +165,7 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
             if (asset != null && asset.state != AssetState.GHOST) {
                 val picked = asset.mediaStoreId in state.selected
                 PadlasButton(
-                    text = if (picked) "Kijelölés megszüntetése" else "Kijelölöm",
+                    text = stringResource(if (picked) R.string.archive_deselect else R.string.archive_select),
                     onClick = {
                         haptic?.tick()
                         viewModel.toggle(asset.mediaStoreId)
@@ -176,12 +181,16 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
             scrolled = scrolled,
             topBar = {
                 PadlasTopBar(
-                    title = "Felhő archívum",
+                    title = stringResource(R.string.archive_title),
                     onBack = onBack,
                     subtitle = when {
-                        selecting -> "${Format.count(state.selected.size)} kijelölve"
-                        state.assets.isEmpty() -> "Google Drive"
-                        else -> "Google Drive · ${Format.count(state.assets.size)} fájl"
+                        selecting -> stringResource(R.string.archive_subtitle_selected, Format.count(state.selected.size))
+                        state.assets.isEmpty() -> stringResource(R.string.archive_subtitle_drive)
+                        else -> pluralStringResource(
+                            R.plurals.archive_subtitle_files,
+                            state.assets.size,
+                            Format.count(state.assets.size),
+                        )
                     },
                     action = {
                         AnimatedContent(
@@ -190,7 +199,7 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                             label = "atticCancel",
                         ) { active ->
                             if (active) {
-                                PadlasTextButton(text = "Mégse", onClick = viewModel::clearSelection)
+                                PadlasTextButton(text = stringResource(R.string.archive_cancel), onClick = viewModel::clearSelection)
                             } else {
                                 Spacer(Modifier.size(0.dp))
                             }
@@ -212,14 +221,14 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                             if (active) {
                                 BarFigures(
                                     count = Format.count(state.selected.size),
-                                    noun = "kijelölve",
+                                    noun = stringResource(R.string.archive_bar_selected),
                                     value = Format.bytesValue(selectedBytes),
                                     unit = Format.bytesUnit(selectedBytes),
                                 )
                                 Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
                                     if (selectedPending) {
                                         PadlasButton(
-                                            text = "Feltöltés",
+                                            text = stringResource(R.string.archive_upload),
                                             onClick = {
                                                 viewModel.enqueueSelected { ArchiveScheduler.enqueueUploads(context) }
                                             },
@@ -230,7 +239,7 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                                         )
                                     }
                                     PadlasButton(
-                                        text = "Felszabadítás",
+                                        text = stringResource(R.string.archive_free),
                                         onClick = viewModel::requestGhosting,
                                         enabled = !state.busy && selectedBytes > 0,
                                         icon = Icons.Rounded.CloudDone,
@@ -240,12 +249,12 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                             } else {
                                 BarFigures(
                                     count = Format.count(freeable),
-                                    noun = "fájl felszabadítható",
+                                    noun = pluralStringResource(R.plurals.archive_bar_freeable, freeable),
                                     value = Format.bytesValue(state.reclaimable),
                                     unit = Format.bytesUnit(state.reclaimable),
                                 )
                                 PadlasButton(
-                                    text = "Hely felszabadítása",
+                                    text = stringResource(R.string.archive_free_up_space),
                                     onClick = viewModel::freeUpAll,
                                     enabled = !state.busy,
                                     icon = Icons.Rounded.CloudDone,
@@ -256,7 +265,7 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     }
                 }
                 Toast(
-                    message = state.message,
+                    message = state.message?.asString(),
                     onShown = viewModel::dismissMessage,
                     icon = if (state.messageOk) Icons.Rounded.CheckCircle else Icons.Rounded.Info,
                     tint = if (state.messageOk) Ink.Success else Ink.Info,
@@ -288,11 +297,10 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 if (state.reclaimable > 0) {
                     item(key = "hero", span = { GridItemSpan(maxLineSpan) }) {
                         ReclaimHero(
-                            label = "Felszabadítható a telefonon",
+                            label = stringResource(R.string.archive_hero_label),
                             value = Format.bytesValue(state.reclaimable),
                             unit = Format.bytesUnit(state.reclaimable),
-                            caption = "Ezek a fájlok már biztonságban vannak a Drive-on, a telefonról törölhetők. " +
-                                "Helyükön egy kis előnézet marad.",
+                            caption = stringResource(R.string.archive_hero_caption),
                             glow = Ink.Info,
                             modifier = Modifier.entrance(entrance).then(itemMotion()).padding(top = Space.m),
                         )
@@ -321,9 +329,8 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     if (!state.loading) {
                         item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
                             EmptyState(
-                                title = "Még üres az archívum",
-                                text = "A Böngészés vagy a Válogatás képernyőn jelölhetsz ki képeket, " +
-                                    "amelyeket a Drive-odra mentünk.",
+                                title = stringResource(R.string.archive_empty_title),
+                                text = stringResource(R.string.archive_empty_text),
                                 icon = Icons.Rounded.Cloud,
                                 tint = Ink.Info,
                                 modifier = Modifier.entrance(entrance).padding(top = Space.l),
@@ -338,10 +345,9 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                                 .then(itemMotion())
                                 .padding(top = Space.l, bottom = Space.s),
                         ) {
-                            SectionHeader(title = "A felhőben")
+                            SectionHeader(title = stringResource(R.string.archive_grid_title))
                             Text(
-                                text = "Koppints a képekre a kijelöléshez, hosszan nyomva nagyban is megnézheted őket. " +
-                                    "A halvány képek már csak a felhőben vannak meg.",
+                                text = stringResource(R.string.archive_grid_hint),
                                 style = PadlasTheme.type.caption,
                                 color = Ink.TextSecondary,
                             )
@@ -353,6 +359,7 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         } else {
                             viewModel.uriOf(asset)
                         }
+                        val caption = "${Format.bytes(asset.sizeBytes)} · ${stringResource(whereItLives(asset.state))}"
                         AtticTile(
                             asset = asset,
                             selected = asset.mediaStoreId in state.selected,
@@ -370,7 +377,7 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                                         key = asset.mediaStoreId,
                                         model = model,
                                         title = asset.displayName,
-                                        caption = "${Format.bytes(asset.sizeBytes)} · ${whereItLives(asset.state)}",
+                                        caption = caption,
                                     ),
                                 )
                             },
@@ -384,11 +391,12 @@ fun AtticRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-private fun whereItLives(state: AssetState): String = when (state) {
-    AssetState.GHOST -> "csak a felhőben"
-    AssetState.ARCHIVED -> "a telefonon és a felhőben"
-    AssetState.UPLOADING -> "feltöltés alatt"
-    else -> "feltöltésre vár"
+@StringRes
+private fun whereItLives(state: AssetState): Int = when (state) {
+    AssetState.GHOST -> R.string.archive_where_cloud_only
+    AssetState.ARCHIVED -> R.string.archive_where_both
+    AssetState.UPLOADING -> R.string.archive_where_uploading
+    else -> R.string.archive_where_waiting
 }
 
 @Composable
@@ -433,7 +441,7 @@ private fun AtticTile(
                 onLongPress = onView,
                 badge = when {
                     uploadFraction != null -> Format.percent(uploadFraction)
-                    asset.state == AssetState.UPLOADING -> "Feltöltés"
+                    asset.state == AssetState.UPLOADING -> stringResource(R.string.archive_badge_uploading)
                     else -> null
                 },
                 image = image,
@@ -446,17 +454,22 @@ private fun AtticTile(
 private fun AccountCard(state: AtticUiState, onConnect: () -> Unit) {
     when (val auth = state.authState) {
         AuthState.Connected -> ListRow(
-            title = "Google Drive csatlakoztatva",
+            title = stringResource(R.string.archive_drive_connected),
             subtitle = state.assets.filter { it.state != AssetState.UPLOADING }.let { inCloud ->
-                "${Format.count(inCloud.size)} fájl a felhőben · ${Format.bytes(inCloud.sumOf { it.sizeBytes })}"
+                pluralStringResource(
+                    R.plurals.archive_drive_in_cloud,
+                    inCloud.size,
+                    Format.count(inCloud.size),
+                    Format.bytes(inCloud.sumOf { it.sizeBytes }),
+                )
             },
             icon = Icons.Rounded.CloudDone,
             iconTint = Ink.Success,
         )
 
         AuthState.Unconfigured -> ListRow(
-            title = "A Drive-kapcsolat nincs beállítva",
-            subtitle = "Ebből a változatból hiányzik a Google-azonosító, ezért most nem lehet feltölteni.",
+            title = stringResource(R.string.archive_drive_unconfigured_title),
+            subtitle = stringResource(R.string.archive_drive_unconfigured_text),
             icon = Icons.Rounded.CloudOff,
             iconTint = Ink.Warning,
         )
@@ -464,9 +477,9 @@ private fun AccountCard(state: AtticUiState, onConnect: () -> Unit) {
         is AuthState.Failed -> ConnectCard(
             icon = Icons.Rounded.ErrorOutline,
             tint = Ink.Danger,
-            title = "Nem sikerült csatlakozni",
-            text = auth.message,
-            actionLabel = "Újrapróbálom",
+            title = stringResource(R.string.archive_connect_failed),
+            text = auth.message.asString(),
+            actionLabel = stringResource(R.string.archive_retry),
             actionIcon = Icons.Rounded.Refresh,
             onAction = onConnect,
         )
@@ -474,10 +487,9 @@ private fun AccountCard(state: AtticUiState, onConnect: () -> Unit) {
         else -> ConnectCard(
             icon = Icons.Rounded.Cloud,
             tint = Ink.Info,
-            title = "Kösd össze a Google Drive-oddal",
-            text = "A képek a saját Drive-od egy külön mappájába kerülnek. " +
-                "Az app csak az általa feltöltött fájlokat látja.",
-            actionLabel = "Google Drive összekötése",
+            title = stringResource(R.string.archive_connect_title),
+            text = stringResource(R.string.archive_connect_text),
+            actionLabel = stringResource(R.string.archive_connect_action),
             actionIcon = Icons.Rounded.AddLink,
             onAction = onConnect,
         )
@@ -535,9 +547,13 @@ private fun UploadCard(state: AtticUiState, modifier: Modifier = Modifier) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = when {
-                            progress.active -> "Feltöltés folyamatban"
-                            state.queue.itemCount > 0 -> "${Format.count(state.queue.itemCount)} fájl vár feltöltésre"
-                            else -> "A feltöltés megállt"
+                            progress.active -> stringResource(R.string.archive_upload_active)
+                            state.queue.itemCount > 0 -> pluralStringResource(
+                                R.plurals.archive_upload_waiting,
+                                state.queue.itemCount,
+                                Format.count(state.queue.itemCount),
+                            )
+                            else -> stringResource(R.string.archive_upload_stopped)
                         },
                         style = PadlasTheme.type.bodyStrong,
                         color = Ink.Text,
@@ -548,8 +564,8 @@ private fun UploadCard(state: AtticUiState, modifier: Modifier = Modifier) {
                         text = when {
                             progress.active -> progress.name
                             state.queue.itemCount > 0 ->
-                                "${Format.bytes(state.queue.totalBytes)} · Wi-Fi-n, töltés közben halad"
-                            else -> "Wi-Fi-n, töltés közben újra megpróbáljuk."
+                                stringResource(R.string.archive_upload_waiting_detail, Format.bytes(state.queue.totalBytes))
+                            else -> stringResource(R.string.archive_upload_retry_detail)
                         },
                         style = PadlasTheme.type.caption,
                         color = Ink.TextSecondary,
@@ -562,21 +578,22 @@ private fun UploadCard(state: AtticUiState, modifier: Modifier = Modifier) {
                 Spacer(Modifier.height(Space.l))
                 ProgressStrip(
                     fraction = progress.fraction,
-                    label = buildString {
-                        append(Format.bytes(progress.bytesSent))
-                        append(" / ")
-                        append(Format.bytes(progress.totalBytes))
-                        if (state.queue.itemCount > 1) {
-                            append(" · még ")
-                            append(Format.count(state.queue.itemCount - 1))
-                            append(" fájl")
-                        }
+                    label = if (state.queue.itemCount > 1) {
+                        pluralStringResource(
+                            R.plurals.archive_upload_progress_more,
+                            state.queue.itemCount - 1,
+                            Format.bytes(progress.bytesSent),
+                            Format.bytes(progress.totalBytes),
+                            Format.count(state.queue.itemCount - 1),
+                        )
+                    } else {
+                        "${Format.bytes(progress.bytesSent)} / ${Format.bytes(progress.totalBytes)}"
                     },
                 )
             } else {
                 progress.message?.let { reason ->
                     Text(
-                        text = reason,
+                        text = reason.asString(),
                         style = PadlasTheme.type.caption,
                         color = Ink.Danger,
                         modifier = Modifier.padding(top = Space.m),
@@ -601,21 +618,20 @@ private fun DesktopNotice(onDismiss: () -> Unit, modifier: Modifier = Modifier) 
                 Spacer(Modifier.width(Space.m))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Az első nagy feltöltést számítógépről érdemes",
+                        text = stringResource(R.string.archive_desktop_title),
                         style = PadlasTheme.type.bodyStrong,
                         color = Ink.Text,
                     )
                     Spacer(Modifier.height(Space.xxs))
                     Text(
-                        text = "A telefon naponta csak kb. hat órát tölthet fel a háttérben, így egy teljes " +
-                            "galéria hetekig tartana. Utána az app már csak az újakat viszi fel.",
+                        text = stringResource(R.string.archive_desktop_text),
                         style = PadlasTheme.type.caption,
                         color = Ink.TextSecondary,
                     )
                 }
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                PadlasTextButton(text = "Értem", onClick = onDismiss)
+                PadlasTextButton(text = stringResource(R.string.archive_got_it), onClick = onDismiss)
             }
         }
     }

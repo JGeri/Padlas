@@ -1,5 +1,6 @@
 package hu.padlas.feature.archive.drive
 
+import hu.padlas.core.common.text.UiText
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -23,8 +24,8 @@ sealed interface ChunkOutcome {
     data class Complete(val fileId: String) : ChunkOutcome
     /** The session URI is dead; the upload has to be started again from scratch. */
     data object SessionGone : ChunkOutcome
-    data class Retryable(val code: Int, val message: String) : ChunkOutcome
-    data class Fatal(val code: Int, val message: String) : ChunkOutcome
+    data class Retryable(val code: Int, val message: UiText) : ChunkOutcome
+    data class Fatal(val code: Int, val message: UiText) : ChunkOutcome
 }
 
 /**

@@ -1,6 +1,9 @@
 package hu.padlas.feature.archive.drive
 
 import hu.padlas.core.common.di.IoDispatcher
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiText
+import hu.padlas.feature.archive.R
 import java.io.InputStream
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -157,7 +160,7 @@ class DriveClient @Inject constructor(
             .put(EMPTY)
             .build()
         runCatching { client.newCall(call).execute().use { interpret(it, 0, 0, totalBytes) } }
-            .getOrElse { ChunkOutcome.Retryable(0, it.message.orEmpty()) }
+            .getOrElse { ChunkOutcome.Retryable(0, UiText.Raw(it.message.orEmpty())) }
     }
 
     /** Step 2: one 8 MB chunk with an explicit Content-Range. */
@@ -174,7 +177,9 @@ class DriveClient @Inject constructor(
             .build()
         runCatching {
             client.newCall(call).execute().use { interpret(it, offset, chunk.size, totalBytes) }
-        }.getOrElse { ChunkOutcome.Retryable(0, it.message ?: "Hálózati hiba.") }
+        }.getOrElse { failure ->
+            ChunkOutcome.Retryable(0, failure.message?.let { UiText.Raw(it) } ?: uiText(R.string.archive_error_network))
+        }
     }
 
     /** Ghost assets are streamed back from here when the user opens one. */
@@ -199,7 +204,11 @@ class DriveClient @Inject constructor(
     ): ChunkOutcome = when {
         response.code == 200 || response.code == 201 -> {
             val id = DriveJson.fileId(response.body?.string().orEmpty())
-            if (id != null) ChunkOutcome.Complete(id) else ChunkOutcome.Retryable(response.code, "Hiányzó fájlazonosító.")
+            if (id != null) {
+                ChunkOutcome.Complete(id)
+            } else {
+                ChunkOutcome.Retryable(response.code, uiText(R.string.archive_error_no_file_id))
+            }
         }
 
         response.code == 308 -> {
@@ -211,9 +220,9 @@ class DriveClient @Inject constructor(
         response.code == 404 || response.code == 410 -> ChunkOutcome.SessionGone
 
         response.code == 429 || response.code >= 500 ->
-            ChunkOutcome.Retryable(response.code, "A Drive most nem fogadja a köteget.")
+            ChunkOutcome.Retryable(response.code, uiText(R.string.archive_error_drive_busy))
 
-        else -> ChunkOutcome.Fatal(response.code, response.message)
+        else -> ChunkOutcome.Fatal(response.code, UiText.Raw(response.message))
     }
 
     private suspend fun <T> request(builder: Request.Builder, parse: (String) -> T?): T? {

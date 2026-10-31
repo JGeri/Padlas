@@ -14,6 +14,7 @@ import hu.padlas.core.database.dao.CardDao
 import hu.padlas.core.database.entity.AuditAction
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.entity.AuditEntry
+import hu.padlas.feature.archive.R
 import hu.padlas.feature.archive.data.ArchiveRepository
 import hu.padlas.feature.archive.drive.ArchiveKind
 import hu.padlas.feature.archive.drive.DriveClient
@@ -35,7 +36,7 @@ class UploadWorker @AssistedInject constructor(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        setForegroundSafely("Feltöltés a Google Drive-ra")
+        setForegroundSafely(applicationContext.getString(R.string.archive_notification_upload))
         return runCatching { repository.drainQueue() }
             .fold(
                 onSuccess = { Result.success() },
@@ -70,7 +71,8 @@ class CardUploadWorker @AssistedInject constructor(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        runCatching { setForeground(foregroundInfo(applicationContext, CARD_NOTIFICATION_ID, "Cédulák mentése")) }
+        val title = applicationContext.getString(R.string.archive_notification_cards)
+        runCatching { setForeground(foregroundInfo(applicationContext, CARD_NOTIFICATION_ID, title)) }
 
         val pending = cardDao.pendingUpload(BATCH)
         if (pending.isEmpty()) return Result.success()
@@ -118,7 +120,13 @@ class CardUploadWorker @AssistedInject constructor(
                 assetId = null,
                 sizeBytes = 0,
                 reversible = false,
-                note = "${Format.count(written)} cédula felkerült ide: ${DrivePaths.CARDS}",
+                // The log stores text, so the line is written in the language the app runs in now.
+                note = applicationContext.resources.getQuantityString(
+                    R.plurals.archive_audit_cards_written,
+                    written,
+                    Format.count(written),
+                    DrivePaths.CARDS,
+                ),
             ),
         )
         return Result.success()
