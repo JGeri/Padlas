@@ -103,4 +103,10 @@
     <string name="audit_stop_confirm_text">A folyamatban lévő beolvasás, feltöltés és tömörítés megszakad. Később bármikor újraindíthatod őket.</string>
     <string name="audit_stop_confirm_action">Minden leállítása</string>
     <string name="audit_stopped">Minden háttérmunka leállt.</string>
+    <string name="audit_note_sort">Válogatás</string>
+    <string name="audit_note_bin">Kuka</string>
+    <string name="audit_note_extra_copy">felesleges másolat</string>
+    <string name="audit_note_full_scan">Teljes beolvasás</string>
+    <string name="audit_note_incremental">Új és módosult fájlok</string>
+    <string name="audit_note_reconciled">Eltűnt fájlok egyeztetése</string>
 </resources>

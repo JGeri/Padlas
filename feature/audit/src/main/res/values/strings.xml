@@ -110,4 +110,10 @@
     <string name="audit_stop_confirm_text">Any scanning, uploading or compressing in progress stops. You can restart them anytime later.</string>
     <string name="audit_stop_confirm_action">Stop everything</string>
     <string name="audit_stopped">All background work stopped.</string>
+    <string name="audit_note_sort">Sort</string>
+    <string name="audit_note_bin">Trash</string>
+    <string name="audit_note_extra_copy">Extra copy</string>
+    <string name="audit_note_full_scan">Full scan</string>
+    <string name="audit_note_incremental">New and changed files</string>
+    <string name="audit_note_reconciled">Missing files reconciled</string>
 </resources>

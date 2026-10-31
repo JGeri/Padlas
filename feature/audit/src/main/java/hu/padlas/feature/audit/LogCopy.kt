@@ -79,7 +79,9 @@ internal object LogCopy {
 
     /** A note is stored with its row in the words it was written in; only a missing one is ours. */
     fun subtitle(row: LogRow, time: String): UiText {
-        val detail = row.note?.takeIf { it.isNotBlank() }?.let { UiText.Raw(friendlyNote(it)) }
+        val detail = row.note?.takeIf { it.isNotBlank() }?.let { note ->
+            STORED_NOTES[note]?.let { uiText(it) } ?: UiText.Raw(friendlyNote(note))
+        }
             ?: fallback(row.action)?.let { uiText(it) }
         return if (detail == null) UiText.Raw(time) else uiText(R.string.audit_row_subtitle, time, detail)
     }
@@ -102,6 +104,21 @@ internal object LogCopy {
         AuditAction.TRASHED -> R.string.audit_note_trashed
         else -> null
     }
+
+    /**
+     * Fixed notes the other modules store in Hungarian, whatever the app's language was:
+     * they are keys, so they show in the language the log is read in.
+     */
+    private val STORED_NOTES: Map<String, Int> = mapOf(
+        "Válogatás" to R.string.audit_note_sort,
+        "Kuka" to R.string.audit_note_bin,
+        "duplikátum-vesztes" to R.string.audit_note_extra_copy,
+        "felesleges másolat" to R.string.audit_note_extra_copy,
+        "Teljes beolvasás" to R.string.audit_note_full_scan,
+        "Új és módosult fájlok" to R.string.audit_note_incremental,
+        "Növekményes beolvasás" to R.string.audit_note_incremental,
+        "Eltűnt fájlok egyeztetése" to R.string.audit_note_reconciled,
+    )
 
     /** Notes written before the copy was reworded still use the old internal words. */
     private fun friendlyNote(note: String): String = note
