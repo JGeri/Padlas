@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -55,8 +56,9 @@ import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Sora
 import hu.padlas.core.design.theme.Space
 import hu.padlas.core.media.MediaThumb
-import hu.padlas.feature.sort.HungarianDates
+import hu.padlas.feature.sort.R
 import hu.padlas.feature.sort.SwipeCard
+import hu.padlas.feature.sort.SwipeDates
 import hu.padlas.feature.sort.session.label
 import kotlin.math.abs
 import kotlin.math.ln
@@ -148,7 +150,7 @@ internal fun SwipeCardView(
             if (card.isVideo && isTop) {
                 PadlasIconButton(
                     icon = if (muted) Icons.Rounded.VolumeOff else Icons.Rounded.VolumeUp,
-                    contentDescription = if (muted) "Hang be" else "Hang ki",
+                    contentDescription = stringResource(if (muted) R.string.sort_unmute else R.string.sort_mute),
                     onClick = onToggleMute,
                     background = Ink.SurfaceSolid.copy(alpha = 0.5f),
                     modifier = Modifier
@@ -158,8 +160,8 @@ internal fun SwipeCardView(
             }
             Caption(card, Modifier.align(Alignment.BottomCenter))
 
-            Stamp("MARAD", Ink.Success, -12f, { overlay().keep }, Modifier.align(Alignment.TopStart).padding(top = 72.dp, start = 22.dp))
-            Stamp("TÖRLÉS", Ink.Danger, 12f, { overlay().delete }, Modifier.align(Alignment.TopEnd).padding(top = 72.dp, end = 22.dp))
+            Stamp(stringResource(R.string.sort_stamp_keep), Ink.Success, -12f, { overlay().keep }, Modifier.align(Alignment.TopStart).padding(top = 72.dp, start = 22.dp))
+            Stamp(stringResource(R.string.sort_stamp_delete), Ink.Danger, 12f, { overlay().delete }, Modifier.align(Alignment.TopEnd).padding(top = 72.dp, end = 22.dp))
             FavoriteBurst({ overlay().favorite }, Modifier.align(Alignment.Center))
         }
     }
@@ -248,16 +250,20 @@ private fun Badges(card: SwipeCard, modifier: Modifier = Modifier) {
         val translucent = Ink.SurfaceSolid.copy(alpha = 0.6f)
         if (card.isVideo) {
             Pill(
-                text = card.durationMs?.let(Format::duration) ?: "Videó",
+                text = card.durationMs?.let(Format::duration) ?: stringResource(R.string.sort_video),
                 icon = Icons.Rounded.Videocam,
                 background = translucent,
             )
         }
-        if (card.isFavorite) Pill(text = "Kedvenc", icon = Icons.Rounded.Favorite, color = Ink.Favorite, background = translucent)
-        if (card.isProtected) Pill(text = "Védett", icon = Icons.Rounded.Lock, color = Ink.Info, background = translucent)
+        if (card.isFavorite) {
+            Pill(text = stringResource(R.string.sort_favorite), icon = Icons.Rounded.Favorite, color = Ink.Favorite, background = translucent)
+        }
+        if (card.isProtected) {
+            Pill(text = stringResource(R.string.sort_protected), icon = Icons.Rounded.Lock, color = Ink.Info, background = translucent)
+        }
         card.previous?.let { choice ->
             Pill(
-                text = choice.label(),
+                text = stringResource(choice.label()),
                 icon = Icons.Rounded.History,
                 color = when (choice) {
                     SwipeChoice.KEEP -> Ink.Success
@@ -284,7 +290,7 @@ private fun Caption(card: SwipeCard, modifier: Modifier = Modifier) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Text(
-            text = HungarianDates.day(card.dateTaken),
+            text = SwipeDates.day(card.dateTaken),
             style = PadlasTheme.type.bodyStrong,
             color = Ink.Text,
             maxLines = 1,

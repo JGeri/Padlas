@@ -12,6 +12,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.common.di.IoDispatcher
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.common.result.outcomeOf
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiPlural
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.dao.UploadJobDao
@@ -159,7 +162,7 @@ internal class BrowseViewModel @Inject constructor(
                     selected = rows.map { it.mediaStoreId }.toSet(),
                     selectedBytes = rows.sumOf { it.sizeBytes },
                     message = if (rows.size >= SELECT_ALL_CAP) {
-                        "Az első ${Format.count(SELECT_ALL_CAP)} elem van kijelölve."
+                        uiPlural(R.plurals.browse_select_capped, SELECT_ALL_CAP, Format.count(SELECT_ALL_CAP))
                     } else {
                         null
                     },
@@ -194,7 +197,7 @@ internal class BrowseViewModel @Inject constructor(
                 }.isSuccess
             }
             if (!queued) {
-                local.update { it.copy(busy = false, message = NOT_WRITTEN) }
+                local.update { it.copy(busy = false, message = uiText(NOT_WRITTEN)) }
                 return@launch
             }
             local.update {
@@ -202,7 +205,7 @@ internal class BrowseViewModel @Inject constructor(
                     busy = false,
                     selected = emptySet(),
                     selectedBytes = 0,
-                    message = "${Format.count(rows.size)} elem sorba állt a padlásra.",
+                    message = uiPlural(R.plurals.browse_archive_queued, rows.size, Format.count(rows.size)),
                 )
             }
             onQueued()
@@ -228,13 +231,13 @@ internal class BrowseViewModel @Inject constructor(
                     .filter { !it.protectedManually && it.state != AssetState.PROTECTED }
             }
             if (rows.isEmpty()) {
-                local.update { it.copy(busy = false, message = "A kijelölésben csak védett elem van.") }
+                local.update { it.copy(busy = false, message = uiText(R.string.browse_only_protected)) }
                 return@launch
             }
             val batch = rows.take(MediaOps.MAX_REQUEST)
             val sender = mediaOps.trashRequest(batch.map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) })
             if (sender == null) {
-                local.update { it.copy(busy = false, message = "A kuka nem nyitható meg.") }
+                local.update { it.copy(busy = false, message = uiText(R.string.browse_trash_unavailable)) }
                 return@launch
             }
             pendingTrash = TrashRequest(sender, batch.associate { it.mediaStoreId to it.sizeBytes }, more = rows.size > batch.size)
@@ -248,7 +251,7 @@ internal class BrowseViewModel @Inject constructor(
         local.update { it.copy(trashRequest = null) }
         if (batch == null) return
         if (!confirmed) {
-            local.update { it.copy(busy = false, message = "Nem került semmi a kukába.") }
+            local.update { it.copy(busy = false, message = uiText(R.string.browse_trash_cancelled)) }
             return
         }
         viewModelScope.launch {
@@ -278,9 +281,9 @@ internal class BrowseViewModel @Inject constructor(
                     selected = if (batch.more) it.selected - batch.sizes.keys else emptySet(),
                     selectedBytes = if (batch.more) (it.selectedBytes - batch.bytes).coerceAtLeast(0) else 0,
                     message = when {
-                        !recorded -> NOT_WRITTEN
-                        batch.more -> "${Format.bytes(trashedSoFar)} a kukában · jön a következő adag"
-                        else -> "${Format.bytes(trashedSoFar)} a kukában. Amíg ott van, helyet foglal."
+                        !recorded -> uiText(NOT_WRITTEN)
+                        batch.more -> uiText(R.string.browse_trashed_more, Format.bytes(trashedSoFar))
+                        else -> uiText(R.string.browse_trashed, Format.bytes(trashedSoFar))
                     },
                 )
             }
@@ -297,14 +300,14 @@ internal class BrowseViewModel @Inject constructor(
                 outcomeOf { ids.chunked(SQLITE_ARGUMENT_LIMIT).forEach { assetDao.setProtected(it, true) } }.isSuccess
             }
             if (!written) {
-                local.update { it.copy(message = NOT_WRITTEN) }
+                local.update { it.copy(message = uiText(NOT_WRITTEN)) }
                 return@launch
             }
             local.update {
                 it.copy(
                     selected = emptySet(),
                     selectedBytes = 0,
-                    message = "${Format.count(ids.size)} elem védett lett.",
+                    message = uiPlural(R.plurals.browse_protected, ids.size, Format.count(ids.size)),
                 )
             }
         }
@@ -337,14 +340,14 @@ internal class BrowseViewModel @Inject constructor(
         val selectedBytes: Long = 0,
         val trashRequest: TrashRequest? = null,
         val busy: Boolean = false,
-        val message: String? = null,
+        val message: UiText? = null,
     )
 
     private companion object {
         const val PAGE = 60
         const val SELECT_ALL_CAP = 2_000
         const val SQLITE_ARGUMENT_LIMIT = 900
-        const val NOT_WRITTEN = "A változást nem sikerült menteni. Megtelt a tárhely?"
+        val NOT_WRITTEN = R.string.browse_not_saved
     }
 }
 
@@ -358,5 +361,5 @@ internal data class BrowseUiState(
     val selectedBytes: Long = 0,
     val trashRequest: TrashRequest? = null,
     val busy: Boolean = false,
-    val message: String? = null,
+    val message: UiText? = null,
 )

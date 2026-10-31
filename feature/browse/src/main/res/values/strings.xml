@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="browse_items_size">
+        <item quantity="one">%1$s item · %2$s</item>
+        <item quantity="other">%1$s items · %2$s</item>
+    </plurals>
+    <string name="browse_selected_count">%1$s selected</string>
+    <string name="browse_selected_size">%1$s selected · %2$s</string>
+    <string name="browse_select_all">Select all</string>
+    <string name="browse_clear_selection">Clear selection</string>
+    <string name="browse_video">Video</string>
+    <string name="browse_delete">Delete</string>
+    <string name="browse_next_batch">%1$s · next batch coming</string>
+
+    <string name="browse_title">Browse</string>
+    <string name="browse_clear_filter">Clear filter</string>
+    <string name="browse_select_hint">Tap to select, long-press to zoom</string>
+    <string name="browse_empty_title">Nothing to show yet</string>
+    <string name="browse_empty_text">Once your gallery is scanned, all your photos and videos show up here.</string>
+    <string name="browse_no_results_title">No results</string>
+    <string name="browse_no_results_text">Nothing matches this filter. Try another folder or month.</string>
+    <string name="browse_older_than_year">Older than 1 year</string>
+    <string name="browse_older_than_half_year">Older than 6 months</string>
+    <string name="browse_photos">Photos</string>
+    <string name="browse_videos">Videos</string>
+    <string name="browse_folders">Folders</string>
+    <string name="browse_months">Months</string>
+    <string name="browse_move_to_trash">Move to trash</string>
+    <string name="browse_upload">Upload</string>
+    <string name="browse_protect">Protect</string>
+
+    <plurals name="browse_select_capped">
+        <item quantity="one">Only the first %1$s item is selected.</item>
+        <item quantity="other">Only the first %1$s items are selected.</item>
+    </plurals>
+    <plurals name="browse_archive_queued">
+        <item quantity="one">%1$s item queued for the cloud.</item>
+        <item quantity="other">%1$s items queued for the cloud.</item>
+    </plurals>
+    <string name="browse_not_saved">Couldn\'t save the change. Is your storage full?</string>
+    <string name="browse_only_protected">The selection only has protected items.</string>
+    <string name="browse_trash_unavailable">Couldn\'t open the trash.</string>
+    <string name="browse_trash_cancelled">Nothing was moved to the trash.</string>
+    <string name="browse_trashed_more">%1$s in the trash · next batch coming</string>
+    <string name="browse_trashed">%1$s in the trash. It takes up space while it\'s there.</string>
+    <plurals name="browse_protected">
+        <item quantity="one">%1$s item is now protected.</item>
+        <item quantity="other">%1$s items are now protected.</item>
+    </plurals>
+
+    <string name="browse_trash_title">Trash</string>
+    <plurals name="browse_trash_restored">
+        <item quantity="one">%1$s item restored</item>
+        <item quantity="other">%1$s items restored</item>
+    </plurals>
+    <string name="browse_trash_freed">%1$s freed</string>
+    <string name="browse_trash_not_recorded">Done, but the records didn\'t update. Is your storage full?</string>
+    <string name="browse_trash_refused">The system didn\'t allow this right now.</string>
+    <string name="browse_trash_empty_title">The trash is empty</string>
+    <string name="browse_trash_empty_text">No deleted photos or videos are taking up space.</string>
+    <string name="browse_trash_confirm_title">Delete permanently?</string>
+    <string name="browse_trash_confirm_text">%1$s will be deleted permanently. This can\'t be undone.</string>
+    <string name="browse_trash_restore">Restore</string>
+    <string name="browse_trash_space">taking up space in the trash</string>
+    <string name="browse_trash_explain">The system deletes them on its own after 30 days. Need the space now? Empty the trash. You can also restore the selected items.</string>
+    <string name="browse_trash_empty_action">Empty trash</string>
+    <string name="browse_trash_samsung">Samsung Gallery\'s own trash holds another %1$s. You can empty it in the Gallery app.</string>
+    <string name="browse_trash_expires_today">Expires today</string>
+    <plurals name="browse_trash_days_left">
+        <item quantity="one">%1$s day</item>
+        <item quantity="other">%1$s days</item>
+    </plurals>
+</resources>

@@ -27,6 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -35,6 +37,8 @@ import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.entity.Asset
 import hu.padlas.core.database.entity.SwipeChoice
 import hu.padlas.core.design.component.ButtonStyle
@@ -44,6 +48,7 @@ import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.component.Toast
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.component.hairlineTop
 import hu.padlas.core.design.component.rememberSystemRequest
 import hu.padlas.core.design.theme.Ink
@@ -53,8 +58,10 @@ import hu.padlas.core.media.MediaOps
 import hu.padlas.core.media.MediaThumb
 import hu.padlas.feature.sort.DeleteBatch
 import hu.padlas.feature.sort.DeleteTally
+import hu.padlas.feature.sort.R
 import hu.padlas.feature.sort.SwipeRepository
 import hu.padlas.feature.sort.ui.ZoomViewer
+import hu.padlas.feature.sort.withNextBatch
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -74,7 +81,7 @@ internal data class PendingUiState(
     val items: List<PendingItem> = emptyList(),
     val busy: Boolean = false,
     val done: Boolean = false,
-    val message: String? = null,
+    val message: UiText? = null,
 ) {
     val marked: List<PendingItem> get() = items.filter { it.marked }
     val markedBytes: Long get() = marked.sumOf { it.asset.sizeBytes }
@@ -136,7 +143,7 @@ internal class PendingViewModel @Inject constructor(
         viewModelScope.launch {
             val request = repository.deleteRequest(assets)
             if (request == null) {
-                _state.update { it.copy(busy = false, message = "A rendszer most nem engedte a törlést.") }
+                _state.update { it.copy(busy = false, message = uiText(R.string.sort_refused)) }
                 return@launch
             }
             batch = request
@@ -148,7 +155,7 @@ internal class PendingViewModel @Inject constructor(
         val request = batch
         batch = null
         if (request == null || !confirmed) {
-            _state.update { it.copy(busy = false, message = if (request != null) "A törlés elmaradt." else null) }
+            _state.update { it.copy(busy = false, message = if (request != null) uiText(R.string.sort_cancelled) else null) }
             return
         }
         viewModelScope.launch {
@@ -162,8 +169,8 @@ internal class PendingViewModel @Inject constructor(
                     items = left,
                     done = left.none { it.marked },
                     message = when {
-                        !recorded -> "A törlés megtörtént, de a nyilvántartás nem frissült. Megtelt a tárhely?"
-                        request.truncated -> "$text · jön a következő adag"
+                        !recorded -> uiText(R.string.sort_not_recorded)
+                        request.truncated -> text.withNextBatch()
                         else -> text
                     },
                 )
@@ -188,18 +195,23 @@ fun PendingDeletionsRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxSize().auroraBackground().systemBarsPadding()) {
         Column(Modifier.fillMaxSize()) {
             PadlasTopBar(
-                title = "Törlésre jelölve",
-                subtitle = "${Format.count(state.marked.size)} elem · ${Format.bytes(state.markedBytes)} · koppints, ami maradjon",
+                title = stringResource(R.string.sort_marked_for_deletion),
+                subtitle = pluralStringResource(
+                    R.plurals.sort_pending_subtitle,
+                    state.marked.size,
+                    Format.count(state.marked.size),
+                    Format.bytes(state.markedBytes),
+                ),
                 onBack = onBack,
             )
             when {
                 state.loading -> Unit
                 state.items.isEmpty() || state.done && state.marked.isEmpty() -> EmptyState(
-                    title = "Nincs több törlendő",
-                    text = "Minden megjelölt elemet elintéztél.",
+                    title = stringResource(R.string.sort_pending_empty_title),
+                    text = stringResource(R.string.sort_pending_empty_text),
                     icon = Icons.Rounded.DoneAll,
                     tint = Ink.Success,
-                    actionLabel = "Vissza",
+                    actionLabel = stringResource(R.string.sort_back),
                     onAction = onBack,
                 )
 
@@ -218,7 +230,11 @@ fun PendingDeletionsRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                             onToggle = { viewModel.toggle(item) },
                             selectedTint = Ink.Danger,
                             onLongPress = { preview = item.thumb.uri },
-                            badge = if (item.asset.isVideo) item.asset.durationMs?.let(Format::duration) ?: "Videó" else null,
+                            badge = if (item.asset.isVideo) {
+                                item.asset.durationMs?.let(Format::duration) ?: stringResource(R.string.sort_video)
+                            } else {
+                                null
+                            },
                             image = { tileModifier ->
                                 AsyncImage(
                                     model = item.thumb,
@@ -243,7 +259,12 @@ fun PendingDeletionsRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     .padding(start = Space.page, end = Space.page, top = Space.xl, bottom = Space.l),
             ) {
                 PadlasButton(
-                    text = "${Format.count(state.marked.size)} elem törlése · ${Format.bytes(state.markedBytes)}",
+                    text = pluralStringResource(
+                        R.plurals.sort_delete_items_bytes,
+                        state.marked.size,
+                        Format.count(state.marked.size),
+                        Format.bytes(state.markedBytes),
+                    ),
                     onClick = { if (viewModel.skipsSystemDialog()) confirm = true else viewModel.delete() },
                     style = ButtonStyle.Destructive,
                     icon = Icons.Rounded.Delete,
@@ -254,7 +275,7 @@ fun PendingDeletionsRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         }
 
         Toast(
-            message = state.message,
+            message = state.message?.asString(),
             onShown = viewModel::consumeMessage,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -266,9 +287,9 @@ fun PendingDeletionsRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
     if (confirm) {
         ConfirmDialog(
-            title = "${Format.count(state.marked.size)} elem törlése?",
-            text = "${Format.bytes(state.markedBytes)} kerül törlésre a telefonról.",
-            confirmLabel = "Törlés",
+            title = pluralStringResource(R.plurals.sort_delete_confirm_title, state.marked.size, Format.count(state.marked.size)),
+            text = stringResource(R.string.sort_delete_from_phone, Format.bytes(state.markedBytes)),
+            confirmLabel = stringResource(R.string.sort_delete),
             destructive = true,
             icon = Icons.Rounded.Delete,
             onConfirm = {

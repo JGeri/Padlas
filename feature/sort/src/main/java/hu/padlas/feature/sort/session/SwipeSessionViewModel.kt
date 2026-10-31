@@ -1,24 +1,31 @@
 package hu.padlas.feature.sort.session
 
 import android.content.IntentSender
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiPlural
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.entity.SwipeChoice
 import hu.padlas.core.database.model.SizeAndCount
 import hu.padlas.feature.sort.DeleteBatch
 import hu.padlas.feature.sort.DeleteMode
 import hu.padlas.feature.sort.DeleteTally
 import hu.padlas.feature.sort.FavoriteBatch
-import hu.padlas.feature.sort.HungarianDates
 import hu.padlas.feature.sort.MediaFilter
+import hu.padlas.feature.sort.R
 import hu.padlas.feature.sort.SwipeAction
 import hu.padlas.feature.sort.SwipeCard
+import hu.padlas.feature.sort.SwipeDates
 import hu.padlas.feature.sort.SwipeFilter
 import hu.padlas.feature.sort.SwipePreferences
 import hu.padlas.feature.sort.SwipeRepository
+import hu.padlas.feature.sort.joinedByDots
+import hu.padlas.feature.sort.withNextBatch
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -35,7 +42,7 @@ data class UndoEvent(val ticket: Long, val cardId: Long, val action: SwipeAction
 @Immutable
 internal data class SessionUiState(
     val loading: Boolean = true,
-    val title: String = "",
+    val title: UiText? = null,
     val cards: List<SwipeCard> = emptyList(),
     val index: Int = 0,
     val kept: Int = 0,
@@ -51,7 +58,7 @@ internal data class SessionUiState(
     val freedBytes: Long = 0,
     val freedPermanently: Boolean = false,
     val unsyncedFavorites: Int = 0,
-    val message: String? = null,
+    val message: UiText? = null,
     val deleteMode: DeleteMode = DeleteMode.TRASH,
     val skipsSystemDialog: Boolean = false,
     /** The element this deck grew out of; the same key shrinks it back on close. */
@@ -156,7 +163,7 @@ internal class SwipeSessionViewModel @Inject constructor(
         }
         if (current.showHint) preferences.hintSeen = true
         viewModelScope.launch {
-            if (!repository.record(card.id, action)) _state.update { it.copy(message = NOT_SAVED) }
+            if (!repository.record(card.id, action)) _state.update { it.copy(message = uiText(NOT_SAVED)) }
             if (_state.value.finished) onFinished()
         }
     }
@@ -194,7 +201,9 @@ internal class SwipeSessionViewModel @Inject constructor(
             val pending = repository.pendingNow()
             val batch = repository.deleteRequest(pending)
             if (batch == null) {
-                _state.update { it.copy(busy = false, message = if (pending.isEmpty()) "Nincs mit törölni." else REFUSED) }
+                _state.update {
+                    it.copy(busy = false, message = uiText(if (pending.isEmpty()) R.string.sort_session_nothing_to_delete else REFUSED))
+                }
                 return@launch
             }
             pendingBatch = batch
@@ -231,7 +240,7 @@ internal class SwipeSessionViewModel @Inject constructor(
             return
         }
         if (!confirmed) {
-            _state.update { it.copy(busy = false, message = "A törlés elmaradt, a jelölések megmaradtak.") }
+            _state.update { it.copy(busy = false, message = uiText(R.string.sort_session_cancelled)) }
             return
         }
         // A card whose file already left cannot be swiped back or dealt again: it leaves the
@@ -257,8 +266,8 @@ internal class SwipeSessionViewModel @Inject constructor(
                     freedBytes = it.freedBytes + batch.bytes,
                     freedPermanently = batch.permanent,
                     message = when {
-                        !recorded -> NOT_RECORDED
-                        batch.truncated -> "$text · jön a következő adag"
+                        !recorded -> uiText(NOT_RECORDED)
+                        batch.truncated -> text.withNextBatch()
                         else -> text
                     },
                 )
@@ -283,7 +292,7 @@ internal class SwipeSessionViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     unsyncedFavorites = sessionFavorites.size,
-                    message = "${Format.count(batch.ids.size)} kedvenc a Galériában",
+                    message = uiPlural(R.plurals.sort_session_favorites_synced, batch.ids.size, Format.count(batch.ids.size)),
                 )
             }
         }
@@ -306,36 +315,37 @@ internal class SwipeSessionViewModel @Inject constructor(
         if (sessionFavorites.isNotEmpty() && repository.canSkipSystemDialog()) syncFavorites()
     }
 
-    private fun titleOf(filter: SwipeFilter): String {
+    private fun titleOf(filter: SwipeFilter): UiText {
         val months = filter.months.sortedDescending()
         val media = when (filter.media) {
             MediaFilter.ALL -> null
-            MediaFilter.PHOTOS -> "fotók"
-            MediaFilter.VIDEOS -> "videók"
+            MediaFilter.PHOTOS -> uiText(R.string.sort_title_photos)
+            MediaFilter.VIDEOS -> uiText(R.string.sort_title_videos)
         }
+        val folders = uiPlural(R.plurals.sort_title_folders, filter.buckets.size, Format.count(filter.buckets.size))
         val scope = when {
-            months.size == 1 -> HungarianDates.month(months.first())
-            months.size > 1 -> "${Format.count(months.size)} hónap"
-            filter.buckets.size == 1 -> "1 mappa"
-            filter.buckets.size > 1 -> "${Format.count(filter.buckets.size)} mappa"
-            else -> "Teljes galéria"
+            months.size == 1 -> UiText.Raw(SwipeDates.month(months.first()))
+            months.size > 1 -> uiPlural(R.plurals.sort_title_months, months.size, Format.count(months.size))
+            filter.buckets.isNotEmpty() -> folders
+            else -> uiText(R.string.sort_title_whole_gallery)
         }
-        val folders = if (months.isNotEmpty() && filter.buckets.isNotEmpty()) "${Format.count(filter.buckets.size)} mappa" else null
-        return listOfNotNull(scope, folders, media).joinToString(" · ")
+        val extraFolders = if (months.isNotEmpty() && filter.buckets.isNotEmpty()) folders else null
+        return listOfNotNull(scope, extraFolders, media).joinedByDots()
     }
 
     private data class Swiped(val card: SwipeCard, val action: SwipeAction)
 
     private companion object {
         const val UNDO_DEPTH = 200
-        const val REFUSED = "A rendszer most nem engedte a törlést, a jelölések megmaradtak."
-        const val NOT_SAVED = "A döntést nem sikerült menteni. Megtelt a tárhely?"
-        const val NOT_RECORDED = "A törlés megtörtént, de a nyilvántartás nem frissült. Megtelt a tárhely?"
+        val REFUSED = R.string.sort_session_refused
+        val NOT_SAVED = R.string.sort_session_not_saved
+        val NOT_RECORDED = R.string.sort_not_recorded
     }
 }
 
-internal fun SwipeChoice.label(): String = when (this) {
-    SwipeChoice.KEEP -> "Megtartva"
-    SwipeChoice.DELETE -> "Törlésre jelölve"
-    SwipeChoice.FAVORITE -> "Kedvenc"
+@StringRes
+internal fun SwipeChoice.label(): Int = when (this) {
+    SwipeChoice.KEEP -> R.string.sort_kept
+    SwipeChoice.DELETE -> R.string.sort_marked_for_deletion
+    SwipeChoice.FAVORITE -> R.string.sort_favorite
 }

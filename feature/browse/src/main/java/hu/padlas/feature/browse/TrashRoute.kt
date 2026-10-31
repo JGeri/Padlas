@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,6 +40,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -49,6 +52,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.common.di.IoDispatcher
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.common.result.outcomeOf
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiPlural
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.entity.AuditAction
@@ -63,6 +69,7 @@ import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.component.Toast
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.component.hairlineTop
 import hu.padlas.core.design.component.rememberSystemRequest
 import hu.padlas.core.design.theme.Ink
@@ -92,7 +99,7 @@ internal data class TrashUiState(
     val selected: Set<Long> = emptySet(),
     val samsungBytes: Long = 0,
     val busy: Boolean = false,
-    val message: String? = null,
+    val message: UiText? = null,
 ) {
     val totalBytes: Long get() = items.sumOf { it.sizeBytes }
     val selectedBytes: Long get() = items.filter { it.id in selected }.sumOf { it.sizeBytes }
@@ -204,17 +211,17 @@ internal class TrashViewModel @Inject constructor(
             doneCount += ids.size
             doneBytes += bytes
             val text = if (current.op == TrashOp.RESTORE) {
-                "${Format.count(doneCount)} elem visszaállítva"
+                uiPlural(R.plurals.browse_trash_restored, doneCount, Format.count(doneCount))
             } else {
-                "${Format.bytes(doneBytes)} felszabadítva"
+                uiText(R.string.browse_trash_freed, Format.bytes(doneBytes))
             }
             _state.update {
                 it.copy(
                     busy = false,
                     selected = if (current.rest.isEmpty()) emptySet() else it.selected,
                     message = when {
-                        !recorded -> "Kész, de a nyilvántartás nem frissült. Megtelt a tárhely?"
-                        current.rest.isNotEmpty() -> "$text · jön a következő adag"
+                        !recorded -> uiText(R.string.browse_trash_not_recorded)
+                        current.rest.isNotEmpty() -> uiText(R.string.browse_next_batch, text)
                         else -> text
                     },
                 )
@@ -241,7 +248,7 @@ internal class TrashViewModel @Inject constructor(
             val uris = batch.map { it.uri }
             val sender = if (op == TrashOp.RESTORE) mediaOps.untrashRequest(uris) else mediaOps.deleteRequest(uris)
             if (sender == null) {
-                _state.update { it.copy(busy = false, message = "A rendszer most nem engedte a műveletet.") }
+                _state.update { it.copy(busy = false, message = uiText(R.string.browse_trash_refused)) }
                 return@launch
             }
             request = BinRequest(sender, op, batch, items.drop(batch.size))
@@ -259,10 +266,10 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         viewModel.requests.collect { launch(it) }
     }
     var confirm by remember { mutableStateOf<(() -> Unit)?>(null) }
-    var confirmText by remember { mutableStateOf("") }
-    val guarded: (String, () -> Unit) -> Unit = { text, action ->
+    var confirmBytes by remember { mutableLongStateOf(0L) }
+    val guarded: (Long, () -> Unit) -> Unit = { bytes, action ->
         if (viewModel.skipsSystemDialog()) {
-            confirmText = text
+            confirmBytes = bytes
             confirm = action
         } else {
             action()
@@ -272,13 +279,24 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxSize().auroraBackground().systemBarsPadding()) {
         Column(Modifier.fillMaxSize()) {
             PadlasTopBar(
-                title = "Kuka",
-                subtitle = if (state.items.isEmpty()) null else "${Format.count(state.items.size)} elem · ${Format.bytes(state.totalBytes)}",
+                title = stringResource(R.string.browse_trash_title),
+                subtitle = if (state.items.isEmpty()) {
+                    null
+                } else {
+                    pluralStringResource(
+                        R.plurals.browse_items_size,
+                        state.items.size,
+                        Format.count(state.items.size),
+                        Format.bytes(state.totalBytes),
+                    )
+                },
                 onBack = onBack,
                 action = {
                     if (state.items.isNotEmpty()) {
                         PadlasTextButton(
-                            text = if (state.selected.size == state.items.size) "Kijelölés törlése" else "Mind",
+                            text = stringResource(
+                                if (state.selected.size == state.items.size) R.string.browse_clear_selection else R.string.browse_select_all,
+                            ),
                             onClick = viewModel::selectAll,
                         )
                     }
@@ -291,8 +309,8 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
                 state.items.isEmpty() -> Column {
                     EmptyState(
-                        title = "Üres a kuka",
-                        text = "Nincs törölt fotó vagy videó, ami még helyet foglalna.",
+                        title = stringResource(R.string.browse_trash_empty_title),
+                        text = stringResource(R.string.browse_trash_empty_text),
                         icon = Icons.Rounded.DeleteSweep,
                         tint = Ink.Success,
                     )
@@ -312,7 +330,7 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                                 bytes = state.totalBytes,
                                 busy = state.busy,
                                 onEmpty = {
-                                    guarded("${Format.bytes(state.totalBytes)} véglegesen törlődik. Ez nem vonható vissza.") {
+                                    guarded(state.totalBytes) {
                                         viewModel.emptyAll()
                                     }
                                 },
@@ -360,14 +378,14 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     .padding(start = Space.page, end = Space.page, top = Space.xl, bottom = Space.l),
             ) {
                 Text(
-                    text = "${Format.count(state.selected.size)} kijelölve · ${Format.bytes(state.selectedBytes)}",
+                    text = stringResource(R.string.browse_selected_size, Format.count(state.selected.size), Format.bytes(state.selectedBytes)),
                     style = PadlasTheme.type.caption,
                     color = Ink.TextSecondary,
                 )
                 Spacer(Modifier.height(Space.s))
                 Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
                     PadlasButton(
-                        text = "Visszaállítás",
+                        text = stringResource(R.string.browse_trash_restore),
                         onClick = viewModel::restoreSelected,
                         style = ButtonStyle.Secondary,
                         icon = Icons.Rounded.RestoreFromTrash,
@@ -375,9 +393,9 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         modifier = Modifier.weight(1f),
                     )
                     PadlasButton(
-                        text = "Törlés",
+                        text = stringResource(R.string.browse_delete),
                         onClick = {
-                            guarded("${Format.bytes(state.selectedBytes)} véglegesen törlődik. Ez nem vonható vissza.") {
+                            guarded(state.selectedBytes) {
                                 viewModel.deleteSelected()
                             }
                         },
@@ -391,7 +409,7 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         }
 
         Toast(
-            message = state.message,
+            message = state.message?.asString(),
             onShown = viewModel::consumeMessage,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -401,9 +419,9 @@ fun TrashRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
     confirm?.let { action ->
         ConfirmDialog(
-            title = "Végleges törlés?",
-            text = confirmText,
-            confirmLabel = "Törlés",
+            title = stringResource(R.string.browse_trash_confirm_title),
+            text = stringResource(R.string.browse_trash_confirm_text, Format.bytes(confirmBytes)),
+            confirmLabel = stringResource(R.string.browse_delete),
             destructive = true,
             icon = Icons.Rounded.Delete,
             onConfirm = {
@@ -423,16 +441,16 @@ private fun TrashHero(bytes: Long, busy: Boolean, onEmpty: () -> Unit) {
                 IconBubble(icon = Icons.Rounded.DeleteSweep, tint = Ink.Danger, size = 48.dp, iconSize = 24.dp)
                 Column(Modifier.padding(start = Space.m)) {
                     Text(text = Format.bytes(bytes), style = PadlasTheme.type.displaySmall, color = Ink.Text)
-                    Text(text = "foglal helyet a kukában", style = PadlasTheme.type.caption, color = Ink.TextSecondary)
+                    Text(text = stringResource(R.string.browse_trash_space), style = PadlasTheme.type.caption, color = Ink.TextSecondary)
                 }
             }
             Text(
-                text = "A rendszer 30 nap után magától törli őket. Ha most kell a hely, ürítsd a kukát; a kijelölt elemeket vissza is állíthatod.",
+                text = stringResource(R.string.browse_trash_explain),
                 style = PadlasTheme.type.body,
                 color = Ink.TextSecondary,
             )
             PadlasButton(
-                text = "Kuka ürítése",
+                text = stringResource(R.string.browse_trash_empty_action),
                 onClick = onEmpty,
                 style = ButtonStyle.Destructive,
                 icon = Icons.Rounded.DeleteSweep,
@@ -449,7 +467,7 @@ private fun SamsungNote(bytes: Long, modifier: Modifier = Modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconBubble(icon = Icons.Rounded.Info, tint = Ink.Info)
             Text(
-                text = "A Samsung Galéria saját kukájában további ${Format.bytes(bytes)} van. Azt a Galéria appban ürítheted.",
+                text = stringResource(R.string.browse_trash_samsung, Format.bytes(bytes)),
                 style = PadlasTheme.type.caption,
                 color = Ink.TextSecondary,
                 modifier = Modifier.padding(start = Space.m),
@@ -458,10 +476,15 @@ private fun SamsungNote(bytes: Long, modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
 private fun daysLeft(expiresAt: Long): String? {
     if (expiresAt <= 0L) return null
     val days = ((expiresAt - System.currentTimeMillis()) / DAY_MS).coerceAtLeast(0L)
-    return if (days == 0L) "ma törlődik" else "${Format.count(days)} nap"
+    return if (days == 0L) {
+        stringResource(R.string.browse_trash_expires_today)
+    } else {
+        pluralStringResource(R.plurals.browse_trash_days_left, days.toInt(), Format.count(days))
+    }
 }
 
 private const val DAY_MS = 24L * 60 * 60 * 1000

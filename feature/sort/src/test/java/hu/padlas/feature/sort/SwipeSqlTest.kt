@@ -5,6 +5,9 @@ import androidx.compose.ui.unit.Velocity
 import com.google.common.truth.Truth.assertThat
 import hu.padlas.feature.sort.ui.decide
 import hu.padlas.feature.sort.ui.overlayFor
+import java.time.Instant
+import java.time.ZoneOffset
+import java.util.Locale
 import org.junit.Test
 
 class SwipeSqlTest {
@@ -69,9 +72,28 @@ class SwipeSqlTest {
 
     @Test
     fun `month keys become Hungarian labels`() {
-        assertThat(HungarianDates.month("2023-02")).isEqualTo("2023. február")
-        assertThat(HungarianDates.monthName("2023-09")).isEqualTo("Szeptember")
-        assertThat(HungarianDates.year("2021-07")).isEqualTo(2021)
-        assertThat(HungarianDates.month("nonsense")).isEqualTo("nonsense")
+        assertThat(SwipeDates.month("2023-02", HU)).isEqualTo("2023. február")
+        assertThat(SwipeDates.monthName("2023-09", HU)).isEqualTo("Szeptember")
+        assertThat(SwipeDates.year("2021-07")).isEqualTo(2021)
+        assertThat(SwipeDates.month("nonsense", HU)).isEqualTo("nonsense")
+    }
+
+    @Test
+    fun `month keys become English labels`() {
+        assertThat(SwipeDates.month("2023-02", Locale.US)).isEqualTo("February 2023")
+        assertThat(SwipeDates.monthName("2023-09", Locale.US)).isEqualTo("September")
+        assertThat(SwipeDates.month("nonsense", Locale.US)).isEqualTo("nonsense")
+    }
+
+    @Test
+    fun `the card date reads naturally in both languages`() {
+        val friday = Instant.parse("2023-02-03T12:00:00Z").toEpochMilli()
+
+        assertThat(SwipeDates.day(friday, ZoneOffset.UTC, HU)).isEqualTo("2023. február 3., péntek")
+        assertThat(SwipeDates.day(friday, ZoneOffset.UTC, Locale.US)).isEqualTo("Friday, February 3, 2023")
+    }
+
+    private companion object {
+        val HU: Locale = Locale.forLanguageTag("hu-HU")
     }
 }
