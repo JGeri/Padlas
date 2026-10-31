@@ -2,14 +2,16 @@ package hu.padlas.feature.triage
 
 import android.content.IntentSender
 import hu.padlas.core.common.di.IoDispatcher
-import hu.padlas.core.common.result.Outcome
 import hu.padlas.core.common.result.outcomeOf
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.entity.AssetState
 import hu.padlas.core.database.entity.AuditAction
 import hu.padlas.core.database.entity.AuditEntry
 import hu.padlas.core.media.MediaOps
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -27,6 +29,12 @@ data class PendingDelete(
     val bytes: Long get() = sizes.values.sum()
 }
 
+/** A batch ready for its system dialog, or why there is none, in words for the screen. */
+sealed interface Prepared {
+    data class Ready(val batch: PendingDelete) : Prepared
+    data class Failed(val reason: UiText) : Prepared
+}
+
 /**
  * The single permanent deletion path of the module, shared by the Kidobó and the inverse
  * folder mode. Order matters and is not negotiable: cards first (spec 1.6), then one
@@ -41,26 +49,33 @@ class DiscardCommitter @Inject constructor(
     @IoDispatcher private val io: CoroutineDispatcher,
 ) {
 
-    suspend fun prepare(ids: List<Long>): Outcome<PendingDelete> = withContext(io) {
-        outcomeOf("A törlés előkészítése nem sikerült.") {
+    suspend fun prepare(ids: List<Long>): Prepared = withContext(io) {
+        try {
             // INV-1c and INV-4: a protected row never reaches the dialog, however the
             // selection was assembled. SECRET assets stay protected until the user
             // explicitly lifts the protection.
             val rows = ids.chunked(SQLITE_ARGUMENT_LIMIT).flatMap { assetDao.byIds(it) }.filter {
                 !it.protectedManually && it.state != AssetState.PROTECTED
             }
-            require(rows.isNotEmpty()) { "Nincs törölhető elem a kötegben." }
+            if (rows.isEmpty()) return@withContext Prepared.Failed(uiText(R.string.triage_prepare_nothing))
 
             val batch = rows.take(MediaOps.MAX_REQUEST)
             cardWriter.write(batch)
             val sender = mediaOps.deleteRequest(
                 batch.map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) },
-            ) ?: error("A rendszer most nem engedte a törlést.")
-            PendingDelete(
-                sizes = batch.associate { it.mediaStoreId to it.sizeBytes },
-                intentSender = sender,
-                more = rows.size > batch.size,
+            ) ?: return@withContext Prepared.Failed(uiText(R.string.triage_prepare_refused))
+            Prepared.Ready(
+                PendingDelete(
+                    sizes = batch.associate { it.mediaStoreId to it.sizeBytes },
+                    intentSender = sender,
+                    more = rows.size > batch.size,
+                ),
             )
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (t: Throwable) {
+            // A failure that explains itself still reaches the screen in its own words.
+            Prepared.Failed(t.message?.let(UiText::Raw) ?: uiText(R.string.triage_prepare_failed))
         }
     }
 

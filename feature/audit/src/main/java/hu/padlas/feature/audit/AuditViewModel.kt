@@ -7,6 +7,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.common.di.IoDispatcher
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.common.result.outcomeOf
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiPlural
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.entity.AuditAction
@@ -16,7 +19,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -69,7 +71,7 @@ internal class AuditViewModel @Inject constructor(
                     .flatMap { chunk -> assetDao.byIds(chunk) }
             }
             if (assets.isEmpty()) {
-                local.update { it.copy(message = "Ezek a fájlok már nincsenek a telefonon.", messageOk = false) }
+                local.update { it.copy(message = uiText(R.string.audit_undo_gone), messageOk = false) }
                 return@launch
             }
             // The log shows at most LIMIT entries, so one row always fits in one dialog; the
@@ -78,7 +80,7 @@ internal class AuditViewModel @Inject constructor(
                 assets.take(MediaOps.MAX_REQUEST).map { mediaOps.uriFor(it.mediaStoreId, it.isVideo) },
             )
             if (sender == null) {
-                local.update { it.copy(message = "A visszaállítás most nem indítható.", messageOk = false) }
+                local.update { it.copy(message = uiText(R.string.audit_undo_unavailable), messageOk = false) }
                 return@launch
             }
             val found = assets.take(MediaOps.MAX_REQUEST).map { it.mediaStoreId }.toSet()
@@ -119,9 +121,12 @@ internal class AuditViewModel @Inject constructor(
             }
             local.update {
                 if (recorded) {
-                    it.copy(message = "${Format.count(batch.assetIds.size)} fájl visszaállítva.", messageOk = true)
+                    it.copy(
+                        message = uiPlural(R.plurals.audit_undo_done, batch.assetIds.size, Format.count(batch.assetIds.size)),
+                        messageOk = true,
+                    )
                 } else {
-                    it.copy(message = "Visszaállítva, de a napló nem frissült. Megtelt a tárhely?", messageOk = false)
+                    it.copy(message = uiText(R.string.audit_undo_not_recorded), messageOk = false)
                 }
             }
         }
@@ -149,10 +154,10 @@ internal class AuditViewModel @Inject constructor(
 
     fun stopAllWork() {
         killSwitch.stopEverything()
-        local.update { it.copy(message = "Minden háttérmunka leállt.", messageOk = true) }
+        local.update { it.copy(message = uiText(R.string.audit_stopped), messageOk = true) }
     }
 
-    fun message(text: String, ok: Boolean = true) = local.update { it.copy(message = text, messageOk = ok) }
+    fun message(text: UiText, ok: Boolean = true) = local.update { it.copy(message = text, messageOk = ok) }
 
     fun dismissMessage() = local.update { it.copy(message = null) }
 
@@ -185,28 +190,22 @@ internal class AuditViewModel @Inject constructor(
             }
     }
 
-    private fun dayLabel(date: LocalDate, today: LocalDate): String = when (date) {
-        today -> "Ma"
-        today.minusDays(1) -> "Tegnap"
-        else -> {
-            val pattern = if (date.year == today.year) SAME_YEAR else OTHER_YEAR
-            pattern.format(date).replaceFirstChar { it.titlecase(HU) }
-        }
+    private fun dayLabel(date: LocalDate, today: LocalDate): DayLabel = when (date) {
+        today -> DayLabel.Today
+        today.minusDays(1) -> DayLabel.Yesterday
+        else -> DayLabel.Date(date, sameYear = date.year == today.year)
     }
 
     private data class LocalState(
         val undoRequest: UndoBatch? = null,
-        val message: String? = null,
+        val message: UiText? = null,
         val messageOk: Boolean = true,
     )
 
     private companion object {
         const val LIMIT = 500
         const val SQLITE_ARGUMENT_LIMIT = 900
-        val HU: Locale = Locale.forLanguageTag("hu-HU")
         val ISO: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
-        val SAME_YEAR: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM d., EEEE", HU)
-        val OTHER_YEAR: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy. MMMM d.", HU)
 
         /** The same two actions the all-time total counts; nothing else frees bytes for good. */
         val FREEING = setOf(AuditAction.DELETED, AuditAction.GHOSTED)
@@ -233,9 +232,16 @@ internal data class LogRow(
         get() = action == AuditAction.TRASHED && entries.any { it.reversible && it.assetId != null }
 }
 
+/** Today and yesterday go by name; any other day is written out in the app's language. */
+internal sealed interface DayLabel {
+    data object Today : DayLabel
+    data object Yesterday : DayLabel
+    data class Date(val date: LocalDate, val sameYear: Boolean) : DayLabel
+}
+
 internal data class LogDay(
     val key: String,
-    val label: String,
+    val label: DayLabel,
     val rows: List<LogRow>,
     /** Bytes freed for good that day; informational rows (index size, hash totals) do not count. */
     val bytes: Long,
@@ -246,6 +252,6 @@ internal data class LogUiState(
     val days: List<LogDay> = emptyList(),
     val reclaimedBytes: Long = 0,
     val undoRequest: UndoBatch? = null,
-    val message: String? = null,
+    val message: UiText? = null,
     val messageOk: Boolean = true,
 )

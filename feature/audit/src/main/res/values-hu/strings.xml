@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Log screen -->
+    <string name="audit_title">Napló</string>
+    <string name="audit_subtitle_total">%1$s felszabadítva összesen</string>
+    <string name="audit_export_description">Napló mentése CSV-fájlba</string>
+    <string name="audit_export_file_name">padlas-naplo.csv</string>
+    <string name="audit_export_saved">A napló elmentve.</string>
+    <string name="audit_export_failed">Az exportálás nem sikerült.</string>
+    <string name="audit_hero_label">Eddig felszabadítva</string>
+    <string name="audit_hero_caption">Itt látod, mit csinált az app a fájljaiddal. A kukába tett fájlok 30 napig visszaállíthatók.</string>
+    <string name="audit_empty_title">Még üres a napló</string>
+    <string name="audit_empty_text">Amint az app bármit csinál a fájljaiddal, itt megjelenik.</string>
+    <string name="audit_restore">Visszaállítás</string>
+
+    <!-- Day headers -->
+    <string name="audit_day_today">Ma</string>
+    <string name="audit_day_yesterday">Tegnap</string>
+    <string name="audit_day_pattern_same_year">MMMM d., EEEE</string>
+    <string name="audit_day_pattern_other_year">yyyy. MMMM d.</string>
+    <string name="audit_day_freed">%1$s felszabadítva</string>
+
+    <!-- Log rows -->
+    <string name="audit_row_subtitle">%1$s · %2$s</string>
+    <string name="audit_action_indexed">Galéria beolvasva</string>
+    <string name="audit_action_classified">Besorolva</string>
+    <plurals name="audit_action_classified_many">
+        <item quantity="one">%1$s fájl besorolva</item>
+        <item quantity="other">%1$s fájl besorolva</item>
+    </plurals>
+    <string name="audit_action_hashed">Duplikátumkeresés</string>
+    <string name="audit_action_ocr">Képernyőképek átnézve</string>
+    <string name="audit_action_archived">Feltöltve a felhőbe</string>
+    <plurals name="audit_action_archived_many">
+        <item quantity="one">%1$s fájl feltöltve a felhőbe</item>
+        <item quantity="other">%1$s fájl feltöltve a felhőbe</item>
+    </plurals>
+    <string name="audit_action_ghosted">Csak a felhőben maradt</string>
+    <plurals name="audit_action_ghosted_many">
+        <item quantity="one">%1$s fájl csak a felhőben maradt</item>
+        <item quantity="other">%1$s fájl csak a felhőben maradt</item>
+    </plurals>
+    <string name="audit_action_restored">Visszatöltve a felhőből</string>
+    <plurals name="audit_action_restored_many">
+        <item quantity="one">%1$s fájl visszatöltve</item>
+        <item quantity="other">%1$s fájl visszatöltve</item>
+    </plurals>
+    <string name="audit_action_trashed">Kukába került</string>
+    <plurals name="audit_action_trashed_many">
+        <item quantity="one">%1$s fájl a kukába került</item>
+        <item quantity="other">%1$s fájl a kukába került</item>
+    </plurals>
+    <string name="audit_action_deleted">Véglegesen törölve</string>
+    <plurals name="audit_action_deleted_many">
+        <item quantity="one">%1$s fájl véglegesen törölve</item>
+        <item quantity="other">%1$s fájl véglegesen törölve</item>
+    </plurals>
+    <string name="audit_action_untrashed">Visszaállítva a kukából</string>
+    <plurals name="audit_action_untrashed_many">
+        <item quantity="one">%1$s fájl visszaállítva</item>
+        <item quantity="other">%1$s fájl visszaállítva</item>
+    </plurals>
+    <string name="audit_action_transcoded">Videó tömörítve</string>
+    <plurals name="audit_action_transcoded_many">
+        <item quantity="one">%1$s videó tömörítve</item>
+        <item quantity="other">%1$s videó tömörítve</item>
+    </plurals>
+    <string name="audit_action_protected">Védetté téve</string>
+    <plurals name="audit_action_protected_many">
+        <item quantity="one">%1$s fájl védett lett</item>
+        <item quantity="other">%1$s fájl védett lett</item>
+    </plurals>
+    <string name="audit_action_unprotected">Védelem feloldva</string>
+    <plurals name="audit_action_unprotected_many">
+        <item quantity="one">%1$s fájl védelme feloldva</item>
+        <item quantity="other">%1$s fájl védelme feloldva</item>
+    </plurals>
+    <string name="audit_action_rule_run">Szabály lefutott</string>
+    <string name="audit_action_card_written">Adatlap mentve</string>
+    <plurals name="audit_action_card_written_many">
+        <item quantity="one">%1$s adatlap mentve</item>
+        <item quantity="other">%1$s adatlap mentve</item>
+    </plurals>
+    <string name="audit_action_reconciled">Eltérés a Drive-val</string>
+    <string name="audit_note_card_written">A törölt fájlok adatai megmaradnak</string>
+    <string name="audit_note_ghosted">Egy kis előnézet maradt a telefonon</string>
+    <string name="audit_note_trashed">30 napig visszaállítható</string>
+
+    <!-- Restoring from the trash -->
+    <string name="audit_undo_gone">Ezek a fájlok már nincsenek a telefonon.</string>
+    <string name="audit_undo_unavailable">A visszaállítás most nem indítható.</string>
+    <plurals name="audit_undo_done">
+        <item quantity="one">%1$s fájl visszaállítva.</item>
+        <item quantity="other">%1$s fájl visszaállítva.</item>
+    </plurals>
+    <string name="audit_undo_not_recorded">Visszaállítva, de a napló nem frissült. Megtelt a tárhely?</string>
+
+    <!-- Kill switch -->
+    <string name="audit_kill_title">Vészleállítás</string>
+    <string name="audit_kill_text">Azonnal leállít minden háttérmunkát: beolvasást, keresést, feltöltést és tömörítést.</string>
+    <string name="audit_kill_action">Minden háttérmunka leállítása</string>
+    <string name="audit_stop_confirm_title">Leállítasz mindent?</string>
+    <string name="audit_stop_confirm_text">A folyamatban lévő beolvasás, feltöltés és tömörítés megszakad. Később bármikor újraindíthatod őket.</string>
+    <string name="audit_stop_confirm_action">Minden leállítása</string>
+    <string name="audit_stopped">Minden háttérmunka leállt.</string>
+</resources>

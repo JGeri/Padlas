@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.common.di.IoDispatcher
-import hu.padlas.core.common.result.Outcome
+import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.entity.AssetState
 import hu.padlas.core.media.MediaOps
@@ -56,7 +58,7 @@ internal class FolderViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     loading = false,
-                    title = assets.firstOrNull()?.bucketName ?: "Mappa",
+                    title = assets.firstOrNull()?.bucketName.orEmpty(),
                     items = items,
                     // Locked rows start kept: they are never part of a batch (INV-4).
                     kept = items.filter { item -> item.locked }.map { item -> item.id }.toSet(),
@@ -92,14 +94,14 @@ internal class FolderViewModel @Inject constructor(
         if (ids.isEmpty() || current.committing) return
         viewModelScope.launch {
             _state.update { it.copy(committing = true) }
-            when (val outcome = committer.prepare(ids)) {
-                is Outcome.Success -> {
-                    pending = outcome.value
-                    _state.update { it.copy(request = outcome.value) }
+            when (val prepared = committer.prepare(ids)) {
+                is Prepared.Ready -> {
+                    pending = prepared.batch
+                    _state.update { it.copy(request = prepared.batch) }
                 }
 
-                is Outcome.Failure -> _state.update {
-                    it.copy(committing = false, message = outcome.message)
+                is Prepared.Failed -> _state.update {
+                    it.copy(committing = false, message = prepared.reason)
                 }
             }
         }
@@ -111,7 +113,7 @@ internal class FolderViewModel @Inject constructor(
         _state.update { it.copy(request = null) }
         if (batch == null) return
         if (!confirmed) {
-            _state.update { it.copy(committing = false, message = "Nem töröltünk semmit.") }
+            _state.update { it.copy(committing = false, message = uiText(R.string.triage_nothing_deleted)) }
             return
         }
         viewModelScope.launch {
@@ -124,9 +126,9 @@ internal class FolderViewModel @Inject constructor(
                     falling = bytes != null && last,
                     items = current.items.filterNot { it.id in batch.sizes.keys },
                     message = when {
-                        bytes == null -> "A fájlok törölve, de a nyilvántartás nem frissült. Megtelt a tárhely?"
-                        last -> "${hu.padlas.core.common.format.Format.bytes(doneBytes)} szabadult fel."
-                        else -> "${hu.padlas.core.common.format.Format.bytes(doneBytes)} szabadult fel · jön a következő adag"
+                        bytes == null -> uiText(R.string.triage_deleted_not_recorded)
+                        last -> uiText(R.string.triage_freed, Format.bytes(doneBytes))
+                        else -> uiText(R.string.triage_freed_next_batch, Format.bytes(doneBytes))
                     },
                 )
             }
@@ -150,7 +152,7 @@ internal data class FolderUiState(
     val committing: Boolean = false,
     val falling: Boolean = false,
     val request: PendingDelete? = null,
-    val message: String? = null,
+    val message: UiText? = null,
 ) {
     val discardCount: Int get() = items.count { it.id !in kept && !it.locked }
 

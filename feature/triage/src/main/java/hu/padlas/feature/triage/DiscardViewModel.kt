@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.sqlite.db.SimpleSQLiteQuery
 import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.common.format.Format
-import hu.padlas.core.common.result.Outcome
 import hu.padlas.core.common.result.outcomeOf
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiPlural
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.entity.Asset
 import hu.padlas.core.database.entity.AssetState
@@ -52,7 +54,7 @@ internal class DiscardViewModel @Inject constructor(
     private val seenUnrecognised = HashSet<Long>()
     private val committing = MutableStateFlow(false)
     private val falling = MutableStateFlow(false)
-    private val message = MutableStateFlow<String?>(null)
+    private val message = MutableStateFlow<UiText?>(null)
 
     private val eventChannel = Channel<DiscardEvent>(Channel.BUFFERED)
     val events: Flow<DiscardEvent> = eventChannel.receiveAsFlow()
@@ -126,7 +128,7 @@ internal class DiscardViewModel @Inject constructor(
                 kept.update { it + ids }
                 reload.update { it + 1 }
             } else {
-                message.value = "A védelmet nem sikerült feloldani."
+                message.value = uiText(R.string.triage_unlock_failed)
             }
         }
     }
@@ -144,15 +146,15 @@ internal class DiscardViewModel @Inject constructor(
         if (ids.isEmpty()) return
         committing.value = true
         viewModelScope.launch {
-            when (val outcome = committer.prepare(ids)) {
-                is Outcome.Success -> {
-                    pending = outcome.value
-                    eventChannel.send(DiscardEvent.Confirm(outcome.value.intentSender))
+            when (val prepared = committer.prepare(ids)) {
+                is Prepared.Ready -> {
+                    pending = prepared.batch
+                    eventChannel.send(DiscardEvent.Confirm(prepared.batch.intentSender))
                 }
 
-                is Outcome.Failure -> {
+                is Prepared.Failed -> {
                     committing.value = false
-                    message.value = outcome.message
+                    message.value = prepared.reason
                 }
             }
         }
@@ -163,7 +165,7 @@ internal class DiscardViewModel @Inject constructor(
         pending = null
         if (!confirmed || batch == null) {
             committing.value = false
-            message.value = if (batch != null) "Nem töröltünk semmit." else null
+            message.value = if (batch != null) uiText(R.string.triage_nothing_deleted) else null
             return
         }
         viewModelScope.launch {
@@ -171,7 +173,7 @@ internal class DiscardViewModel @Inject constructor(
             kept.update { it - batch.ids.toSet() }
             committing.value = false
             if (bytes == null) {
-                message.value = "A fájlok törölve, de a nyilvántartás nem frissült. Megtelt a tárhely?"
+                message.value = uiText(R.string.triage_deleted_not_recorded)
                 return@launch
             }
             doneCount += batch.count
@@ -179,11 +181,16 @@ internal class DiscardViewModel @Inject constructor(
             if (batch.more) {
                 // More was marked than one dialog carries. The finished rows are gone from
                 // the index, so the next round can only ever pick up what is left.
-                message.value = "${Format.count(doneCount)} fájl törölve · jön a következő adag"
+                message.value = uiPlural(R.plurals.triage_deleted_next_batch, doneCount, Format.count(doneCount))
                 nextRound()
                 return@launch
             }
-            message.value = "${Format.count(doneCount)} fájl törölve · ${Format.bytes(doneBytes)} szabadult fel"
+            message.value = uiPlural(
+                R.plurals.triage_deleted_freed,
+                doneCount,
+                Format.count(doneCount),
+                Format.bytes(doneBytes),
+            )
             falling.value = true
         }
     }
@@ -241,8 +248,8 @@ internal class DiscardViewModel @Inject constructor(
             loaded += TriageGroup(
                 key = groupKey(kind),
                 kind = kind,
-                title = kindTitle(kind),
-                hint = kindHint(kind),
+                title = uiText(kindTitle(kind)),
+                hint = uiText(kindHint(kind)),
                 items = byText.map { it.toItem() },
                 locked = kind == ShotKind.SECRET,
             )
@@ -252,11 +259,11 @@ internal class DiscardViewModel @Inject constructor(
                 key = group.key,
                 kind = null,
                 title = group.title,
-                hint = if (group.apps.size == 1) {
-                    "${group.source.title} · ${group.source.hint}"
-                } else {
-                    "${group.apps.joinToString(", ")} · ${group.source.hint}"
-                },
+                hint = uiText(
+                    R.string.triage_source_group_hint,
+                    if (group.apps.size == 1) uiText(group.source.title) else UiText.Raw(group.apps.joinToString(", ")),
+                    uiText(group.source.hint),
+                ),
                 items = group.items.sortedByDescending { it.dateTaken }.map { it.toItem() },
                 locked = false,
                 source = group.source,

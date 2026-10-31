@@ -32,6 +32,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -50,6 +52,7 @@ import hu.padlas.core.design.component.ReclaimHero
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.ZoomHost
 import hu.padlas.core.design.component.ZoomTarget
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.component.navigationBarBottom
 import hu.padlas.core.design.component.rememberSystemRequest
 import hu.padlas.core.design.component.rememberZoomState
@@ -143,6 +146,8 @@ private fun DiscardScreen(
         derivedStateOf { gridState.firstVisibleItemIndex > 0 || gridState.firstVisibleItemScrollOffset > 0 }
     }
     val zoom = rememberZoomState()
+    // The viewer opens from a tap, outside composition, so the names are read here.
+    val titles = state.groups.associate { it.key to it.title.asString() }
 
     ZoomHost(
         state = zoom,
@@ -163,10 +168,14 @@ private fun DiscardScreen(
             scrolled = scrolled,
             topBar = {
                 PadlasTopBar(
-                    title = "Eldobható képek",
+                    title = stringResource(R.string.triage_discard_title),
                     onBack = onBack,
                     subtitle = if (hasContent) {
-                        "${Format.count(selection.discardCount)} kijelölve · ${Format.bytes(selection.discardBytes)}"
+                        stringResource(
+                            R.string.triage_discard_subtitle,
+                            Format.count(selection.discardCount),
+                            Format.bytes(selection.discardBytes),
+                        )
                     } else {
                         null
                     },
@@ -182,7 +191,7 @@ private fun DiscardScreen(
                     )
                 }
                 Toast(
-                    message = state.message,
+                    message = state.message?.asString(),
                     onShown = onMessageShown,
                     icon = Icons.Rounded.Info,
                     tint = Ink.Info,
@@ -195,11 +204,11 @@ private fun DiscardScreen(
             when {
                 state.loading -> Unit
                 state.groups.isEmpty() -> EmptyState(
-                    title = "Nincs eldobható kép",
-                    text = "Nem találtunk képernyőképet vagy letöltött képet, amire már nincs szükség.",
+                    title = stringResource(R.string.triage_discard_empty_title),
+                    text = stringResource(R.string.triage_discard_empty_text),
                     icon = Icons.Rounded.CheckCircle,
                     tint = Ink.Success,
-                    actionLabel = "Átnézés újra",
+                    actionLabel = stringResource(R.string.triage_discard_empty_action),
                     onAction = onRetriage,
                     modifier = Modifier.padding(top = topBarClearance() + Space.xxl),
                 )
@@ -217,7 +226,7 @@ private fun DiscardScreen(
                             ZoomTarget(
                                 key = item.id,
                                 model = item.model,
-                                title = group.title,
+                                title = titles[group.key],
                                 caption = Format.bytes(item.sizeBytes),
                                 tag = item.locked,
                             ),
@@ -262,13 +271,10 @@ private fun DiscardGrid(
     ) {
         item(key = "hero", span = { GridItemSpan(maxLineSpan) }) {
             ReclaimHero(
-                label = "Felszabadítható",
+                label = stringResource(R.string.triage_reclaimable),
                 value = Format.bytesValue(selection.discardBytes),
                 unit = Format.bytesUnit(selection.discardBytes),
-                caption = "Képernyőképek és letöltött képek, amikre valószínűleg már nincs szükséged, " +
-                    "appok szerint csoportosítva. A navigációs, rendszer- és játékképek ki vannak jelölve " +
-                    "törlésre, koppints arra, amit megtartanál. A közösségi, videós és még fel nem ismert " +
-                    "képeket csak a „Mind törlése” jelöli ki. Hosszan nyomva bármelyik képet megnézheted nagyban.",
+                caption = stringResource(R.string.triage_discard_hero_caption),
                 modifier = Modifier.entrance(entrance),
             )
         }
@@ -358,24 +364,31 @@ private fun LazyGridScope.protectedSection(
                     Spacer(Modifier.width(Space.m))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = group.title,
+                            text = group.title.asString(),
                             style = PadlasTheme.type.bodyStrong,
                             color = Ink.Text,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = "${Format.count(group.items.size)} kép · nem kerül törlésre",
+                            text = pluralStringResource(
+                                R.plurals.triage_protected_count,
+                                group.items.size,
+                                Format.count(group.items.size),
+                            ),
                             style = PadlasTheme.type.caption,
                             color = Ink.TextSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    PadlasTextButton(text = if (expanded) "Elrejtés" else "Megnézem", onClick = onExpand)
+                    PadlasTextButton(
+                        text = stringResource(if (expanded) R.string.triage_protected_hide else R.string.triage_protected_show),
+                        onClick = onExpand,
+                    )
                 }
                 Text(
-                    text = group.hint,
+                    text = group.hint.asString(),
                     style = PadlasTheme.type.caption,
                     color = Ink.TextTertiary,
                     modifier = Modifier.padding(top = Space.s),
@@ -400,13 +413,13 @@ private fun LazyGridScope.protectedSection(
         item(key = "unlock-${group.key}", span = { GridItemSpan(maxLineSpan) }) {
             Column(modifier = Modifier.then(itemMotion()).fillMaxWidth().padding(top = Space.m)) {
                 HoldToConfirm(
-                    label = "Tartsd lenyomva a feloldáshoz",
+                    label = stringResource(R.string.triage_unlock_hold),
                     onConfirm = { onUnlock(locked) },
                     holdMillis = UNLOCK_HOLD_MS,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
-                    text = "Feloldás után is megmaradnak, amíg egyenként ki nem jelölöd őket.",
+                    text = stringResource(R.string.triage_unlock_note),
                     style = PadlasTheme.type.caption,
                     color = Ink.TextTertiary,
                     modifier = Modifier.padding(top = Space.s),

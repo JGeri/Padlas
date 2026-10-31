@@ -1,5 +1,7 @@
 package hu.padlas.feature.triage
 
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -63,7 +65,15 @@ class ShotSourcesTest {
 
         val groups = ShotSources.group(shots)
 
-        assertEquals(listOf("Maps", "Waze", "Más navigációs appok", "Instagram"), groups.map { it.title })
+        assertEquals(
+            listOf(
+                UiText.Raw("Maps"),
+                UiText.Raw("Waze"),
+                uiText(R.string.triage_source_navigation_others),
+                UiText.Raw("Instagram"),
+            ),
+            groups.map { it.title },
+        )
         assertEquals(listOf("Uber", "Bolt"), groups[2].apps)
         assertEquals(5, groups[2].items.size)
         assertEquals(groups.size, groups.map { it.key }.toSet().size)
@@ -73,7 +83,7 @@ class ShotSourcesTest {
     fun `a kind with only small apps is titled by the kind`() {
         val groups = ShotSources.group(List(3) { shot("Pottery 2", ShotSource.GAME, 1) })
 
-        assertEquals(listOf("Játék"), groups.map { it.title })
+        assertEquals(listOf(uiText(R.string.triage_source_game_title)), groups.map { it.title })
     }
 
     private fun shot(app: String, source: ShotSource, bytes: Long) = SourcedShot(app, app, source, bytes)

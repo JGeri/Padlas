@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Throwaway pictures screen -->
+    <string name="triage_discard_title">Eldobható képek</string>
+    <string name="triage_discard_subtitle">%1$s kijelölve · %2$s</string>
+    <string name="triage_discard_empty_title">Nincs eldobható kép</string>
+    <string name="triage_discard_empty_text">Nem találtunk képernyőképet vagy letöltött képet, amire már nincs szükség.</string>
+    <string name="triage_discard_empty_action">Átnézés újra</string>
+    <string name="triage_reclaimable">Felszabadítható</string>
+    <string name="triage_discard_hero_caption">Képernyőképek és letöltött képek, amikre valószínűleg már nincs szükséged, appok szerint csoportosítva. A navigációs, rendszer- és játékképek ki vannak jelölve törlésre, koppints arra, amit megtartanál. A közösségi, videós és még fel nem ismert képeket csak a „Mind törlése” jelöli ki. Hosszan nyomva bármelyik képet megnézheted nagyban.</string>
+    <plurals name="triage_protected_count">
+        <item quantity="one">%1$s kép · nem kerül törlésre</item>
+        <item quantity="other">%1$s kép · nem kerül törlésre</item>
+    </plurals>
+    <string name="triage_protected_show">Megnézem</string>
+    <string name="triage_protected_hide">Elrejtés</string>
+    <string name="triage_unlock_hold">Tartsd lenyomva a feloldáshoz</string>
+    <string name="triage_unlock_note">Feloldás után is megmaradnak, amíg egyenként ki nem jelölöd őket.</string>
+
+    <!-- Group titles and hints by what the pictures show -->
+    <string name="triage_kind_secret_title">Védett képek</string>
+    <string name="triage_kind_ticket_title">Jegyek és kódok</string>
+    <string name="triage_kind_receipt_title">Nyugták és számlák</string>
+    <string name="triage_kind_place_title">Címek és térképek</string>
+    <string name="triage_kind_chat_title">Chatek</string>
+    <string name="triage_kind_other_title">Egyéb képernyőképek</string>
+    <string name="triage_kind_untriaged_title">Még át nem nézett képek</string>
+    <string name="triage_kind_secret_hint">Jelszót, kódot vagy bankadatot tartalmazhatnak, ezért nem ajánljuk fel őket törlésre.</string>
+    <string name="triage_kind_ticket_hint">Beszállókártyák, belépők, QR-kódok. A lejártakra már nincs szükség.</string>
+    <string name="triage_kind_receipt_hint">Vásárlások, utalások és számlák képernyőképei.</string>
+    <string name="triage_kind_place_hint">Címek, útvonalak és térképrészletek.</string>
+    <string name="triage_kind_chat_hint">Beszélgetésekről készült képernyőképek.</string>
+    <string name="triage_kind_other_hint">Kevés szöveg, semmi fontos nem látszik rajtuk.</string>
+    <string name="triage_kind_untriaged_hint">A felismerés még nem futott le rajtuk, csak a mappájuk alapján tűnnek eldobhatónak. Ezért alapból maradnak.</string>
+
+    <!-- Group titles and hints by the app the screenshots came from -->
+    <string name="triage_source_navigation_title">Navigáció</string>
+    <string name="triage_source_navigation_others">Más navigációs appok</string>
+    <string name="triage_source_navigation_hint">Útvonalak, érkezési idők, forgalmi riasztások. Utólag szinte sosem kellenek.</string>
+    <string name="triage_source_home_title">Kezdőképernyő és rendszer</string>
+    <string name="triage_source_home_others">Más rendszerappok</string>
+    <string name="triage_source_home_hint">Kezdőképernyő, óra, ébresztő, számológép, áruház. Többnyire véletlen vagy egyszeri képek.</string>
+    <string name="triage_source_game_title">Játék</string>
+    <string name="triage_source_game_others">Más játékok</string>
+    <string name="triage_source_game_hint">Eredmények és pillanatképek játékokból.</string>
+    <string name="triage_source_media_title">Videó és zene</string>
+    <string name="triage_source_media_others">Más videó- és zeneappok</string>
+    <string name="triage_source_media_hint">Videók és dalok, amiknek a címe kellett. Nincsenek kijelölve: a „Mind törlése” jelöli ki őket.</string>
+    <string name="triage_source_social_title">Közösségi média</string>
+    <string name="triage_source_social_others">Más közösségi appok</string>
+    <string name="triage_source_social_hint">Posztok, sztorik, mémek. Lehet köztük emlék, ezért nincsenek kijelölve: a „Mind törlése” jelöli ki őket.</string>
+    <string name="triage_source_group_hint">%1$s · %2$s</string>
+
+    <!-- Tiles and group headers -->
+    <string name="triage_protected">Védett</string>
+    <string name="triage_keep_badge">Marad</string>
+    <string name="triage_marked_for_deletion">Törlésre jelölve</string>
+    <string name="triage_delete_anyway">Mégis törlöm</string>
+    <string name="triage_keep_it">Megtartom</string>
+    <string name="triage_group_tally">" / %1$s törlésre · %2$s"</string>
+    <string name="triage_keep_all">Mind marad</string>
+    <string name="triage_delete_all">Mind törlése</string>
+    <string name="triage_more_all">mind</string>
+
+    <!-- Where the space is still taken, and the delete bar -->
+    <string name="triage_trash_header">Ahol még foglalt a hely</string>
+    <string name="triage_trash_system_title">Rendszerkuka</string>
+    <string name="triage_trash_system_detail">30 nap után magától ürül, addig foglalja a helyet.</string>
+    <string name="triage_trash_gallery_title">Galéria kukája</string>
+    <string name="triage_trash_gallery_detail">Külön kuka, a Galéria appban kell üríteni.</string>
+    <string name="triage_trash_pending_title">Kijelölve, még nem törölve</string>
+    <plurals name="triage_trash_pending_detail">
+        <item quantity="one">%1$s fájl. A törlés gomb megnyomásáig a helyén marad.</item>
+        <item quantity="other">%1$s fájl. A törlés gomb megnyomásáig a helyén marad.</item>
+    </plurals>
+    <plurals name="triage_commit_noun">
+        <item quantity="one">fájl törlésre</item>
+        <item quantity="other">fájl törlésre</item>
+    </plurals>
+    <string name="triage_commit_nothing">Mindent megtartasz, nincs mit törölni.</string>
+    <string name="triage_commit_warning">Véglegesen törlődnek. A telefon még egyszer rákérdez.</string>
+    <string name="triage_commit_none">Nincs kijelölt fájl</string>
+    <string name="triage_commit_delete">Kijelöltek törlése</string>
+
+    <!-- Messages after deleting -->
+    <string name="triage_unlock_failed">A védelmet nem sikerült feloldani.</string>
+    <string name="triage_nothing_deleted">Nem töröltünk semmit.</string>
+    <string name="triage_deleted_not_recorded">A fájlok törölve, de a nyilvántartás nem frissült. Megtelt a tárhely?</string>
+    <plurals name="triage_deleted_next_batch">
+        <item quantity="one">%1$s fájl törölve · jön a következő adag</item>
+        <item quantity="other">%1$s fájl törölve · jön a következő adag</item>
+    </plurals>
+    <plurals name="triage_deleted_freed">
+        <item quantity="one">%1$s fájl törölve · %2$s szabadult fel</item>
+        <item quantity="other">%1$s fájl törölve · %2$s szabadult fel</item>
+    </plurals>
+    <string name="triage_freed">%1$s szabadult fel.</string>
+    <string name="triage_freed_next_batch">%1$s szabadult fel · jön a következő adag</string>
+    <string name="triage_prepare_failed">A törlés előkészítése nem sikerült.</string>
+    <string name="triage_prepare_nothing">Nincs törölhető elem a kötegben.</string>
+    <string name="triage_prepare_refused">A rendszer most nem engedte a törlést.</string>
+
+    <!-- One folder -->
+    <string name="triage_folder_fallback_title">Mappa</string>
+    <string name="triage_folder_subtitle">%1$s / %2$s kijelölve · %3$s</string>
+    <string name="triage_folder_empty_title">Üres mappa</string>
+    <string name="triage_folder_empty_text">Ebben a mappában nincs több kép vagy videó.</string>
+    <string name="triage_folder_empty_action">Vissza</string>
+    <string name="triage_folder_hero_caption">Minden ki van jelölve törlésre. Koppints arra, amit megtartanál, hosszan nyomva pedig nagyban is megnézheted.</string>
+    <plurals name="triage_folder_file_count">
+        <item quantity="one">%1$s fájl a mappában</item>
+        <item quantity="other">%1$s fájl a mappában</item>
+    </plurals>
+
+    <!-- Log entry after a recognition pass -->
+    <plurals name="triage_audit_ocr_note">
+        <item quantity="one">%1$s képernyőkép átnézve</item>
+        <item quantity="other">%1$s képernyőkép átnézve</item>
+    </plurals>
+</resources>
