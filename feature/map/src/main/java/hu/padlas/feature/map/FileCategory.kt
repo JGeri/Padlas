@@ -1,16 +1,17 @@
 package hu.padlas.feature.map
 
+import androidx.annotation.StringRes
 import java.util.Locale
 
 /** The ordinal is stored per file as a byte, so new categories may only be appended. */
-enum class FileCategory(val label: String) {
-    IMAGES("Képek"),
-    VIDEOS("Videók"),
-    AUDIO("Hang"),
-    DOCUMENTS("Dokumentumok"),
-    ARCHIVES("Archívumok"),
-    INSTALLERS("Telepítők"),
-    OTHER("Egyéb"),
+enum class FileCategory(@StringRes val label: Int) {
+    IMAGES(R.string.map_category_images),
+    VIDEOS(R.string.map_category_videos),
+    AUDIO(R.string.map_category_audio),
+    DOCUMENTS(R.string.map_category_documents),
+    ARCHIVES(R.string.map_category_archives),
+    INSTALLERS(R.string.map_category_installers),
+    OTHER(R.string.map_category_other),
     ;
 
     val isMedia: Boolean get() = this == IMAGES || this == VIDEOS || this == AUDIO

@@ -1,6 +1,7 @@
 package hu.padlas.feature.index
 
 import androidx.compose.runtime.Immutable
+import hu.padlas.core.common.text.UiText
 
 /**
  * The whole index pipeline reports through this one type, so the first-run screen and the
@@ -24,5 +25,5 @@ sealed interface IndexState {
 
     data class Done(val count: Int, val bytes: Long, val durationMs: Long) : IndexState
 
-    data class Failed(val message: String) : IndexState
+    data class Failed(val message: UiText) : IndexState
 }

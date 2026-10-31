@@ -42,6 +42,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -58,6 +60,7 @@ import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.SegmentedControl
 import hu.padlas.core.design.component.Toast
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.component.frosted
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
@@ -98,8 +101,8 @@ fun MapRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
             .systemBarsPadding(),
     ) {
         PadlasTopBar(
-            title = "Tárhely",
-            subtitle = subtitle,
+            title = stringResource(R.string.map_title),
+            subtitle = subtitle.asString(),
             onBack = { if (!viewModel.navigateUp()) onBack() },
             action = { RefreshButton(enabled = access.allFiles && !scanning, onClick = viewModel::rescan) },
         )
@@ -204,8 +207,8 @@ internal fun StorageScreen(
             if (largeHeader) {
                 item(key = "header") {
                     LargeHeader(
-                        title = "Tárhely",
-                        subtitle = header,
+                        title = stringResource(R.string.map_title),
+                        subtitle = header.asString(),
                         modifier = Modifier.entrance(entrance).padding(horizontal = Space.page),
                         actions = { RefreshButton(enabled = access.allFiles && !scanning, onClick = viewModel::rescan) },
                     )
@@ -339,7 +342,7 @@ internal fun StorageScreen(
                 panel = panel,
                 reduced = reduced,
                 rootPath = viewModel.rootPath,
-                hint = if (view == StorageView.MAP) "Koppints rá még egyszer a térképen, és megnyílik." else null,
+                hint = if (view == StorageView.MAP) stringResource(R.string.map_hint_tap_again) else null,
                 viewModel = viewModel,
             )
         }
@@ -349,7 +352,7 @@ internal fun StorageScreen(
         ConfirmDialog(
             title = deleteTitle(request),
             text = deleteText(request),
-            confirmLabel = "Végleges törlés",
+            confirmLabel = stringResource(R.string.map_delete_confirm),
             onConfirm = viewModel::confirmDelete,
             onDismiss = viewModel::dismissDelete,
             destructive = true,
@@ -385,7 +388,7 @@ private fun BottomPanel(
     ) { state ->
         when (state) {
             Panel.None -> Box(Modifier.fillMaxWidth())
-            Panel.Busy -> BusyPill(text = "Törlés folyamatban…")
+            Panel.Busy -> BusyPill(text = stringResource(R.string.map_deleting))
             is Panel.Select -> SelectionBar(
                 selection = state.selection,
                 onDelete = viewModel::requestDeleteSelection,
@@ -414,7 +417,7 @@ private fun ToastHost(toast: ToastUi?, onShown: () -> Unit) {
         if (current.tone != ToastTone.ERROR) haptic?.commit()
     }
     Toast(
-        message = toast?.message,
+        message = toast?.message?.asString(),
         onShown = onShown,
         icon = when (tone) {
             ToastTone.SUCCESS -> Icons.Rounded.CheckCircle
@@ -446,7 +449,7 @@ private fun ViewSwitcher(
             .padding(horizontal = Space.page, vertical = Space.s),
     ) {
         SegmentedControl(
-            options = StorageView.entries.map { it.label },
+            options = StorageView.entries.map { stringResource(it.label) },
             selectedIndex = view.ordinal,
             onSelect = { onSelect(StorageView.entries[it]) },
             modifier = if (haze != null) Modifier.clip(Shapes.pill).frosted(haze) else Modifier,
@@ -458,7 +461,7 @@ private fun ViewSwitcher(
 private fun RefreshButton(enabled: Boolean, onClick: () -> Unit) {
     PadlasIconButton(
         icon = Icons.Rounded.Refresh,
-        contentDescription = "Újraelemzés",
+        contentDescription = stringResource(R.string.map_rescan),
         onClick = onClick,
         enabled = enabled,
     )
@@ -466,27 +469,43 @@ private fun RefreshButton(enabled: Boolean, onClick: () -> Unit) {
 
 private const val SwitcherKey = "switcher"
 
-private fun deleteTitle(request: DeleteRequest): String = when {
-    request.items.size > 1 -> "Törlöd a kijelölt elemeket?"
-    request.dirCount == 1 -> "Törlöd ezt a mappát?"
-    else -> "Törlöd ezt a fájlt?"
-}
+@Composable
+private fun deleteTitle(request: DeleteRequest): String = stringResource(
+    when {
+        request.items.size > 1 -> R.string.map_delete_title_many
+        request.dirCount == 1 -> R.string.map_delete_title_folder
+        else -> R.string.map_delete_title_file
+    },
+)
 
+@Composable
 private fun deleteText(request: DeleteRequest): String {
-    val what = if (request.items.size == 1) {
+    val sentences = if (request.items.size == 1) {
         val item = request.items.first()
-        val inside = when {
-            !item.isDirectory -> ""
-            item.fileCount == 0 -> " A mappa üres."
-            else -> " Benne ${Format.count(item.fileCount)} fájl van."
-        }
-        "„${item.name}”, ${Format.bytes(item.bytes)}.$inside"
+        listOfNotNull(
+            stringResource(R.string.map_delete_single, item.name, Format.bytes(item.bytes)),
+            when {
+                !item.isDirectory -> null
+                item.fileCount == 0 -> stringResource(R.string.map_delete_folder_empty)
+                else -> pluralStringResource(R.plurals.map_delete_folder_files, item.fileCount, Format.count(item.fileCount))
+            },
+        )
     } else {
         val inside = request.items.filter { it.isDirectory }.sumOf { it.fileCount }
-        val extra = if (request.dirCount > 0 && inside > 0) " A mappákban ${Format.count(inside)} fájl van." else ""
-        "${describeCount(request.fileCount, request.dirCount)}, összesen ${Format.bytes(request.bytes)}.$extra"
+        listOfNotNull(
+            stringResource(
+                R.string.map_delete_many,
+                describeCount(request.fileCount, request.dirCount).asString(),
+                Format.bytes(request.bytes),
+            ),
+            if (request.dirCount > 0 && inside > 0) {
+                pluralStringResource(R.plurals.map_delete_folders_files, inside, Format.count(inside))
+            } else {
+                null
+            },
+        )
     }
-    return "$what\n\nVéglegesen törlődik, nem vonható vissza."
+    return sentences.joinToString(" ") + "\n\n" + stringResource(R.string.map_delete_permanent)
 }
 
 private fun Context.openAllFilesSettings() {

@@ -27,7 +27,7 @@ import hu.padlas.core.design.theme.Space
 /**
  * The two figures a batch action is about. Both roll, so ticking one more tile visibly
  * moves the count instead of swapping the label. They arrive formatted (`Format.count`,
- * `Format.bytesValue` / `bytesUnit`): core:design cannot see core:common. [valuePrefix]
+ * `Format.bytesValue` / `bytesUnit`), and [noun] already agrees with the count. [valuePrefix]
  * qualifies a size that is only an estimate.
  */
 @Composable

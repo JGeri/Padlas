@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="map_title">Tárhely</string>
+    <string name="map_rescan">Újraelemzés</string>
+    <string name="map_close">Bezárás</string>
+    <string name="map_open">Megnyitás</string>
+    <string name="map_delete">Törlés</string>
+    <string name="map_next">Következő</string>
+    <string name="map_empty">Üres</string>
+    <string name="map_free">Szabad</string>
+    <string name="map_root_label">Belső tárhely</string>
+
+    <string name="map_view_map">Térkép</string>
+    <string name="map_view_folders">Mappák</string>
+    <string name="map_view_types">Típusok</string>
+    <string name="map_view_files">Fájlok</string>
+    <string name="map_view_apps">Appok</string>
+
+    <string name="map_category_images">Képek</string>
+    <string name="map_category_videos">Videók</string>
+    <string name="map_category_audio">Hang</string>
+    <string name="map_category_documents">Dokumentumok</string>
+    <string name="map_category_archives">Archívumok</string>
+    <string name="map_category_installers">Telepítők</string>
+    <string name="map_category_other">Egyéb</string>
+
+    <plurals name="map_count_files">
+        <item quantity="one">%1$s fájl</item>
+        <item quantity="other">%1$s fájl</item>
+    </plurals>
+    <plurals name="map_count_folders">
+        <item quantity="one">%1$s mappa</item>
+        <item quantity="other">%1$s mappa</item>
+    </plurals>
+    <string name="map_count_folders_and_files">%1$s és %2$s</string>
+    <plurals name="map_smaller_items">
+        <item quantity="one">%1$s kisebb elem</item>
+        <item quantity="other">%1$s kisebb elem</item>
+    </plurals>
+    <plurals name="map_noun_files">
+        <item quantity="one">fájl</item>
+        <item quantity="other">fájl</item>
+    </plurals>
+    <plurals name="map_noun_folders">
+        <item quantity="one">mappa</item>
+        <item quantity="other">mappa</item>
+    </plurals>
+    <plurals name="map_noun_items">
+        <item quantity="one">elem</item>
+        <item quantity="other">elem</item>
+    </plurals>
+
+    <string name="map_time_just_now">az imént</string>
+    <plurals name="map_time_minutes_ago">
+        <item quantity="one">%1$s perce</item>
+        <item quantity="other">%1$s perce</item>
+    </plurals>
+    <string name="map_time_today">ma %1$tH:%1$tM</string>
+    <string name="map_time_yesterday">tegnap %1$tH:%1$tM</string>
+    <string name="map_date_this_year">%1$tb %1$te.</string>
+    <string name="map_date_other_year">%1$tY. %1$tb %1$te.</string>
+
+    <string name="map_header_no_access">Nézd meg, mi foglalja a helyet</string>
+    <string name="map_header_scanned">Utoljára elemezve: %1$s · %2$s</string>
+    <string name="map_header_scanning">Elemzés folyamatban…</string>
+    <string name="map_no_analysis_yet">Még nincs elemzés</string>
+
+    <string name="map_grant_access">Hozzáférés megadása</string>
+    <string name="map_all_files_title">Teljes fájlhozzáférés kell</string>
+    <string name="map_all_files_text">A tárhely-elemzőnek minden mappába be kell látnia, hogy megmutassa, mi foglalja a helyet a telefonodon.</string>
+    <string name="map_all_files_point_sizes">Mappák és fájlok mérete egy pillantással</string>
+    <string name="map_all_files_point_approval">Törlés csak a te jóváhagyásoddal</string>
+    <string name="map_all_files_point_local">Minden a telefonon marad, semmi nem kerül fel sehova</string>
+    <string name="map_all_files_footnote">A megnyíló beállításban kapcsold be a Padlásnál.</string>
+    <string name="map_usage_title">Használati hozzáférés kell</string>
+    <string name="map_usage_text">Az appok méretét és gyorsítótárát a rendszer csak ezzel az engedéllyel árulja el.</string>
+    <string name="map_usage_point_split">Program, adat és gyorsítótár appokra bontva</string>
+    <string name="map_usage_point_sizes_only">Csak méreteket olvasunk, a használati szokásaidat nem</string>
+    <string name="map_usage_footnote">A listában válaszd a Padlást, és kapcsold be.</string>
+
+    <string name="map_no_result_text">Egy gyors bejárás megmutatja, mely mappák és fájlok foglalják a helyet.</string>
+    <string name="map_start_analysis">Elemzés indítása</string>
+    <string name="map_analysis_running">Elemzés folyamatban</string>
+    <string name="map_scan_starting">Indul…</string>
+    <string name="map_scan_switch_tabs">Közben nyugodtan válthatsz másik fülre.</string>
+    <string name="map_stop">Leállítás</string>
+
+    <string name="map_used_storage">Foglalt tárhely</string>
+    <string name="map_total">Összesen %1$s</string>
+    <string name="map_free_amount">%1$s szabad</string>
+    <string name="map_slice_apps">Appok</string>
+    <string name="map_slice_apps_and_system">Appok és rendszer</string>
+    <string name="map_slice_system_and_other">Rendszer és egyéb</string>
+
+    <string name="map_up_one_level">Egy szinttel feljebb</string>
+    <string name="map_folder_empty_title">Üres mappa</string>
+    <string name="map_map_empty_text">Ebben a mappában nincs semmi, ami helyet foglalna.</string>
+    <string name="map_folders_empty_text">Ebben a mappában nincs semmi.</string>
+    <string name="map_legend_hint">Koppints egy csempére a részletekért, egy mappára még egyszer a megnyitáshoz.</string>
+    <string name="map_long_press_hint">Hosszan nyomva több elemet is kijelölhetsz.</string>
+    <string name="map_no_files_inside">Nincs benne fájl</string>
+    <string name="map_treemap_description">Tárhelytérkép: %1$s</string>
+    <string name="map_hint_tap_again">Koppints rá még egyszer a térképen, és megnyílik.</string>
+
+    <string name="map_detail_size">Méret</string>
+    <string name="map_detail_share">A mappából</string>
+    <string name="map_detail_files">Fájl</string>
+    <string name="map_detail_modified">Módosítva</string>
+    <string name="map_system_folder_note">Rendszermappa, ezt nem törölheted.</string>
+    <string name="map_rest_share">%1$s · %2$s a mappából</string>
+    <string name="map_show_in_list">Megnézem a listában</string>
+
+    <string name="map_clear_selection">Kijelölés megszüntetése</string>
+    <string name="map_select_all">Mind kijelölése</string>
+
+    <string name="map_categories">Kategóriák</string>
+    <string name="map_extensions">Kiterjesztések</string>
+    <string name="map_extension_none">nincs</string>
+    <string name="map_smart_cleanup">Okos takarítás</string>
+    <string name="map_back_to_smart_cleanup">Vissza az okos takarításhoz</string>
+    <string name="map_largest_files">Legnagyobb fájlok</string>
+    <string name="map_filter_all">Mind</string>
+    <string name="map_files_empty_title">Nincs ilyen fájl</string>
+    <string name="map_files_empty_text">Ebben a kategóriában semmi nem foglal helyet.</string>
+    <string name="map_cleanup_empty_title">Itt tiszta minden</string>
+    <string name="map_cleanup_empty_text">Nincs mit takarítani ebben a csoportban.</string>
+    <string name="map_shortcut_none">Nincs ilyen</string>
+    <string name="map_cleanup_no_items">Nincs ilyen elem</string>
+
+    <string name="map_cleanup_installers_title">Telepítő fájlok (APK)</string>
+    <string name="map_cleanup_installers_text">Ha az app már fent van a telefonon, a telepítőjére nincs többé szükség.</string>
+    <string name="map_cleanup_old_downloads_title">Régi letöltések</string>
+    <string name="map_cleanup_old_downloads_text">A Letöltések mappa 90 napnál régebbi fájljai.</string>
+    <string name="map_cleanup_thumbnails_title">Bélyegkép-gyorsítótár (.thumbnails)</string>
+    <string name="map_cleanup_thumbnails_text">Előnézeti képek. A galéria szükség esetén újra elkészíti őket.</string>
+    <string name="map_cleanup_empty_dirs_title">Üres mappák</string>
+    <string name="map_cleanup_empty_dirs_text">Mappák, amelyekben egyetlen fájl sincs.</string>
+
+    <string name="map_apps_measuring">Appok mérése…</string>
+    <string name="map_apps_measuring_text">A rendszer egyenként adja meg az appok méretét, ez eltarthat néhány másodpercig.</string>
+    <string name="map_apps_nothing">Nincs mit mutatni</string>
+    <string name="map_apps_no_sizes">A rendszer nem adott vissza méreteket.</string>
+    <string name="map_apps_by_size">Appok méret szerint</string>
+    <plurals name="map_apps_count">
+        <item quantity="one">%1$s app · %2$s</item>
+        <item quantity="other">%1$s app · %2$s</item>
+    </plurals>
+    <string name="map_app_part_program">Program</string>
+    <string name="map_app_part_data">Adat</string>
+    <string name="map_app_part_cache">Gyorsítótár</string>
+    <string name="map_cache_tour_title">Gyorsítótár-túra</string>
+    <plurals name="map_cache_tour_summary">
+        <item quantity="one">%1$s gyorsítótár %2$s appban</item>
+        <item quantity="other">%1$s gyorsítótár %2$s appban</item>
+    </plurals>
+    <string name="map_cache_tour_text">Más appok gyorsítótárát csak a rendszer ürítheti. Végigvezetünk a legnagyobbakon.</string>
+    <string name="map_cache_tour_done">Végigértél a listán.</string>
+    <string name="map_cache_tour_restart">Újrakezdés</string>
+    <string name="map_cache_amount">%1$s gyorsítótár</string>
+    <string name="map_cache_tour_path">Az app adatlapján: Tárhely › Gyorsítótár törlése</string>
+
+    <string name="map_delete_title_many">Törlöd a kijelölt elemeket?</string>
+    <string name="map_delete_title_folder">Törlöd ezt a mappát?</string>
+    <string name="map_delete_title_file">Törlöd ezt a fájlt?</string>
+    <string name="map_delete_single">„%1$s”, %2$s.</string>
+    <string name="map_delete_folder_empty">A mappa üres.</string>
+    <plurals name="map_delete_folder_files">
+        <item quantity="one">Benne %1$s fájl van.</item>
+        <item quantity="other">Benne %1$s fájl van.</item>
+    </plurals>
+    <string name="map_delete_many">%1$s, összesen %2$s.</string>
+    <plurals name="map_delete_folders_files">
+        <item quantity="one">A mappákban %1$s fájl van.</item>
+        <item quantity="other">A mappákban %1$s fájl van.</item>
+    </plurals>
+    <string name="map_delete_permanent">Véglegesen törlődik, nem vonható vissza.</string>
+    <string name="map_delete_confirm">Végleges törlés</string>
+    <string name="map_deleting">Törlés folyamatban…</string>
+
+    <string name="map_toast_delete_failed">Nem sikerült törölni</string>
+    <string name="map_toast_freed">%1$s felszabadítva</string>
+    <plurals name="map_toast_freed_partly">
+        <item quantity="one">%1$s felszabadítva · %2$s elem maradt</item>
+        <item quantity="other">%1$s felszabadítva · %2$s elem maradt</item>
+    </plurals>
+</resources>

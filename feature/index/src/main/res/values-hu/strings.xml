@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="index_failed_title">Nem sikerült a beolvasás</string>
+    <string name="index_scan_interrupted">A beolvasás megszakadt.</string>
+    <string name="index_retry">Újrapróbálom</string>
+
+    <string name="index_title_running">Galéria beolvasása</string>
+    <string name="index_title_done">Kész a beolvasás</string>
+    <string name="index_subtitle_running">Semmit nem mozgatunk és nem törlünk, csak megnézzük, mi hol van.</string>
+    <string name="index_subtitle_done">Mindent megtaláltunk. Mindjárt megmutatjuk, hol szabadíthatsz fel helyet.</string>
+
+    <string name="index_leave_hint">Nyugodtan elhagyhatod, a beolvasás a háttérben is folytatódik.</string>
+    <string name="index_continue_in_background">Folytatás a háttérben</string>
+
+    <plurals name="index_files_noun">
+        <item quantity="one">fájl</item>
+        <item quantity="other">fájl</item>
+    </plurals>
+    <plurals name="index_phase_done">
+        <item quantity="one">%1$s fájl · %2$s</item>
+        <item quantity="other">%1$s fájl · %2$s</item>
+    </plurals>
+    <string name="index_phase_bucket">Most: %1$s</string>
+    <plurals name="index_phase_waiting">
+        <item quantity="one">%1$s fájl vár átnézésre</item>
+        <item quantity="other">%1$s fájl vár átnézésre</item>
+    </plurals>
+    <string name="index_phase_walking">Mappák bejárása…</string>
+
+    <string name="index_stat_scanned">Átnézve</string>
+    <string name="index_stat_duration">Időtartam</string>
+    <string name="index_stat_progress">Haladás</string>
+</resources>

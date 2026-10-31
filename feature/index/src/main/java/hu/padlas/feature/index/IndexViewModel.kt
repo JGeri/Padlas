@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import hu.padlas.core.common.text.UiText
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +22,7 @@ internal data class IndexUiState(
     val bytes: Long = 0L,
     val bucket: String = "",
     val durationMs: Long = 0L,
-    val error: String? = null,
+    val error: UiText? = null,
 ) {
     val fraction: Float get() = if (total > 0) (scanned.toFloat() / total).coerceIn(0f, 1f) else 0f
 }

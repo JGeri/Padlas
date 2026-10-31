@@ -54,6 +54,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -64,6 +66,7 @@ import hu.padlas.core.design.component.PadlasCard
 import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.RollingNumber
 import hu.padlas.core.design.component.StaggeredColumnItem
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.finite
@@ -95,11 +98,11 @@ internal fun IndexScreen(
             Box(modifier = Modifier.align(Alignment.Center)) {
                 StaggeredColumnItem(index = 0) {
                     EmptyState(
-                        title = "Nem sikerült a beolvasás",
-                        text = state.error,
+                        title = stringResource(R.string.index_failed_title),
+                        text = state.error.asString(),
                         icon = Icons.Rounded.ErrorOutline,
                         tint = Ink.Danger,
-                        actionLabel = "Újrapróbálom",
+                        actionLabel = stringResource(R.string.index_retry),
                         onAction = onRetry,
                     )
                 }
@@ -118,13 +121,13 @@ internal fun IndexScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Nyugodtan elhagyhatod, a beolvasás a háttérben is folytatódik.",
+                        text = stringResource(R.string.index_leave_hint),
                         style = PadlasTheme.type.caption,
                         color = Ink.TextTertiary,
                         textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(Space.xs))
-                    PadlasTextButton(text = "Folytatás a háttérben", onClick = onContinue)
+                    PadlasTextButton(text = stringResource(R.string.index_continue_in_background), onClick = onContinue)
                     Spacer(Modifier.height(Space.l))
                 }
             }
@@ -180,7 +183,11 @@ private fun IndexProgress(state: IndexUiState, modifier: Modifier = Modifier) {
                         style = PadlasTheme.type.display,
                         color = Ink.Text,
                     )
-                    Text(text = "fájl", style = PadlasTheme.type.label, color = Ink.TextSecondary)
+                    Text(
+                        text = pluralStringResource(R.plurals.index_files_noun, state.scanned),
+                        style = PadlasTheme.type.label,
+                        color = Ink.TextSecondary,
+                    )
                 }
             }
         }
@@ -199,14 +206,14 @@ private fun IndexProgress(state: IndexUiState, modifier: Modifier = Modifier) {
             ) { done ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = if (done) "Kész a beolvasás" else "Galéria beolvasása",
+                        text = stringResource(if (done) R.string.index_title_done else R.string.index_title_running),
                         style = PadlasTheme.type.headline,
                         color = Ink.Text,
                         textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(Space.s))
                     Text(
-                        text = subtitle(done),
+                        text = stringResource(if (done) R.string.index_subtitle_done else R.string.index_subtitle_running),
                         style = PadlasTheme.type.body,
                         color = Ink.TextSecondary,
                         textAlign = TextAlign.Center,
@@ -241,13 +248,13 @@ private fun IndexProgress(state: IndexUiState, modifier: Modifier = Modifier) {
         Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
             Box(modifier = Modifier.weight(1f)) {
                 StaggeredColumnItem(index = 3) {
-                    RollingStat(label = "Átnézve", value = Format.bytes(state.bytes))
+                    RollingStat(label = stringResource(R.string.index_stat_scanned), value = Format.bytes(state.bytes))
                 }
             }
             Box(modifier = Modifier.weight(1f)) {
                 StaggeredColumnItem(index = 4) {
                     RollingStat(
-                        label = if (state.finished) "Időtartam" else "Haladás",
+                        label = stringResource(if (state.finished) R.string.index_stat_duration else R.string.index_stat_progress),
                         value = when {
                             state.finished && state.durationMs > 0L -> Format.duration(state.durationMs)
                             state.finished -> Format.percent(1f)
@@ -397,16 +404,17 @@ private fun GlowRing(
     }
 }
 
-private fun subtitle(finished: Boolean): String = when {
-    finished -> "Mindent megtaláltunk. Mindjárt megmutatjuk, hol szabadíthatsz fel helyet."
-    else -> "Semmit nem mozgatunk és nem törlünk, csak megnézzük, mi hol van."
-}
-
+@Composable
 private fun phase(state: IndexUiState): String = when {
-    state.finished -> "${Format.count(state.scanned)} fájl · ${Format.bytes(state.bytes)}"
-    state.bucket.isNotBlank() -> "Most: ${state.bucket}"
-    state.total > 0 -> "${Format.count(state.total)} fájl vár átnézésre"
-    else -> "Mappák bejárása…"
+    state.finished -> pluralStringResource(
+        R.plurals.index_phase_done,
+        state.scanned,
+        Format.count(state.scanned),
+        Format.bytes(state.bytes),
+    )
+    state.bucket.isNotBlank() -> stringResource(R.string.index_phase_bucket, state.bucket)
+    state.total > 0 -> pluralStringResource(R.plurals.index_phase_waiting, state.total, Format.count(state.total))
+    else -> stringResource(R.string.index_phase_walking)
 }
 
 private const val BreathMs = 1_800

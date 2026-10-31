@@ -15,8 +15,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import hu.padlas.core.design.R
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
@@ -40,7 +42,7 @@ fun PadlasTopBar(
         if (onBack != null) {
             PadlasIconButton(
                 icon = Icons.AutoMirrored.Rounded.ArrowBack,
-                contentDescription = "Vissza",
+                contentDescription = stringResource(R.string.design_back),
                 onClick = onBack,
                 background = Ink.Surface,
             )

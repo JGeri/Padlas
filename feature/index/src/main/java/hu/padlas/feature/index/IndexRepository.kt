@@ -4,6 +4,8 @@ import android.os.SystemClock
 import hu.padlas.core.common.di.IoDispatcher
 import hu.padlas.core.common.result.Outcome
 import hu.padlas.core.common.result.outcomeOf
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.entity.Asset
@@ -53,12 +55,16 @@ class IndexRepository @Inject constructor(
             withContext(io) {
                 outcomeOf(SCAN_FAILED) { scan(fromScratch) }
             }.also { outcome ->
-                if (outcome is Outcome.Failure) _state.value = IndexState.Failed(outcome.message)
+                if (outcome is Outcome.Failure) _state.value = IndexState.Failed(failureText(outcome))
             }
         } finally {
             runLock.unlock()
         }
     }
+
+    /** The system's own message when there is one, which no translation can improve on. */
+    private fun failureText(failure: Outcome.Failure): UiText =
+        failure.cause?.message?.let(UiText::Raw) ?: uiText(R.string.index_scan_interrupted)
 
     private suspend fun scan(fromScratch: Boolean): IndexState.Done {
         val startedAt = SystemClock.elapsedRealtime()
@@ -226,8 +232,12 @@ class IndexRepository @Inject constructor(
 
         /** MediaStore empties its bin after thirty days; two more cover a phone that was off. */
         const val TRASH_RETENTION_MS = 32L * 24 * 60 * 60 * 1000
-        const val ALREADY_RUNNING = "A beolvasás már fut."
-        const val SCAN_FAILED = "A beolvasás megszakadt."
+
+        /** Only the worker reads these, to decide on a retry; the screen shows [failureText]. */
+        const val ALREADY_RUNNING = "Index scan already running"
+        const val SCAN_FAILED = "Index scan interrupted"
+
+        /** Stored in the log and matched against earlier rows, so they stay as written. */
         const val NOTE_FULL = "Teljes beolvasás"
         const val NOTE_INCREMENTAL = "Új és módosult fájlok"
         const val NOTE_RECONCILED = "Eltűnt fájlok egyeztetése"

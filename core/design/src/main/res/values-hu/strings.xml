@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="design_cancel">Mégse</string>
+    <string name="design_close">Bezárás</string>
+    <string name="design_back">Vissza</string>
+
+    <string name="design_gauge_free_title">Szabad</string>
+    <string name="design_gauge_measuring">Mérés</string>
+    <string name="design_gauge_free">szabad</string>
+    <string name="design_gauge_used">%1$s%% foglalt</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="design_cancel">Cancel</string>
+    <string name="design_close">Close</string>
+    <string name="design_back">Back</string>
+
+    <!-- Storage gauge: the label above the free figure, and the line under it. -->
+    <string name="design_gauge_free_title">Free</string>
+    <string name="design_gauge_measuring">Measuring</string>
+    <string name="design_gauge_free">free</string>
+    <!-- %1$s: a whole percentage, e.g. "34". -->
+    <string name="design_gauge_used">%1$s%% used</string>
+</resources>

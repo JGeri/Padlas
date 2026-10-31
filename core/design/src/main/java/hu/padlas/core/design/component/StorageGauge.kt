@@ -31,8 +31,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import hu.padlas.core.common.format.Format
+import hu.padlas.core.design.R
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.theme.Ink
@@ -135,7 +138,7 @@ fun StorageGauge(
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             if (!compact) {
-                Text(text = "Szabad", style = PadlasTheme.type.caption, color = Ink.TextSecondary)
+                Text(text = stringResource(R.string.design_gauge_free_title), style = PadlasTheme.type.caption, color = Ink.TextSecondary)
                 Spacer(Modifier.height(2.dp))
             }
             if (totalBytes <= 0L) {
@@ -143,12 +146,12 @@ fun StorageGauge(
             } else {
                 Row(verticalAlignment = Alignment.Bottom) {
                     RollingNumber(
-                        value = bytesValue(freeBytes),
+                        value = Format.bytesValue(freeBytes),
                         style = if (compact) PadlasTheme.type.displaySmall else PadlasTheme.type.display,
                         color = Ink.Text,
                     )
                     Text(
-                        text = " " + bytesUnit(freeBytes),
+                        text = " " + Format.bytesUnit(freeBytes),
                         style = if (compact) PadlasTheme.type.caption else PadlasTheme.type.title,
                         color = Ink.TextSecondary,
                         modifier = Modifier.padding(bottom = if (compact) 5.dp else 8.dp),
@@ -158,9 +161,9 @@ fun StorageGauge(
             Spacer(Modifier.height(2.dp))
             Text(
                 text = when {
-                    totalBytes <= 0L -> "Mérés"
-                    compact -> "szabad"
-                    else -> "${(usedFraction * 100).toInt()}% foglalt"
+                    totalBytes <= 0L -> stringResource(R.string.design_gauge_measuring)
+                    compact -> stringResource(R.string.design_gauge_free)
+                    else -> stringResource(R.string.design_gauge_used, Format.count((usedFraction * 100).toInt()))
                 },
                 style = PadlasTheme.type.caption,
                 color = Ink.TextTertiary,

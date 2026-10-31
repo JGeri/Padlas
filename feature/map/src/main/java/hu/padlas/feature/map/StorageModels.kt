@@ -1,38 +1,31 @@
 package hu.padlas.feature.map
 
+import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiPlural
+import hu.padlas.core.common.text.uiText
+import hu.padlas.core.design.component.asString
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
-internal enum class StorageView(val label: String) {
-    MAP("Térkép"),
-    FOLDERS("Mappák"),
-    TYPES("Típusok"),
-    FILES("Fájlok"),
-    APPS("Appok"),
+internal enum class StorageView(@StringRes val label: Int) {
+    MAP(R.string.map_view_map),
+    FOLDERS(R.string.map_view_folders),
+    TYPES(R.string.map_view_types),
+    FILES(R.string.map_view_files),
+    APPS(R.string.map_view_apps),
 }
 
-internal enum class Cleanup(val title: String, val description: String) {
-    INSTALLERS(
-        "Telepítő fájlok (APK)",
-        "Ha az app már fent van a telefonon, a telepítőjére nincs többé szükség.",
-    ),
-    OLD_DOWNLOADS(
-        "Régi letöltések",
-        "A Letöltések mappa 90 napnál régebbi fájljai.",
-    ),
-    THUMBNAILS(
-        "Bélyegkép-gyorsítótár (.thumbnails)",
-        "Előnézeti képek. A galéria szükség esetén újra elkészíti őket.",
-    ),
-    EMPTY_DIRS(
-        "Üres mappák",
-        "Mappák, amelyekben egyetlen fájl sincs.",
-    ),
+internal enum class Cleanup(@StringRes val title: Int, @StringRes val description: Int) {
+    INSTALLERS(R.string.map_cleanup_installers_title, R.string.map_cleanup_installers_text),
+    OLD_DOWNLOADS(R.string.map_cleanup_old_downloads_title, R.string.map_cleanup_old_downloads_text),
+    THUMBNAILS(R.string.map_cleanup_thumbnails_title, R.string.map_cleanup_thumbnails_text),
+    EMPTY_DIRS(R.string.map_cleanup_empty_dirs_title, R.string.map_cleanup_empty_dirs_text),
 }
 
 @Immutable
@@ -60,7 +53,7 @@ internal enum class SliceKind { FILES, APPS, SYSTEM }
 
 @Immutable
 internal data class SummarySlice(
-    val label: String,
+    @StringRes val label: Int,
     val bytes: Long,
     val kind: SliceKind,
     val category: FileCategory? = null,
@@ -113,50 +106,54 @@ internal data class DeleteRequest(val items: List<StorageItem>) {
 internal enum class ToastTone { SUCCESS, WARNING, ERROR }
 
 @Immutable
-internal data class ToastUi(val message: String, val tone: ToastTone)
+internal data class ToastUi(val message: UiText, val tone: ToastTone)
 
-/** "3 fájl", "2 mappa", "2 mappa és 3 fájl": what a selection actually holds. */
-internal fun describeCount(files: Int, dirs: Int): String = when {
-    dirs == 0 -> "${Format.count(files)} fájl"
-    files == 0 -> "${Format.count(dirs)} mappa"
-    else -> "${Format.count(dirs)} mappa és ${Format.count(files)} fájl"
+/** "3 files", "2 folders", "2 folders and 3 files": what a selection actually holds. */
+internal fun describeCount(files: Int, dirs: Int): UiText {
+    val fileText = uiPlural(R.plurals.map_count_files, files, Format.count(files))
+    val dirText = uiPlural(R.plurals.map_count_folders, dirs, Format.count(dirs))
+    return when {
+        dirs == 0 -> fileText
+        files == 0 -> dirText
+        else -> uiText(R.string.map_count_folders_and_files, dirText, fileText)
+    }
 }
 
 /** Paths are shown relative to the card; the absolute prefix is noise to the user. */
+@Composable
 internal fun displayPath(path: String, rootPath: String): String {
-    if (path == rootPath || rootPath.isEmpty()) return DirectoryListing.ROOT_LABEL
+    if (path == rootPath || rootPath.isEmpty()) return DirectoryListing.ROOT_LABEL.asString()
     return path.removePrefix("$rootPath/")
 }
 
+/**
+ * The patterns live in the resources as java.util.Formatter date conversions: a time stays
+ * a [UiText] like any other sentence, and month names follow the language it resolves in.
+ */
 internal object TimeText {
 
-    private val months = arrayOf(
-        "jan.", "febr.", "márc.", "ápr.", "máj.", "jún.", "júl.", "aug.", "szept.", "okt.", "nov.", "dec.",
-    )
-    private val clock = DateTimeFormatter.ofPattern("HH:mm")
-
-    /** "az imént", "12 perce", "ma 14:32", "tegnap 09:10", "márc. 3." */
-    fun relative(millis: Long, now: Long = System.currentTimeMillis()): String {
+    /** "just now", "12 minutes ago", "today at 2:32 PM", "yesterday at 9:10 AM", "Mar 3" */
+    fun relative(millis: Long, now: Long = System.currentTimeMillis()): UiText {
         val zone = ZoneId.systemDefault()
         val then = Instant.ofEpochMilli(millis).atZone(zone)
         val minutes = (now - millis) / 60_000L
         val today = LocalDate.now(zone)
         val days = ChronoUnit.DAYS.between(then.toLocalDate(), today)
         return when {
-            minutes < 1 -> "az imént"
-            minutes < 60 -> "${Format.count(minutes)} perce"
-            days == 0L -> "ma ${clock.format(then)}"
-            days == 1L -> "tegnap ${clock.format(then)}"
+            minutes < 1 -> uiText(R.string.map_time_just_now)
+            minutes < 60 -> uiPlural(R.plurals.map_time_minutes_ago, minutes.toInt(), Format.count(minutes))
+            days == 0L -> uiText(R.string.map_time_today, millis)
+            days == 1L -> uiText(R.string.map_time_yesterday, millis)
             else -> date(millis)
         }
     }
 
-    /** "2024. márc. 3."; the year is left off for this year. */
-    fun date(millis: Long): String {
-        if (millis <= 0L) return ""
+    /** "Mar 3, 2024"; the year is left off for this year. Empty for an unknown date. */
+    fun date(millis: Long): UiText {
+        if (millis <= 0L) return UiText.Raw("")
         val zone = ZoneId.systemDefault()
         val day = Instant.ofEpochMilli(millis).atZone(zone).toLocalDate()
-        val short = "${months[day.monthValue - 1]} ${day.dayOfMonth}."
-        return if (day.year == LocalDate.now(zone).year) short else "${day.year}. $short"
+        val pattern = if (day.year == LocalDate.now(zone).year) R.string.map_date_this_year else R.string.map_date_other_year
+        return uiText(pattern, millis)
     }
 }

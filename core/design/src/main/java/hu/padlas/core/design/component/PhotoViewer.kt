@@ -25,8 +25,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import hu.padlas.core.design.R
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.Space
@@ -126,7 +128,7 @@ fun PhotoViewer(onDismiss: () -> Unit, image: @Composable (Modifier) -> Unit) {
             )
             PadlasIconButton(
                 icon = Icons.Rounded.Close,
-                contentDescription = "Bezárás",
+                contentDescription = stringResource(R.string.design_close),
                 onClick = ::close,
                 background = Ink.SurfaceSolid.copy(alpha = 0.6f),
                 modifier = Modifier

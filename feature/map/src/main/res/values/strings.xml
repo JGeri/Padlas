@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="map_title">Storage</string>
+    <string name="map_rescan">Analyze again</string>
+    <string name="map_close">Close</string>
+    <string name="map_open">Open</string>
+    <string name="map_delete">Delete</string>
+    <string name="map_next">Next</string>
+    <string name="map_empty">Empty</string>
+    <string name="map_free">Free</string>
+    <string name="map_root_label">Internal storage</string>
+
+    <!-- View switcher -->
+    <string name="map_view_map">Map</string>
+    <string name="map_view_folders">Folders</string>
+    <string name="map_view_types">Types</string>
+    <string name="map_view_files">Files</string>
+    <string name="map_view_apps">Apps</string>
+
+    <!-- File categories -->
+    <string name="map_category_images">Pictures</string>
+    <string name="map_category_videos">Videos</string>
+    <string name="map_category_audio">Audio</string>
+    <string name="map_category_documents">Documents</string>
+    <string name="map_category_archives">Archives</string>
+    <string name="map_category_installers">Installers</string>
+    <string name="map_category_other">Other</string>
+
+    <!-- Counts. %1$s is always a formatted number. -->
+    <plurals name="map_count_files">
+        <item quantity="one">%1$s file</item>
+        <item quantity="other">%1$s files</item>
+    </plurals>
+    <plurals name="map_count_folders">
+        <item quantity="one">%1$s folder</item>
+        <item quantity="other">%1$s folders</item>
+    </plurals>
+    <!-- %1$s: a folder count, %2$s: a file count, e.g. "2 folders and 3 files". -->
+    <string name="map_count_folders_and_files">%1$s and %2$s</string>
+    <plurals name="map_smaller_items">
+        <item quantity="one">%1$s smaller item</item>
+        <item quantity="other">%1$s smaller items</item>
+    </plurals>
+    <!-- The noun after a rolling count, without the number. -->
+    <plurals name="map_noun_files">
+        <item quantity="one">file</item>
+        <item quantity="other">files</item>
+    </plurals>
+    <plurals name="map_noun_folders">
+        <item quantity="one">folder</item>
+        <item quantity="other">folders</item>
+    </plurals>
+    <plurals name="map_noun_items">
+        <item quantity="one">item</item>
+        <item quantity="other">items</item>
+    </plurals>
+
+    <!-- Times and dates. %1$t… formats one moment in time; see java.util.Formatter. -->
+    <string name="map_time_just_now">just now</string>
+    <plurals name="map_time_minutes_ago">
+        <item quantity="one">%1$s minute ago</item>
+        <item quantity="other">%1$s minutes ago</item>
+    </plurals>
+    <string name="map_time_today">today at %1$tl:%1$tM %1$Tp</string>
+    <string name="map_time_yesterday">yesterday at %1$tl:%1$tM %1$Tp</string>
+    <!-- "Mar 3" -->
+    <string name="map_date_this_year">%1$tb %1$te</string>
+    <!-- "Mar 3, 2024" -->
+    <string name="map_date_other_year">%1$tb %1$te, %1$tY</string>
+
+    <!-- Header subtitle -->
+    <string name="map_header_no_access">See what\'s taking up space</string>
+    <!-- %1$s: when, e.g. "12 minutes ago", %2$s: a file count, e.g. "2,341 files". -->
+    <string name="map_header_scanned">Last analyzed: %1$s · %2$s</string>
+    <string name="map_header_scanning">Analyzing…</string>
+    <string name="map_no_analysis_yet">No analysis yet</string>
+
+    <!-- Access gates -->
+    <string name="map_grant_access">Grant access</string>
+    <string name="map_all_files_title">Full file access needed</string>
+    <string name="map_all_files_text">The storage analyzer needs to see into every folder to show you what\'s taking up space on your phone.</string>
+    <string name="map_all_files_point_sizes">Folder and file sizes at a glance</string>
+    <string name="map_all_files_point_approval">Nothing gets deleted without your approval</string>
+    <string name="map_all_files_point_local">Everything stays on your phone, nothing gets uploaded</string>
+    <string name="map_all_files_footnote">In the settings that open, turn it on for Padlás.</string>
+    <string name="map_usage_title">Usage access needed</string>
+    <string name="map_usage_text">Android only reveals app sizes and caches with this permission.</string>
+    <string name="map_usage_point_split">App, data and cache, broken down by app</string>
+    <string name="map_usage_point_sizes_only">We only read sizes, never your usage habits</string>
+    <string name="map_usage_footnote">Pick Padlás in the list and turn it on.</string>
+
+    <!-- Analysis -->
+    <string name="map_no_result_text">A quick walk through your storage shows which folders and files take up space.</string>
+    <string name="map_start_analysis">Start analysis</string>
+    <string name="map_analysis_running">Analysis in progress</string>
+    <string name="map_scan_starting">Starting…</string>
+    <string name="map_scan_switch_tabs">Feel free to switch to another tab in the meantime.</string>
+    <string name="map_stop">Stop</string>
+
+    <!-- Summary card -->
+    <string name="map_used_storage">Used storage</string>
+    <!-- %1$s: total capacity, e.g. "128 GB". -->
+    <string name="map_total">%1$s total</string>
+    <!-- %1$s: free space, e.g. "12.8 GB". -->
+    <string name="map_free_amount">%1$s free</string>
+    <string name="map_slice_apps">Apps</string>
+    <string name="map_slice_apps_and_system">Apps and system</string>
+    <string name="map_slice_system_and_other">System and other</string>
+
+    <!-- Folders and map -->
+    <string name="map_up_one_level">Up one level</string>
+    <string name="map_folder_empty_title">Empty folder</string>
+    <string name="map_map_empty_text">Nothing in this folder takes up space.</string>
+    <string name="map_folders_empty_text">There\'s nothing in this folder.</string>
+    <string name="map_legend_hint">Tap a tile for details, then tap a folder again to open it.</string>
+    <string name="map_long_press_hint">Long-press to select more than one item.</string>
+    <string name="map_no_files_inside">No files inside</string>
+    <!-- %1$s: the folder shown, for screen readers. -->
+    <string name="map_treemap_description">Storage map: %1$s</string>
+    <string name="map_hint_tap_again">Tap it again on the map to open it.</string>
+
+    <!-- Detail sheet -->
+    <string name="map_detail_size">Size</string>
+    <string name="map_detail_share">Of this folder</string>
+    <string name="map_detail_files">Files</string>
+    <string name="map_detail_modified">Modified</string>
+    <string name="map_system_folder_note">System folder. You can\'t delete it.</string>
+    <!-- %1$s: size, %2$s: percentage, e.g. "1.2 GB · 8% of this folder". -->
+    <string name="map_rest_share">%1$s · %2$s of this folder</string>
+    <string name="map_show_in_list">Show in the list</string>
+
+    <!-- Selection -->
+    <string name="map_clear_selection">Clear selection</string>
+    <string name="map_select_all">Select all</string>
+
+    <!-- Types and files -->
+    <string name="map_categories">Categories</string>
+    <string name="map_extensions">Extensions</string>
+    <string name="map_extension_none">none</string>
+    <string name="map_smart_cleanup">Smart cleanup</string>
+    <string name="map_back_to_smart_cleanup">Back to smart cleanup</string>
+    <string name="map_largest_files">Largest files</string>
+    <string name="map_filter_all">All</string>
+    <string name="map_files_empty_title">No files like this</string>
+    <string name="map_files_empty_text">Nothing in this category takes up space.</string>
+    <string name="map_cleanup_empty_title">All clean here</string>
+    <string name="map_cleanup_empty_text">Nothing to clean up in this group.</string>
+    <string name="map_shortcut_none">None</string>
+    <string name="map_cleanup_no_items">No items</string>
+
+    <!-- Smart cleanup groups -->
+    <string name="map_cleanup_installers_title">Installer files (APK)</string>
+    <string name="map_cleanup_installers_text">Once an app is on your phone, you no longer need its installer.</string>
+    <string name="map_cleanup_old_downloads_title">Old downloads</string>
+    <string name="map_cleanup_old_downloads_text">Files in the Downloads folder older than 90 days.</string>
+    <string name="map_cleanup_thumbnails_title">Thumbnail cache (.thumbnails)</string>
+    <string name="map_cleanup_thumbnails_text">Preview pictures. Your gallery makes them again when it needs them.</string>
+    <string name="map_cleanup_empty_dirs_title">Empty folders</string>
+    <string name="map_cleanup_empty_dirs_text">Folders without a single file in them.</string>
+
+    <!-- Apps -->
+    <string name="map_apps_measuring">Measuring apps…</string>
+    <string name="map_apps_measuring_text">Android reports app sizes one at a time, so this can take a few seconds.</string>
+    <string name="map_apps_nothing">Nothing to show</string>
+    <string name="map_apps_no_sizes">Android didn\'t return any sizes.</string>
+    <string name="map_apps_by_size">Apps by size</string>
+    <!-- %1$s: app count, %2$s: their total size. -->
+    <plurals name="map_apps_count">
+        <item quantity="one">%1$s app · %2$s</item>
+        <item quantity="other">%1$s apps · %2$s</item>
+    </plurals>
+    <string name="map_app_part_program">App</string>
+    <string name="map_app_part_data">Data</string>
+    <string name="map_app_part_cache">Cache</string>
+    <string name="map_cache_tour_title">Cache tour</string>
+    <!-- %1$s: total cache size, %2$s: number of apps. -->
+    <plurals name="map_cache_tour_summary">
+        <item quantity="one">%1$s of cache in %2$s app</item>
+        <item quantity="other">%1$s of cache in %2$s apps</item>
+    </plurals>
+    <string name="map_cache_tour_text">Only Android can clear other apps\' caches. We\'ll walk you through the biggest ones.</string>
+    <string name="map_cache_tour_done">You\'ve reached the end of the list.</string>
+    <string name="map_cache_tour_restart">Start over</string>
+    <!-- %1$s: cache size of one app. -->
+    <string name="map_cache_amount">%1$s of cache</string>
+    <string name="map_cache_tour_path">On the app info page: Storage &amp; cache › Clear cache</string>
+
+    <!-- Delete -->
+    <string name="map_delete_title_many">Delete the selected items?</string>
+    <string name="map_delete_title_folder">Delete this folder?</string>
+    <string name="map_delete_title_file">Delete this file?</string>
+    <!-- %1$s: file or folder name, %2$s: its size. -->
+    <string name="map_delete_single">“%1$s”, %2$s.</string>
+    <string name="map_delete_folder_empty">The folder is empty.</string>
+    <plurals name="map_delete_folder_files">
+        <item quantity="one">It holds %1$s file.</item>
+        <item quantity="other">It holds %1$s files.</item>
+    </plurals>
+    <!-- %1$s: what is selected, e.g. "2 folders and 3 files", %2$s: their total size. -->
+    <string name="map_delete_many">%1$s, %2$s in total.</string>
+    <plurals name="map_delete_folders_files">
+        <item quantity="one">The folders hold %1$s file.</item>
+        <item quantity="other">The folders hold %1$s files.</item>
+    </plurals>
+    <string name="map_delete_permanent">Deletion is permanent and can\'t be undone.</string>
+    <string name="map_delete_confirm">Delete permanently</string>
+    <string name="map_deleting">Deleting…</string>
+
+    <!-- Toasts. %1$s: freed size. -->
+    <string name="map_toast_delete_failed">Couldn\'t delete</string>
+    <string name="map_toast_freed">%1$s freed</string>
+    <!-- %2$s: number of items that could not be deleted. -->
+    <plurals name="map_toast_freed_partly">
+        <item quantity="one">%1$s freed · %2$s item left</item>
+        <item quantity="other">%1$s freed · %2$s items left</item>
+    </plurals>
+</resources>

@@ -28,7 +28,10 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
@@ -42,6 +45,8 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.text.uiPlural
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.haptics
@@ -121,8 +126,14 @@ internal fun Treemap(
 
         val measurer = rememberTextMeasurer(cacheSize = 0)
         val styles = labelStyles()
-        val currentLabels = remember(shown, styles) { shown?.let { measureLabels(measurer, it, styles, metrics, density) }.orEmpty() }
-        val previousLabels = remember(previous, styles) { previous?.let { measureLabels(measurer, it, styles, metrics, density) }.orEmpty() }
+        val restName = restNamer()
+        val currentLabels = remember(shown, styles, restName) {
+            shown?.let { measureLabels(measurer, it, styles, metrics, density, restName) }.orEmpty()
+        }
+        val previousLabels = remember(previous, styles, restName) {
+            previous?.let { measureLabels(measurer, it, styles, metrics, density, restName) }.orEmpty()
+        }
+        val description = stringResource(R.string.map_treemap_description, directory.label.asString())
 
         var outlined by remember { mutableStateOf<String?>(null) }
         SideEffect { if (selectedKey != null) outlined = selectedKey }
@@ -143,7 +154,7 @@ internal fun Treemap(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .semantics { contentDescription = "Tárhelytérkép: ${directory.label}" }
+                .semantics { contentDescription = description }
                 .pointerInput(Unit) {
                     detectTapGestures { offset ->
                         val hit = shown?.hit(offset.x, offset.y) ?: return@detectTapGestures
@@ -280,6 +291,19 @@ private fun labelStyles(): LabelStyles {
     }
 }
 
+/**
+ * Names the folded tile, "12 smaller items", from outside composition: the labels are
+ * measured inside a remember block. A new instance per language re-measures them.
+ */
+@Composable
+private fun restNamer(): (Int) -> String {
+    val resources = LocalResources.current
+    val configuration = LocalConfiguration.current
+    return remember(resources, configuration) {
+        { count -> uiPlural(R.plurals.map_smaller_items, count, Format.count(count)).resolve(resources) }
+    }
+}
+
 /** Measured once per level against the final rectangles, never per animation frame. */
 private fun measureLabels(
     measurer: TextMeasurer,
@@ -287,6 +311,7 @@ private fun measureLabels(
     styles: LabelStyles,
     metrics: TreemapMetrics,
     density: Density,
+    restName: (Int) -> String,
 ): Map<String, TileLabel> {
     val pad = with(density) { 6.dp.toPx() }
     val minWidth = with(density) { 44.dp.toPx() }
@@ -295,7 +320,7 @@ private fun measureLabels(
     val out = HashMap<String, TileLabel>()
     for (tile in layout.tiles) {
         val rect = tile.rect
-        val name = tile.item?.name ?: "${Format.count(tile.restCount)} kisebb elem"
+        val name = tile.item?.name ?: restName(tile.restCount)
         val bytes = Format.bytes(tile.bytes)
         if (tile.inner != null) {
             val available = (rect.width - pad * 2f).toInt()

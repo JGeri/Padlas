@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiPlural
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.media.StorageProbe
 import hu.padlas.core.media.VolumeInfo
 import javax.inject.Inject
@@ -75,7 +78,7 @@ internal class StorageViewModel @Inject constructor(
 
     val rootPath: String get() = analyzer.rootPath
 
-    /** "12 perce" has to keep counting while the screen is open. */
+    /** "12 minutes ago" has to keep counting while the screen is open. */
     private val minuteTicks: Flow<Unit> = flow {
         while (true) {
             emit(Unit)
@@ -83,15 +86,18 @@ internal class StorageViewModel @Inject constructor(
         }
     }
 
-    val header: StateFlow<String> = combine(snapshots, scanning, _access, minuteTicks) { snapshot, isScanning, access, _ ->
+    val header: StateFlow<UiText> = combine(snapshots, scanning, _access, minuteTicks) { snapshot, isScanning, access, _ ->
         when {
-            !access.allFiles -> "Nézd meg, mi foglalja a helyet"
-            snapshot != null -> "Utoljára elemezve: ${TimeText.relative(snapshot.scannedAt)} · " +
-                "${Format.count(snapshot.index.totalFiles)} fájl"
-            isScanning -> "Elemzés folyamatban…"
-            else -> "Még nincs elemzés"
+            !access.allFiles -> uiText(R.string.map_header_no_access)
+            snapshot != null -> uiText(
+                R.string.map_header_scanned,
+                TimeText.relative(snapshot.scannedAt),
+                uiPlural(R.plurals.map_count_files, snapshot.index.totalFiles, Format.count(snapshot.index.totalFiles)),
+            )
+            isScanning -> uiText(R.string.map_header_scanning)
+            else -> uiText(R.string.map_no_analysis_yet)
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), "")
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), UiText.Raw(""))
 
     val directory: StateFlow<DirectoryUi?> = combine(snapshots, navPath) { snapshot, path -> snapshot to path }
         .mapLatest { (snapshot, path) ->
@@ -300,12 +306,17 @@ internal class StorageViewModel @Inject constructor(
     }
 
     private fun toastFor(outcome: DeleteOutcome): ToastUi = when {
-        outcome.removed == 0 -> ToastUi("Nem sikerült törölni", ToastTone.ERROR)
+        outcome.removed == 0 -> ToastUi(uiText(R.string.map_toast_delete_failed), ToastTone.ERROR)
         outcome.failed > 0 -> ToastUi(
-            "${Format.bytes(outcome.freedBytes)} felszabadítva · ${Format.count(outcome.failed)} elem maradt",
+            uiPlural(
+                R.plurals.map_toast_freed_partly,
+                outcome.failed,
+                Format.bytes(outcome.freedBytes),
+                Format.count(outcome.failed),
+            ),
             ToastTone.WARNING,
         )
-        else -> ToastUi("${Format.bytes(outcome.freedBytes)} felszabadítva", ToastTone.SUCCESS)
+        else -> ToastUi(uiText(R.string.map_toast_freed, Format.bytes(outcome.freedBytes)), ToastTone.SUCCESS)
     }
 
     private fun buildFiles(index: StorageIndex, filter: FileCategory?, cleanup: Cleanup?): FilesUi {
@@ -332,10 +343,10 @@ internal class StorageViewModel @Inject constructor(
         index.categories.forEach { slices += SummarySlice(it.category.label, it.bytes, SliceKind.FILES, it.category) }
         // App data already includes each app's Android/media folder, which the walk counted as files.
         val appBytes = apps?.apps?.sumOf { it.totalBytes }?.minus(index.appMediaBytes)?.coerceAtLeast(0L)
-        if (appBytes != null && appBytes > 0L) slices += SummarySlice("Appok", appBytes, SliceKind.APPS)
+        if (appBytes != null && appBytes > 0L) slices += SummarySlice(R.string.map_slice_apps, appBytes, SliceKind.APPS)
         val rest = (vol.usedBytes - index.totalBytes - (appBytes ?: 0L)).coerceAtLeast(0L)
         if (rest > 0L) {
-            val label = if (appBytes == null) "Appok és rendszer" else "Rendszer és egyéb"
+            val label = if (appBytes == null) R.string.map_slice_apps_and_system else R.string.map_slice_system_and_other
             slices += SummarySlice(label, rest, SliceKind.SYSTEM)
         }
         return SummaryUi(vol.totalBytes, vol.usedBytes, vol.freeBytes, slices)
