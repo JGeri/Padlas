@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="void_">#FF0D0B09</color>
-    <color name="brass">#FFC9974A</color>
-    <color name="paper">#FFF2EDE4</color>
+    <!-- Ink.Background: the window behind the first frame and the splash, so neither flashes. -->
+    <color name="void_">#FF07070D</color>
 </resources>

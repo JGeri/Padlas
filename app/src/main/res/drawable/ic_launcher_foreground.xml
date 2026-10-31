@@ -1,35 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The attic hatch: an opening in a ceiling with something going up through it. -->
+<!-- The attic: a roof, the hatch in the ceiling below it, and something going up through. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
     <path
-        android:pathData="M30,44 L78,44 L86,60 L22,60 Z"
-        android:strokeColor="#C9974A"
-        android:strokeWidth="3"
-        android:fillColor="#00000000"
-        android:strokeLineJoin="round" />
+        android:pathData="M31,45 L54,25 L77,45"
+        android:strokeWidth="3.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="26"
+                android:startY="0"
+                android:endX="82"
+                android:endY="0">
+                <item android:offset="0" android:color="#FFC3B5FF" />
+                <item android:offset="1" android:color="#FF7CF2E6" />
+            </gradient>
+        </aapt:attr>
+    </path>
 
     <path
-        android:pathData="M54,74 L54,34"
-        android:strokeColor="#F2EDE4"
-        android:strokeWidth="3.5"
+        android:pathData="M35.5,62 L72.5,62 L79,73.5 L29,73.5 Z"
+        android:strokeWidth="3.2"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="62"
+                android:endX="0"
+                android:endY="73.5">
+                <item android:offset="0" android:color="#E605040F" />
+                <item android:offset="1" android:color="#CC1A1440" />
+            </gradient>
+        </aapt:attr>
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="26"
+                android:startY="0"
+                android:endX="82"
+                android:endY="0">
+                <item android:offset="0" android:color="#FFC3B5FF" />
+                <item android:offset="1" android:color="#FF7CF2E6" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <path
+        android:pathData="M54,68 L54,38"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="5.4"
         android:strokeLineCap="round" />
 
     <path
-        android:pathData="M44,44 L54,34 L64,44"
-        android:strokeColor="#F2EDE4"
-        android:strokeWidth="3.5"
-        android:fillColor="#00000000"
+        android:pathData="M44.5,47.5 L54,38 L63.5,47.5"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="5.4"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
-
-    <path
-        android:pathData="M26,68 L82,68"
-        android:strokeColor="#5C8A7E"
-        android:strokeWidth="2.5"
-        android:strokeLineCap="round" />
 </vector>
