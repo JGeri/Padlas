@@ -2,7 +2,9 @@ package hu.padlas.feature.triage
 
 import android.content.IntentSender
 import android.net.Uri
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
+import hu.padlas.core.common.text.UiText
 import hu.padlas.core.database.entity.ShotKind
 
 @Immutable
@@ -18,8 +20,8 @@ data class ShotItem(
 data class TriageGroup(
     val key: String,
     val kind: ShotKind?,
-    val title: String,
-    val hint: String,
+    val title: UiText,
+    val hint: UiText,
     val items: List<ShotItem>,
     val locked: Boolean,
     /** Set for a group built from the app the shots came from instead of their text. */
@@ -58,7 +60,7 @@ data class DiscardUiState(
     val committing: Boolean = false,
     /** The grid is falling away after a committed batch; the screen is about to close. */
     val falling: Boolean = false,
-    val message: String? = null,
+    val message: UiText? = null,
 )
 
 sealed interface DiscardEvent {
@@ -66,24 +68,26 @@ sealed interface DiscardEvent {
 }
 
 /** Group titles: what the pictures are, in the words a person would use for them. */
-internal fun kindTitle(kind: ShotKind?): String = when (kind) {
-    ShotKind.SECRET -> "Védett képek"
-    ShotKind.TICKET -> "Jegyek és kódok"
-    ShotKind.RECEIPT -> "Nyugták és számlák"
-    ShotKind.PLACE -> "Címek és térképek"
-    ShotKind.CHAT -> "Chatek"
-    ShotKind.OTHER -> "Egyéb képernyőképek"
-    null -> "Még át nem nézett képek"
+@StringRes
+internal fun kindTitle(kind: ShotKind?): Int = when (kind) {
+    ShotKind.SECRET -> R.string.triage_kind_secret_title
+    ShotKind.TICKET -> R.string.triage_kind_ticket_title
+    ShotKind.RECEIPT -> R.string.triage_kind_receipt_title
+    ShotKind.PLACE -> R.string.triage_kind_place_title
+    ShotKind.CHAT -> R.string.triage_kind_chat_title
+    ShotKind.OTHER -> R.string.triage_kind_other_title
+    null -> R.string.triage_kind_untriaged_title
 }
 
-internal fun kindHint(kind: ShotKind?): String = when (kind) {
-    ShotKind.SECRET -> "Jelszót, kódot vagy bankadatot tartalmazhatnak, ezért nem ajánljuk fel őket törlésre."
-    ShotKind.TICKET -> "Beszállókártyák, belépők, QR-kódok. A lejártakra már nincs szükség."
-    ShotKind.RECEIPT -> "Vásárlások, utalások és számlák képernyőképei."
-    ShotKind.PLACE -> "Címek, útvonalak és térképrészletek."
-    ShotKind.CHAT -> "Beszélgetésekről készült képernyőképek."
-    ShotKind.OTHER -> "Kevés szöveg, semmi fontos nem látszik rajtuk."
-    null -> "A felismerés még nem futott le rajtuk, csak a mappájuk alapján tűnnek eldobhatónak. Ezért alapból maradnak."
+@StringRes
+internal fun kindHint(kind: ShotKind?): Int = when (kind) {
+    ShotKind.SECRET -> R.string.triage_kind_secret_hint
+    ShotKind.TICKET -> R.string.triage_kind_ticket_hint
+    ShotKind.RECEIPT -> R.string.triage_kind_receipt_hint
+    ShotKind.PLACE -> R.string.triage_kind_place_hint
+    ShotKind.CHAT -> R.string.triage_kind_chat_hint
+    ShotKind.OTHER -> R.string.triage_kind_other_hint
+    null -> R.string.triage_kind_untriaged_hint
 }
 
 internal fun groupKey(kind: ShotKind?): String = kind?.name ?: "UNTRIAGED"

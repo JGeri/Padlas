@@ -30,6 +30,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hu.padlas.core.common.format.Format
@@ -42,6 +44,7 @@ import hu.padlas.core.design.component.ReclaimHero
 import hu.padlas.core.design.component.Toast
 import hu.padlas.core.design.component.ZoomHost
 import hu.padlas.core.design.component.ZoomTarget
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.component.navigationBarBottom
 import hu.padlas.core.design.component.rememberSystemRequest
 import hu.padlas.core.design.component.rememberZoomState
@@ -106,7 +109,7 @@ fun FolderRoute(bucketId: Long, onBack: () -> Unit, modifier: Modifier = Modifie
     val zoom = rememberZoomState()
     val entrance = rememberEntrance()
     val reduced = LocalReducedMotion.current
-    val title = state.title.ifBlank { "Mappa" }
+    val title = state.title.ifBlank { stringResource(R.string.triage_folder_fallback_title) }
 
     ZoomHost(
         state = zoom,
@@ -126,8 +129,12 @@ fun FolderRoute(bucketId: Long, onBack: () -> Unit, modifier: Modifier = Modifie
                     title = title,
                     onBack = leave,
                     subtitle = if (hasContent) {
-                        "${Format.count(state.discardCount)} / ${Format.count(state.items.size)} kijelölve · " +
-                            Format.bytes(state.discardBytes)
+                        stringResource(
+                            R.string.triage_folder_subtitle,
+                            Format.count(state.discardCount),
+                            Format.count(state.items.size),
+                            Format.bytes(state.discardBytes),
+                        )
                     } else {
                         null
                     },
@@ -143,7 +150,7 @@ fun FolderRoute(bucketId: Long, onBack: () -> Unit, modifier: Modifier = Modifie
                     )
                 }
                 Toast(
-                    message = state.message,
+                    message = state.message?.asString(),
                     onShown = viewModel::dismissMessage,
                     icon = Icons.Rounded.Info,
                     tint = Ink.Info,
@@ -156,10 +163,10 @@ fun FolderRoute(bucketId: Long, onBack: () -> Unit, modifier: Modifier = Modifie
             when {
                 state.loading -> Unit
                 state.items.isEmpty() -> EmptyState(
-                    title = "Üres mappa",
-                    text = "Ebben a mappában nincs több kép vagy videó.",
+                    title = stringResource(R.string.triage_folder_empty_title),
+                    text = stringResource(R.string.triage_folder_empty_text),
                     icon = Icons.Rounded.FolderOpen,
-                    actionLabel = "Vissza",
+                    actionLabel = stringResource(R.string.triage_folder_empty_action),
                     onAction = leave,
                     modifier = Modifier.padding(top = topBarClearance() + Space.xxl),
                 )
@@ -179,11 +186,10 @@ fun FolderRoute(bucketId: Long, onBack: () -> Unit, modifier: Modifier = Modifie
                 ) {
                     item(key = "hero", span = { GridItemSpan(maxLineSpan) }) {
                         ReclaimHero(
-                            label = "Felszabadítható",
+                            label = stringResource(R.string.triage_reclaimable),
                             value = Format.bytesValue(state.discardBytes),
                             unit = Format.bytesUnit(state.discardBytes),
-                            caption = "Minden ki van jelölve törlésre. Koppints arra, amit megtartanál, " +
-                                "hosszan nyomva pedig nagyban is megnézheted.",
+                            caption = stringResource(R.string.triage_folder_hero_caption),
                             modifier = Modifier.entrance(entrance).padding(bottom = Space.m),
                         )
                     }
@@ -193,7 +199,11 @@ fun FolderRoute(bucketId: Long, onBack: () -> Unit, modifier: Modifier = Modifie
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = "${Format.count(state.items.size)} fájl a mappában",
+                                text = pluralStringResource(
+                                    R.plurals.triage_folder_file_count,
+                                    state.items.size,
+                                    Format.count(state.items.size),
+                                ),
                                 style = PadlasTheme.type.label,
                                 color = Ink.TextSecondary,
                                 maxLines = 1,
@@ -207,12 +217,15 @@ fun FolderRoute(bucketId: Long, onBack: () -> Unit, modifier: Modifier = Modifie
                             ) { kept ->
                                 if (kept) {
                                     PadlasTextButton(
-                                        text = "Mind törlése",
+                                        text = stringResource(R.string.triage_delete_all),
                                         onClick = viewModel::discardAll,
                                         color = Ink.Danger,
                                     )
                                 } else {
-                                    PadlasTextButton(text = "Mind marad", onClick = viewModel::keepAll)
+                                    PadlasTextButton(
+                                        text = stringResource(R.string.triage_keep_all),
+                                        onClick = viewModel::keepAll,
+                                    )
                                 }
                             }
                         }

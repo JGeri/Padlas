@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Throwaway pictures screen -->
+    <string name="triage_discard_title">Throwaway pictures</string>
+    <!-- %1$s: number of pictures, %2$s: size -->
+    <string name="triage_discard_subtitle">%1$s selected · %2$s</string>
+    <string name="triage_discard_empty_title">No throwaway pictures</string>
+    <string name="triage_discard_empty_text">We found no screenshots or downloaded pictures you no longer need.</string>
+    <string name="triage_discard_empty_action">Review again</string>
+    <string name="triage_reclaimable">Can be freed</string>
+    <string name="triage_discard_hero_caption">Screenshots and downloaded pictures you probably no longer need, grouped by app. Navigation, system and game pictures are selected for deletion; tap the ones you want to keep. Social, video and not yet recognized pictures are selected only by “Delete all”. Press and hold any picture to see it larger.</string>
+    <!-- %1$s: number of pictures -->
+    <plurals name="triage_protected_count">
+        <item quantity="one">%1$s picture · won\'t be deleted</item>
+        <item quantity="other">%1$s pictures · won\'t be deleted</item>
+    </plurals>
+    <string name="triage_protected_show">Show</string>
+    <string name="triage_protected_hide">Hide</string>
+    <string name="triage_unlock_hold">Hold to unlock</string>
+    <string name="triage_unlock_note">Unlocked pictures still stay until you select them one by one.</string>
+
+    <!-- Group titles and hints by what the pictures show -->
+    <string name="triage_kind_secret_title">Protected pictures</string>
+    <string name="triage_kind_ticket_title">Tickets and codes</string>
+    <string name="triage_kind_receipt_title">Receipts and invoices</string>
+    <string name="triage_kind_place_title">Addresses and maps</string>
+    <string name="triage_kind_chat_title">Chats</string>
+    <string name="triage_kind_other_title">Other screenshots</string>
+    <string name="triage_kind_untriaged_title">Not yet reviewed</string>
+    <string name="triage_kind_secret_hint">They may contain a password, a code or bank details, so we never offer them for deletion.</string>
+    <string name="triage_kind_ticket_hint">Boarding passes, entry tickets, QR codes. Expired ones are no longer needed.</string>
+    <string name="triage_kind_receipt_hint">Screenshots of purchases, transfers and invoices.</string>
+    <string name="triage_kind_place_hint">Addresses, routes and map snippets.</string>
+    <string name="triage_kind_chat_hint">Screenshots of conversations.</string>
+    <string name="triage_kind_other_hint">Little text and nothing important on them.</string>
+    <string name="triage_kind_untriaged_hint">Recognition hasn\'t run on them yet, so they only look throwaway because of their folder. That\'s why they\'re kept by default.</string>
+
+    <!-- Group titles and hints by the app the screenshots came from -->
+    <string name="triage_source_navigation_title">Navigation</string>
+    <string name="triage_source_navigation_others">Other navigation apps</string>
+    <string name="triage_source_navigation_hint">Routes, arrival times, traffic alerts. Almost never needed later.</string>
+    <string name="triage_source_home_title">Home screen and system</string>
+    <string name="triage_source_home_others">Other system apps</string>
+    <string name="triage_source_home_hint">Home screen, clock, alarm, calculator, app store. Mostly accidental or one-off pictures.</string>
+    <string name="triage_source_game_title">Games</string>
+    <string name="triage_source_game_others">Other games</string>
+    <string name="triage_source_game_hint">Scores and snapshots from games.</string>
+    <string name="triage_source_media_title">Video and music</string>
+    <string name="triage_source_media_others">Other video and music apps</string>
+    <string name="triage_source_media_hint">Videos and songs whose title you needed. Not selected: “Delete all” selects them.</string>
+    <string name="triage_source_social_title">Social media</string>
+    <string name="triage_source_social_others">Other social apps</string>
+    <string name="triage_source_social_hint">Posts, stories, memes. Some may be memories, so they\'re not selected: “Delete all” selects them.</string>
+    <!-- %1$s: the kind or the list of apps, %2$s: what the pictures are -->
+    <string name="triage_source_group_hint">%1$s · %2$s</string>
+
+    <!-- Tiles and group headers -->
+    <string name="triage_protected">Protected</string>
+    <string name="triage_keep_badge">Keep</string>
+    <string name="triage_marked_for_deletion">Marked for deletion</string>
+    <string name="triage_delete_anyway">Delete anyway</string>
+    <string name="triage_keep_it">Keep it</string>
+    <!-- Follows the number selected for deletion. %1$s: pictures in the group, %2$s: size -->
+    <string name="triage_group_tally">" / %1$s to delete · %2$s"</string>
+    <string name="triage_keep_all">Keep all</string>
+    <string name="triage_delete_all">Delete all</string>
+    <!-- Under the number of hidden pictures on the tile that opens a group -->
+    <string name="triage_more_all">show all</string>
+
+    <!-- Where the space is still taken, and the delete bar -->
+    <string name="triage_trash_header">Still taking up space</string>
+    <string name="triage_trash_system_title">System trash</string>
+    <string name="triage_trash_system_detail">Empties itself after 30 days and takes up space until then.</string>
+    <string name="triage_trash_gallery_title">Gallery trash</string>
+    <string name="triage_trash_gallery_detail">A separate trash; empty it in the Gallery app.</string>
+    <string name="triage_trash_pending_title">Selected, not deleted yet</string>
+    <!-- %1$s: number of files -->
+    <plurals name="triage_trash_pending_detail">
+        <item quantity="one">%1$s file. It stays put until you press the delete button.</item>
+        <item quantity="other">%1$s files. They stay put until you press the delete button.</item>
+    </plurals>
+    <!-- Follows a large number -->
+    <plurals name="triage_commit_noun">
+        <item quantity="one">file to delete</item>
+        <item quantity="other">files to delete</item>
+    </plurals>
+    <string name="triage_commit_nothing">You\'re keeping everything, so there\'s nothing to delete.</string>
+    <string name="triage_commit_warning">They\'re deleted for good. Your phone asks once more.</string>
+    <string name="triage_commit_none">No files selected</string>
+    <string name="triage_commit_delete">Delete selected</string>
+
+    <!-- Messages after deleting -->
+    <string name="triage_unlock_failed">Couldn\'t remove the protection.</string>
+    <string name="triage_nothing_deleted">Nothing was deleted.</string>
+    <string name="triage_deleted_not_recorded">The files were deleted, but the records weren\'t updated. Is the storage full?</string>
+    <!-- %1$s: number of files -->
+    <plurals name="triage_deleted_next_batch">
+        <item quantity="one">%1$s file deleted · next batch coming</item>
+        <item quantity="other">%1$s files deleted · next batch coming</item>
+    </plurals>
+    <!-- %1$s: number of files, %2$s: size -->
+    <plurals name="triage_deleted_freed">
+        <item quantity="one">%1$s file deleted · %2$s freed</item>
+        <item quantity="other">%1$s files deleted · %2$s freed</item>
+    </plurals>
+    <!-- %1$s: size -->
+    <string name="triage_freed">%1$s freed.</string>
+    <!-- %1$s: size -->
+    <string name="triage_freed_next_batch">%1$s freed · next batch coming</string>
+    <string name="triage_prepare_failed">Couldn\'t prepare the deletion.</string>
+    <string name="triage_prepare_nothing">Nothing in this batch can be deleted.</string>
+    <string name="triage_prepare_refused">The system didn\'t allow the deletion right now.</string>
+
+    <!-- One folder -->
+    <string name="triage_folder_fallback_title">Folder</string>
+    <!-- %1$s: selected, %2$s: all files, %3$s: size -->
+    <string name="triage_folder_subtitle">%1$s / %2$s selected · %3$s</string>
+    <string name="triage_folder_empty_title">Empty folder</string>
+    <string name="triage_folder_empty_text">There are no more pictures or videos in this folder.</string>
+    <string name="triage_folder_empty_action">Back</string>
+    <string name="triage_folder_hero_caption">Everything is selected for deletion. Tap what you want to keep, or press and hold to see it larger.</string>
+    <!-- %1$s: number of files -->
+    <plurals name="triage_folder_file_count">
+        <item quantity="one">%1$s file in the folder</item>
+        <item quantity="other">%1$s files in the folder</item>
+    </plurals>
+
+    <!-- Log entry after a recognition pass. %1$s: number of screenshots -->
+    <plurals name="triage_audit_ocr_note">
+        <item quantity="one">%1$s screenshot reviewed</item>
+        <item quantity="other">%1$s screenshots reviewed</item>
+    </plurals>
+</resources>

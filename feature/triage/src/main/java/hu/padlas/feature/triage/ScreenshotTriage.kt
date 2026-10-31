@@ -96,7 +96,12 @@ class ScreenshotTriage @Inject constructor(
                             assetId = null,
                             sizeBytes = bytes,
                             reversible = false,
-                            note = "${Format.count(done)} képernyőkép átnézve",
+                            // Stored with the row, so it reads in the language of the day it ran.
+                            note = context.resources.getQuantityString(
+                                R.plurals.triage_audit_ocr_note,
+                                done,
+                                Format.count(done),
+                            ),
                         ),
                     )
                 }

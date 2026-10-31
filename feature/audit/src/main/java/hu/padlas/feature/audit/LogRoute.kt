@@ -37,12 +37,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.design.component.ButtonSize
 import hu.padlas.core.design.component.ButtonStyle
 import hu.padlas.core.design.component.ConfirmDialog
@@ -55,6 +58,7 @@ import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.Toast
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.component.hairlineBottom
 import hu.padlas.core.design.component.navigationBarBottom
 import hu.padlas.core.design.component.rememberSystemRequest
@@ -91,6 +95,7 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val entrance = rememberEntrance()
 
     val launchUndo = rememberSystemRequest(viewModel::onUndoResult)
+    val exportName = stringResource(R.string.audit_export_file_name)
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv"),
@@ -102,9 +107,9 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 context.contentResolver.openOutputStream(uri)?.use { it.write(csv.toByteArray()) }
             }.isSuccess
             if (written) {
-                viewModel.message("A napló elmentve.")
+                viewModel.message(uiText(R.string.audit_export_saved))
             } else {
-                viewModel.message("Az exportálás nem sikerült.", ok = false)
+                viewModel.message(uiText(R.string.audit_export_failed), ok = false)
             }
         }
     }
@@ -120,14 +125,18 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier,
         topBar = {
             PadlasTopBar(
-                title = "Napló",
+                title = stringResource(R.string.audit_title),
                 onBack = onBack,
-                subtitle = if (state.loading) null else "${Format.bytes(state.reclaimedBytes)} felszabadítva összesen",
+                subtitle = if (state.loading) {
+                    null
+                } else {
+                    stringResource(R.string.audit_subtitle_total, Format.bytes(state.reclaimedBytes))
+                },
                 action = {
                     PadlasIconButton(
                         icon = Icons.Rounded.FileDownload,
-                        contentDescription = "Napló mentése CSV-fájlba",
-                        onClick = { exportLauncher.launch("padlas-naplo.csv") },
+                        contentDescription = stringResource(R.string.audit_export_description),
+                        onClick = { exportLauncher.launch(exportName) },
                         size = 44.dp,
                     )
                 },
@@ -135,7 +144,7 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         },
         overlay = {
             Toast(
-                message = state.message,
+                message = state.message?.asString(),
                 onShown = viewModel::dismissMessage,
                 icon = if (state.messageOk) Icons.Rounded.CheckCircle else Icons.Rounded.Info,
                 tint = if (state.messageOk) Ink.Success else Ink.Info,
@@ -155,10 +164,9 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         ) {
             item(key = "hero") {
                 ReclaimHero(
-                    label = "Eddig felszabadítva",
+                    label = stringResource(R.string.audit_hero_label),
                     bytes = state.reclaimedBytes,
-                    caption = "Itt látod, mit csinált az app a fájljaiddal. " +
-                        "A kukába tett fájlok 30 napig visszaállíthatók.",
+                    caption = stringResource(R.string.audit_hero_caption),
                     modifier = Modifier.entrance(entrance),
                 )
             }
@@ -166,8 +174,8 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
             if (state.days.isEmpty() && !state.loading) {
                 item(key = "empty") {
                     EmptyState(
-                        title = "Még üres a napló",
-                        text = "Amint az app bármit csinál a fájljaiddal, itt megjelenik.",
+                        title = stringResource(R.string.audit_empty_title),
+                        text = stringResource(R.string.audit_empty_text),
                         icon = Icons.Rounded.History,
                         modifier = Modifier.entrance(entrance),
                     )
@@ -202,10 +210,9 @@ fun LogRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
     if (confirmStop) {
         ConfirmDialog(
-            title = "Leállítasz mindent?",
-            text = "A folyamatban lévő beolvasás, feltöltés és tömörítés megszakad. " +
-                "Később bármikor újraindíthatod őket.",
-            confirmLabel = "Minden leállítása",
+            title = stringResource(R.string.audit_stop_confirm_title),
+            text = stringResource(R.string.audit_stop_confirm_text),
+            confirmLabel = stringResource(R.string.audit_stop_confirm_action),
             onConfirm = {
                 confirmStop = false
                 viewModel.stopAllWork()
@@ -226,7 +233,7 @@ private fun DayHeader(day: LogDay, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = day.label,
+            text = day.label.asString(),
             style = PadlasTheme.type.title,
             color = Ink.Text,
             maxLines = 1,
@@ -236,7 +243,7 @@ private fun DayHeader(day: LogDay, modifier: Modifier = Modifier) {
         if (day.bytes > 0) {
             Spacer(Modifier.width(Space.s))
             Text(
-                text = "${Format.bytes(day.bytes)} felszabadítva",
+                text = stringResource(R.string.audit_day_freed, Format.bytes(day.bytes)),
                 style = PadlasTheme.type.numeric,
                 color = Ink.Success,
                 maxLines = 1,
@@ -276,14 +283,14 @@ private fun LogRowItem(
         Spacer(Modifier.width(Space.m))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = LogCopy.title(row.action, row.count),
+                text = LogCopy.title(row.action, row.count).asString(),
                 style = PadlasTheme.type.bodyStrong,
                 color = Ink.Text,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = LogCopy.subtitle(row, time),
+                text = LogCopy.subtitle(row, time).asString(),
                 style = PadlasTheme.type.caption,
                 color = Ink.TextSecondary,
                 maxLines = 2,
@@ -291,7 +298,7 @@ private fun LogRowItem(
             )
             if (row.undoable) {
                 PadlasTextButton(
-                    text = "Visszaállítás",
+                    text = stringResource(R.string.audit_restore),
                     onClick = onUndo,
                     icon = Icons.Rounded.Restore,
                     enabled = undoEnabled,
@@ -315,10 +322,14 @@ private fun KillSwitchCard(onStop: () -> Unit, modifier: Modifier = Modifier) {
                 IconBubble(icon = Icons.Rounded.StopCircle, tint = Ink.Danger)
                 Spacer(Modifier.width(Space.m))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Vészleállítás", style = PadlasTheme.type.bodyStrong, color = Ink.Text)
+                    Text(
+                        text = stringResource(R.string.audit_kill_title),
+                        style = PadlasTheme.type.bodyStrong,
+                        color = Ink.Text,
+                    )
                     Spacer(Modifier.height(Space.xxs))
                     Text(
-                        text = "Azonnal leállít minden háttérmunkát: beolvasást, keresést, feltöltést és tömörítést.",
+                        text = stringResource(R.string.audit_kill_text),
                         style = PadlasTheme.type.caption,
                         color = Ink.TextSecondary,
                     )
@@ -326,12 +337,31 @@ private fun KillSwitchCard(onStop: () -> Unit, modifier: Modifier = Modifier) {
             }
             Spacer(Modifier.height(Space.l))
             PadlasButton(
-                text = "Minden háttérmunka leállítása",
+                text = stringResource(R.string.audit_kill_action),
                 onClick = onStop,
                 style = ButtonStyle.Secondary,
                 size = ButtonSize.Medium,
                 modifier = Modifier.fillMaxWidth(),
             )
+        }
+    }
+}
+
+/**
+ * The day's name in the app's language. The patterns live with the strings so each language
+ * keeps its own order and punctuation ("Október 31., péntek" against "Friday, October 31").
+ */
+@Composable
+private fun DayLabel.asString(): String = when (this) {
+    DayLabel.Today -> stringResource(R.string.audit_day_today)
+    DayLabel.Yesterday -> stringResource(R.string.audit_day_yesterday)
+    is DayLabel.Date -> {
+        val pattern = stringResource(
+            if (sameYear) R.string.audit_day_pattern_same_year else R.string.audit_day_pattern_other_year,
+        )
+        val locale = LocalConfiguration.current.locales[0]
+        remember(date, pattern, locale) {
+            DateTimeFormatter.ofPattern(pattern, locale).format(date).replaceFirstChar { it.titlecase(locale) }
         }
     }
 }

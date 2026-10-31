@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -63,6 +64,7 @@ import hu.padlas.core.design.component.RollingNumber
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.component.ZoomTarget
 import hu.padlas.core.design.component.ZoomableImage
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.finite
@@ -115,6 +117,7 @@ internal fun ShotTile(
     onView: (() -> Unit)? = null,
 ) {
     val haptics = haptics()
+    val keepBadge = stringResource(R.string.triage_keep_badge)
     Box(modifier = modifier) {
         FallAway(falling) {
             Box {
@@ -128,7 +131,7 @@ internal fun ShotTile(
                     },
                     selectionMode = !item.locked,
                     selectedTint = Ink.Danger,
-                    badge = if (kept && !item.locked) KEEP_BADGE else null,
+                    badge = if (kept && !item.locked) keepBadge else null,
                     // A tap already decides, so the closer look sits on the long press; a
                     // locked shot keeps the long press for lifting its protection.
                     onLongPress = when {
@@ -170,7 +173,7 @@ internal fun ShotTile(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Lock,
-                            contentDescription = "Védett",
+                            contentDescription = stringResource(R.string.triage_protected),
                             tint = Ink.Text,
                             modifier = Modifier.size(13.dp),
                         )
@@ -196,7 +199,7 @@ internal fun GroupHeader(
             Spacer(Modifier.width(Space.m))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = group.title,
+                    text = group.title.asString(),
                     style = PadlasTheme.type.title,
                     color = Ink.Text,
                     maxLines = 1,
@@ -209,7 +212,11 @@ internal fun GroupHeader(
                         color = if (tally.discardCount > 0) Ink.Danger else Ink.TextSecondary,
                     )
                     Text(
-                        text = " / ${Format.count(group.items.size)} törlésre · ${Format.bytes(tally.discardBytes)}",
+                        text = stringResource(
+                            R.string.triage_group_tally,
+                            Format.count(group.items.size),
+                            Format.bytes(tally.discardBytes),
+                        ),
                         style = PadlasTheme.type.numeric,
                         color = Ink.TextSecondary,
                         maxLines = 1,
@@ -219,13 +226,17 @@ internal fun GroupHeader(
                 }
             }
             if (tally.discardCount > 0) {
-                PadlasTextButton(text = "Mind marad", onClick = onKeepAll)
+                PadlasTextButton(text = stringResource(R.string.triage_keep_all), onClick = onKeepAll)
             } else {
-                PadlasTextButton(text = "Mind törlése", onClick = onDiscardAll, color = Ink.Danger)
+                PadlasTextButton(
+                    text = stringResource(R.string.triage_delete_all),
+                    onClick = onDiscardAll,
+                    color = Ink.Danger,
+                )
             }
         }
         Text(
-            text = group.hint,
+            text = group.hint.asString(),
             style = PadlasTheme.type.caption,
             color = Ink.TextTertiary,
             modifier = Modifier.padding(top = Space.s),
@@ -293,19 +304,19 @@ internal fun ColumnScope.KeepVerdict(kept: Boolean, locked: Boolean, onToggle: (
     ) { shown ->
         when (shown) {
             Verdict.PROTECTED -> Pill(
-                text = "Védett",
+                text = stringResource(R.string.triage_protected),
                 icon = Icons.Rounded.Lock,
                 color = Ink.Text,
                 background = Ink.Info.copy(alpha = 0.85f),
             )
             Verdict.KEEP -> Pill(
-                text = KEEP_BADGE,
+                text = stringResource(R.string.triage_keep_badge),
                 icon = Icons.Rounded.Check,
                 color = Ink.Background,
                 background = Ink.Success,
             )
             Verdict.DELETE -> Pill(
-                text = "Törlésre jelölve",
+                text = stringResource(R.string.triage_marked_for_deletion),
                 icon = Icons.Rounded.DeleteOutline,
                 color = Ink.Text,
                 background = Ink.Danger.copy(alpha = 0.85f),
@@ -314,7 +325,7 @@ internal fun ColumnScope.KeepVerdict(kept: Boolean, locked: Boolean, onToggle: (
     }
     if (!locked) {
         PadlasButton(
-            text = if (kept) "Mégis törlöm" else "Megtartom",
+            text = stringResource(if (kept) R.string.triage_delete_anyway else R.string.triage_keep_it),
             onClick = {
                 if (kept) haptics?.tick() else haptics?.keep()
                 onToggle()
@@ -340,7 +351,6 @@ internal fun ZoomPicture(target: ZoomTarget, placeholder: Any?, modifier: Modifi
     AsyncImage(model = request, contentDescription = target.title, contentScale = ContentScale.Crop, modifier = modifier)
 }
 
-internal const val KEEP_BADGE = "Marad"
 private const val SCATTER_MS = 40
 private const val FALL_DISTANCE_PX = 220f
 internal const val FALL_AWAY_MS = 520L
@@ -360,7 +370,7 @@ internal fun MoreTile(count: Int, onClick: () -> Unit, modifier: Modifier = Modi
         verticalArrangement = Arrangement.Center,
     ) {
         Text(text = "+${Format.count(count)}", style = PadlasTheme.type.title, color = Ink.Text, maxLines = 1)
-        Text(text = "mind", style = PadlasTheme.type.caption, color = Ink.TextSecondary)
+        Text(text = stringResource(R.string.triage_more_all), style = PadlasTheme.type.caption, color = Ink.TextSecondary)
     }
 }
 

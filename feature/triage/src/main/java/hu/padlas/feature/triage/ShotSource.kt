@@ -1,5 +1,9 @@
 package hu.padlas.feature.triage
 
+import androidx.annotation.StringRes
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiText
+
 /**
  * The kind of app a screenshot was taken in. Android writes the app's name into the file
  * name (Samsung: `Screenshot_20261030_191834_Waze.jpg`, Pixel:
@@ -8,41 +12,41 @@ package hu.padlas.feature.triage
  * glance get groups of their own; a chat, a bank or a browser page still goes by its text.
  */
 enum class ShotSource(
-    val title: String,
+    @StringRes val title: Int,
     /** The group that collects the apps with only a few shots each. */
-    val othersTitle: String,
-    val hint: String,
+    @StringRes val othersTitle: Int,
+    @StringRes val hint: Int,
     /** Worth a look before it goes: arrives kept, "Mind törlése" marks it. */
     val startsKept: Boolean,
 ) {
     NAVIGATION(
-        title = "Navigáció",
-        othersTitle = "Más navigációs appok",
-        hint = "Útvonalak, érkezési idők, forgalmi riasztások. Utólag szinte sosem kellenek.",
+        title = R.string.triage_source_navigation_title,
+        othersTitle = R.string.triage_source_navigation_others,
+        hint = R.string.triage_source_navigation_hint,
         startsKept = false,
     ),
     HOME(
-        title = "Kezdőképernyő és rendszer",
-        othersTitle = "Más rendszerappok",
-        hint = "Kezdőképernyő, óra, ébresztő, számológép, áruház. Többnyire véletlen vagy egyszeri képek.",
+        title = R.string.triage_source_home_title,
+        othersTitle = R.string.triage_source_home_others,
+        hint = R.string.triage_source_home_hint,
         startsKept = false,
     ),
     GAME(
-        title = "Játék",
-        othersTitle = "Más játékok",
-        hint = "Eredmények és pillanatképek játékokból.",
+        title = R.string.triage_source_game_title,
+        othersTitle = R.string.triage_source_game_others,
+        hint = R.string.triage_source_game_hint,
         startsKept = false,
     ),
     MEDIA(
-        title = "Videó és zene",
-        othersTitle = "Más videó- és zeneappok",
-        hint = "Videók és dalok, amiknek a címe kellett. Nincsenek kijelölve: a „Mind törlése” jelöli ki őket.",
+        title = R.string.triage_source_media_title,
+        othersTitle = R.string.triage_source_media_others,
+        hint = R.string.triage_source_media_hint,
         startsKept = true,
     ),
     SOCIAL(
-        title = "Közösségi média",
-        othersTitle = "Más közösségi appok",
-        hint = "Posztok, sztorik, mémek. Lehet köztük emlék, ezért nincsenek kijelölve: a „Mind törlése” jelöli ki őket.",
+        title = R.string.triage_source_social_title,
+        othersTitle = R.string.triage_source_social_others,
+        hint = R.string.triage_source_social_hint,
         startsKept = true,
     ),
 }
@@ -54,7 +58,8 @@ internal data class SourcedShot<T>(val item: T, val app: String, val source: Sho
 internal data class SourceGroup<T>(
     val key: String,
     val source: ShotSource,
-    val title: String,
+    /** The app's own name for a group of one app, the kind's name for a shared one. */
+    val title: UiText,
     val apps: List<String>,
     val items: List<T>,
 )
@@ -101,7 +106,7 @@ internal object ShotSources {
             val single = big
                 .sortedByDescending { entry -> entry.value.sumOf { it.bytes } }
                 .map { (app, appShots) ->
-                    SourceGroup("app:${normalize(app)}", source, app, listOf(app), appShots.map { it.item })
+                    SourceGroup("app:${normalize(app)}", source, UiText.Raw(app), listOf(app), appShots.map { it.item })
                 }
             val shared = if (small.isEmpty()) {
                 emptyList()
@@ -111,7 +116,7 @@ internal object ShotSources {
                     SourceGroup(
                         key = "apps:${source.name}",
                         source = source,
-                        title = if (single.isEmpty()) source.title else source.othersTitle,
+                        title = uiText(if (single.isEmpty()) source.title else source.othersTitle),
                         apps = apps,
                         items = small.flatMap { entry -> entry.value.map { it.item } },
                     ),

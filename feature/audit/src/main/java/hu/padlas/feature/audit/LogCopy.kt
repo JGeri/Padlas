@@ -1,5 +1,7 @@
 package hu.padlas.feature.audit
 
+import androidx.annotation.PluralsRes
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Label
 import androidx.compose.material.icons.rounded.AutoMode
@@ -20,6 +22,9 @@ import androidx.compose.material.icons.rounded.SyncProblem
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiPlural
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.entity.AuditAction
 import hu.padlas.core.design.theme.Ink
 
@@ -47,32 +52,36 @@ internal object LogCopy {
         AuditAction.RECONCILED -> ActionLook(Icons.Rounded.SyncProblem, Ink.Warning)
     }
 
-    fun title(action: AuditAction, count: Int): String {
-        val many = count > 1
-        val n = Format.count(count)
+    fun title(action: AuditAction, count: Int): UiText {
+        fun counted(@PluralsRes many: Int, @StringRes one: Int): UiText =
+            if (count > 1) uiPlural(many, count, Format.count(count)) else uiText(one)
         return when (action) {
-            AuditAction.INDEXED -> "Galéria beolvasva"
-            AuditAction.CLASSIFIED -> if (many) "$n fájl besorolva" else "Besorolva"
-            AuditAction.HASHED -> "Duplikátumkeresés"
-            AuditAction.OCR -> "Képernyőképek átnézve"
-            AuditAction.ARCHIVED -> if (many) "$n fájl feltöltve a felhőbe" else "Feltöltve a felhőbe"
-            AuditAction.GHOSTED -> if (many) "$n fájl csak a felhőben maradt" else "Csak a felhőben maradt"
-            AuditAction.RESTORED -> if (many) "$n fájl visszatöltve" else "Visszatöltve a felhőből"
-            AuditAction.TRASHED -> if (many) "$n fájl a kukába került" else "Kukába került"
-            AuditAction.DELETED -> if (many) "$n fájl véglegesen törölve" else "Véglegesen törölve"
-            AuditAction.UNTRASHED -> if (many) "$n fájl visszaállítva" else "Visszaállítva a kukából"
-            AuditAction.TRANSCODED -> if (many) "$n videó tömörítve" else "Videó tömörítve"
-            AuditAction.PROTECTED -> if (many) "$n fájl védett lett" else "Védetté téve"
-            AuditAction.UNPROTECTED -> if (many) "$n fájl védelme feloldva" else "Védelem feloldva"
-            AuditAction.RULE_RUN -> "Szabály lefutott"
-            AuditAction.CARD_WRITTEN -> if (many) "$n adatlap mentve" else "Adatlap mentve"
-            AuditAction.RECONCILED -> "Eltérés a Drive-val"
+            AuditAction.INDEXED -> uiText(R.string.audit_action_indexed)
+            AuditAction.CLASSIFIED -> counted(R.plurals.audit_action_classified_many, R.string.audit_action_classified)
+            AuditAction.HASHED -> uiText(R.string.audit_action_hashed)
+            AuditAction.OCR -> uiText(R.string.audit_action_ocr)
+            AuditAction.ARCHIVED -> counted(R.plurals.audit_action_archived_many, R.string.audit_action_archived)
+            AuditAction.GHOSTED -> counted(R.plurals.audit_action_ghosted_many, R.string.audit_action_ghosted)
+            AuditAction.RESTORED -> counted(R.plurals.audit_action_restored_many, R.string.audit_action_restored)
+            AuditAction.TRASHED -> counted(R.plurals.audit_action_trashed_many, R.string.audit_action_trashed)
+            AuditAction.DELETED -> counted(R.plurals.audit_action_deleted_many, R.string.audit_action_deleted)
+            AuditAction.UNTRASHED -> counted(R.plurals.audit_action_untrashed_many, R.string.audit_action_untrashed)
+            AuditAction.TRANSCODED -> counted(R.plurals.audit_action_transcoded_many, R.string.audit_action_transcoded)
+            AuditAction.PROTECTED -> counted(R.plurals.audit_action_protected_many, R.string.audit_action_protected)
+            AuditAction.UNPROTECTED ->
+                counted(R.plurals.audit_action_unprotected_many, R.string.audit_action_unprotected)
+            AuditAction.RULE_RUN -> uiText(R.string.audit_action_rule_run)
+            AuditAction.CARD_WRITTEN ->
+                counted(R.plurals.audit_action_card_written_many, R.string.audit_action_card_written)
+            AuditAction.RECONCILED -> uiText(R.string.audit_action_reconciled)
         }
     }
 
-    fun subtitle(row: LogRow, time: String): String {
-        val detail = row.note?.takeIf { it.isNotBlank() }?.let(::friendlyNote) ?: fallback(row.action)
-        return if (detail == null) time else "$time · $detail"
+    /** A note is stored with its row in the words it was written in; only a missing one is ours. */
+    fun subtitle(row: LogRow, time: String): UiText {
+        val detail = row.note?.takeIf { it.isNotBlank() }?.let { UiText.Raw(friendlyNote(it)) }
+            ?: fallback(row.action)?.let { uiText(it) }
+        return if (detail == null) UiText.Raw(time) else uiText(R.string.audit_row_subtitle, time, detail)
     }
 
     /** Only actions that moved or freed bytes carry a size; an index total is not a saving. */
@@ -86,10 +95,11 @@ internal object LogCopy {
         }
     }
 
-    private fun fallback(action: AuditAction): String? = when (action) {
-        AuditAction.CARD_WRITTEN -> "A törölt fájlok adatai megmaradnak"
-        AuditAction.GHOSTED -> "Egy kis előnézet maradt a telefonon"
-        AuditAction.TRASHED -> "30 napig visszaállítható"
+    @StringRes
+    private fun fallback(action: AuditAction): Int? = when (action) {
+        AuditAction.CARD_WRITTEN -> R.string.audit_note_card_written
+        AuditAction.GHOSTED -> R.string.audit_note_ghosted
+        AuditAction.TRASHED -> R.string.audit_note_trashed
         else -> null
     }
 

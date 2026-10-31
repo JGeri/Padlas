@@ -22,6 +22,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import hu.padlas.core.common.format.Format
@@ -51,30 +53,34 @@ internal fun TrashSection(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(top = Space.xxl)) {
-        SectionHeader(title = "Ahol még foglalt a hely")
+        SectionHeader(title = stringResource(R.string.triage_trash_header))
         PadlasCard(modifier = Modifier.fillMaxWidth().padding(top = Space.m), contentPadding = 0.dp) {
             Column {
                 TrashRow(
                     icon = Icons.Rounded.DeleteOutline,
                     tint = Ink.Info,
-                    title = "Rendszerkuka",
-                    detail = "30 nap után magától ürül, addig foglalja a helyet.",
+                    title = stringResource(R.string.triage_trash_system_title),
+                    detail = stringResource(R.string.triage_trash_system_detail),
                     bytes = trash.systemBytes,
                     divider = true,
                 )
                 TrashRow(
                     icon = Icons.Rounded.PhotoLibrary,
                     tint = Ink.Accent,
-                    title = "Galéria kukája",
-                    detail = "Külön kuka, a Galéria appban kell üríteni.",
+                    title = stringResource(R.string.triage_trash_gallery_title),
+                    detail = stringResource(R.string.triage_trash_gallery_detail),
                     bytes = trash.galleryBytes,
                     divider = true,
                 )
                 TrashRow(
                     icon = Icons.Rounded.Checklist,
                     tint = Ink.Danger,
-                    title = "Kijelölve, még nem törölve",
-                    detail = "${Format.count(pendingCount)} fájl. A törlés gomb megnyomásáig a helyén marad.",
+                    title = stringResource(R.string.triage_trash_pending_title),
+                    detail = pluralStringResource(
+                        R.plurals.triage_trash_pending_detail,
+                        pendingCount,
+                        Format.count(pendingCount),
+                    ),
                     bytes = pendingBytes,
                     divider = false,
                 )
@@ -133,7 +139,7 @@ internal fun CommitBar(
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Space.s)) {
         BarFigures(
             count = Format.count(count),
-            noun = "fájl törlésre",
+            noun = pluralStringResource(R.plurals.triage_commit_noun, count),
             value = Format.bytesValue(bytes),
             unit = Format.bytesUnit(bytes),
         )
@@ -143,18 +149,14 @@ internal fun CommitBar(
             label = "commitNote",
         ) { nothing ->
             Text(
-                text = if (nothing) {
-                    "Mindent megtartasz, nincs mit törölni."
-                } else {
-                    "Véglegesen törlődnek. A telefon még egyszer rákérdez."
-                },
+                text = stringResource(if (nothing) R.string.triage_commit_nothing else R.string.triage_commit_warning),
                 style = PadlasTheme.type.caption,
                 color = Ink.TextSecondary,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
         PadlasButton(
-            text = if (count == 0) "Nincs kijelölt fájl" else "Kijelöltek törlése",
+            text = stringResource(if (count == 0) R.string.triage_commit_none else R.string.triage_commit_delete),
             onClick = onConfirm,
             enabled = count > 0 && !busy,
             icon = Icons.Rounded.Delete,
