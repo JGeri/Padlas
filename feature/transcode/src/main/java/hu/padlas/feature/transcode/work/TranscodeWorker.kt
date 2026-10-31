@@ -12,6 +12,7 @@ import androidx.work.workDataOf
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import hu.padlas.core.common.format.Format
+import hu.padlas.feature.transcode.R
 import hu.padlas.feature.transcode.data.TranscodeRepository
 
 /**
@@ -27,10 +28,10 @@ class TranscodeWorker @AssistedInject constructor(
 
     private var lastNotifiedAt = 0L
 
-    override suspend fun getForegroundInfo(): ForegroundInfo = foregroundInfo(STARTING, 0f)
+    override suspend fun getForegroundInfo(): ForegroundInfo = foregroundInfo(starting(), 0f)
 
     override suspend fun doWork(): Result {
-        setForegroundSafely(STARTING, 0f)
+        setForegroundSafely(starting(), 0f)
         val queued = repository.enqueueAll()
         val outcome = repository.runBatch { progress ->
             setForegroundBlocking(progress.displayName, progress.fraction)
@@ -70,14 +71,16 @@ class TranscodeWorker @AssistedInject constructor(
     private fun notification(name: String, fraction: Float): Notification =
         NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_upload)
-            .setContentTitle(TITLE)
-            .setContentText(if (name.isBlank()) STARTING else name)
+            .setContentTitle(applicationContext.getString(R.string.transcode_notification_title))
+            .setContentText(if (name.isBlank()) starting() else name)
             .setSubText(Format.percent(fraction))
             .setProgress(PROGRESS_MAX, (fraction * PROGRESS_MAX).toInt(), fraction <= 0f)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setSilent(true)
             .build()
+
+    private fun starting(): String = applicationContext.getString(R.string.transcode_notification_starting)
 
     private fun notificationManager() =
         applicationContext.getSystemService(android.app.NotificationManager::class.java)
@@ -93,7 +96,5 @@ class TranscodeWorker @AssistedInject constructor(
         const val KEY_FRACTION = "fraction"
         private const val PROGRESS_MAX = 1000
         private const val NOTIFY_INTERVAL_MS = 1200L
-        private const val TITLE = "Videók tömörítése"
-        private const val STARTING = "Indul a tömörítés"
     }
 }

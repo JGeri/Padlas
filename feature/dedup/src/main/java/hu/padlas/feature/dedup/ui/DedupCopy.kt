@@ -1,112 +1,139 @@
 package hu.padlas.feature.dedup.ui
 
+import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import hu.padlas.core.common.format.Format
 import hu.padlas.core.database.entity.DupKind
+import hu.padlas.feature.dedup.R
 import hu.padlas.feature.dedup.hash.HashPhase
 import hu.padlas.feature.dedup.hash.HashProgress
 
-/** Every string the screen shows. Active verbs, sentence case, numbers through [Format]. */
+/**
+ * The sentences the screen puts together from the module's strings. Numbers go through
+ * [Format]; a count that changes the noun is a plural.
+ */
 internal object DedupCopy {
 
-    const val TITLE = "Duplikátumok"
-    const val RECLAIMABLE = "Felszabadítható"
-    const val KEEP_BADGE = "Marad"
-    const val SUGGESTED_BADGE = "Javasolt"
-    const val VIEW_MARK = "Ez mehet"
-    const val KEEP_SUGGESTED = "Csak a javasolt marad"
-    const val REVIEW_HINT = "Koppints a képekre, amelyek mehetnek; amit nem jelölsz ki, az marad. Hosszan nyomva nagyban is megnézheted."
-    const val PROTECTED_BADGE = "Védett"
-    const val VIEW_KEEP = "Ezt tartom meg"
-    const val WILL_TRASH = "Kukába kerül"
-    const val ALL_ACTION = "Kijelöltek kukába"
-    const val BAR_NOUN = "fájl kukába"
-    const val GROUP_ACTION = "Kukába"
-    const val SECTION_ACTION = "Mind kukába"
-    const val RESCAN = "Keresés újra"
-    const val FIRST_SCAN = "Keresés indítása"
-    const val EMPTY_TITLE = "Nincs duplikátum"
-    const val SCANNING_TITLE = "Duplikátumok keresése"
-    const val SCANNING_TEXT = "Átnézzük a galériát. Ez néhány percig is eltarthat, közben nyugodtan bezárhatod."
-
-    /** INV-2 said out loud: this is the lie every other cleaner tells. */
-    const val TRASH_TITLE = "A kuka is helyet foglal"
-    const val TRASH_TEXT = "A kukába tett fájlok még 30 napig a telefonon maradnak, utána a rendszer törli őket."
-
-    fun sectionTitle(kind: DupKind): String = when (kind) {
-        DupKind.EXACT -> "Azonos"
-        DupKind.BURST -> "Sorozat"
-        DupKind.SIMILAR -> "Hasonló"
+    @StringRes
+    fun sectionTitle(kind: DupKind): Int = when (kind) {
+        DupKind.EXACT -> R.string.dedup_section_exact
+        DupKind.BURST -> R.string.dedup_section_burst
+        DupKind.SIMILAR -> R.string.dedup_section_similar
     }
 
-    fun sectionLead(kind: DupKind): String = when (kind) {
-        DupKind.EXACT -> "Bájtra egyező másolatok. Egy példány marad, a többi nyugodtan mehet."
-        DupKind.BURST -> "Sorozatfelvételek. Egy fejfordítás vagy egy mosoly is lehet a különbség, ezért innen semmi " +
-            "nem megy magától: koppints arra, ami mehet. A legélesebbet javasoljuk megtartani."
-        DupKind.SIMILAR -> "Hasonló, de nem egyforma képek. Innen semmi nem megy magától: koppints arra, ami mehet."
+    @StringRes
+    fun sectionLead(kind: DupKind): Int = when (kind) {
+        DupKind.EXACT -> R.string.dedup_lead_exact
+        DupKind.BURST -> R.string.dedup_lead_burst
+        DupKind.SIMILAR -> R.string.dedup_lead_similar
     }
 
-    fun groupTitle(kind: DupKind, memberCount: Int): String = when (kind) {
-        DupKind.EXACT -> "${Format.count(memberCount)} egyforma fájl"
-        DupKind.BURST -> "${Format.count(memberCount)} képes sorozat"
-        DupKind.SIMILAR -> "${Format.count(memberCount)} hasonló kép"
+    @Composable
+    @ReadOnlyComposable
+    fun groupTitle(kind: DupKind, memberCount: Int): String {
+        val id = when (kind) {
+            DupKind.EXACT -> R.plurals.dedup_group_exact
+            DupKind.BURST -> R.plurals.dedup_group_burst
+            DupKind.SIMILAR -> R.plurals.dedup_group_similar
+        }
+        return pluralStringResource(id, memberCount, Format.count(memberCount))
     }
 
+    @Composable
+    @ReadOnlyComposable
     fun groupSubtitle(loserCount: Int, bytes: Long): String =
-        "${Format.count(loserCount)} felesleges · ${Format.bytes(bytes)}"
+        pluralStringResource(R.plurals.dedup_group_extra, loserCount, Format.count(loserCount), Format.bytes(bytes))
 
-    fun sectionTotals(groupCount: Int, loserCount: Int, bytes: Long): String =
-        "${Format.count(groupCount)} csoport · ${Format.count(loserCount)} fájl · ${Format.bytes(bytes)}"
+    @Composable
+    @ReadOnlyComposable
+    fun sectionTotals(groupCount: Int, loserCount: Int, bytes: Long): String = listOf(
+        groups(groupCount),
+        pluralStringResource(R.plurals.dedup_files, loserCount, Format.count(loserCount)),
+        Format.bytes(bytes),
+    ).joinToString(SEPARATOR)
 
-    fun reviewTotals(groupCount: Int, memberCount: Int, markedCount: Int): String =
-        "${Format.count(groupCount)} csoport · ${Format.count(memberCount)} kép · ${Format.count(markedCount)} kijelölve"
+    @Composable
+    @ReadOnlyComposable
+    fun reviewTotals(groupCount: Int, memberCount: Int, markedCount: Int): String = listOf(
+        groups(groupCount),
+        pluralStringResource(R.plurals.dedup_pictures, memberCount, Format.count(memberCount)),
+        stringResource(R.string.dedup_selected, Format.count(markedCount)),
+    ).joinToString(SEPARATOR)
 
-    fun reviewSubtitle(markedCount: Int, bytes: Long): String =
-        if (markedCount == 0) "Semmi nincs kijelölve" else "${Format.count(markedCount)} kukába · ${Format.bytes(bytes)}"
+    @Composable
+    @ReadOnlyComposable
+    fun reviewSubtitle(markedCount: Int, bytes: Long): String = if (markedCount == 0) {
+        stringResource(R.string.dedup_nothing_selected)
+    } else {
+        stringResource(R.string.dedup_marked, Format.count(markedCount), Format.bytes(bytes))
+    }
 
-    fun heroCaption(exactLosers: Int, exactGroups: Int, reviewGroups: Int): String = buildString {
+    @Composable
+    @ReadOnlyComposable
+    fun heroCaption(exactLosers: Int, exactGroups: Int, reviewGroups: Int): String = buildList {
         if (exactGroups > 0) {
-            append("${Format.count(exactLosers)} bájtra egyező másolat ${Format.count(exactGroups)} csoportban: ")
-            append("ezekből egy példány marad, a többi mehet. ")
+            add(
+                stringResource(
+                    R.string.dedup_hero_exact,
+                    pluralStringResource(R.plurals.dedup_hero_copies, exactLosers, Format.count(exactLosers)),
+                    pluralStringResource(R.plurals.dedup_hero_in_groups, exactGroups, Format.count(exactGroups)),
+                ),
+            )
         }
         if (reviewGroups > 0) {
-            append("${Format.count(reviewGroups)} sorozat és hasonló csoport vár átnézésre; ")
-            append("azokból csak az megy, amit te jelölsz ki. ")
+            add(pluralStringResource(R.plurals.dedup_hero_review, reviewGroups, Format.count(reviewGroups)))
         }
-        append("Bármelyik képet megnézheted nagyban.")
-    }
+        add(stringResource(R.string.dedup_hero_zoom))
+    }.joinToString(" ")
 
-    fun trashedValue(bytes: Long): String = Format.bytes(bytes)
-
+    @Composable
+    @ReadOnlyComposable
     fun topSubtitle(state: DedupUiState, now: Long): String = when {
-        state.scanning -> "Keresés folyamatban"
+        state.scanning -> stringResource(R.string.dedup_searching)
         state.isEmpty -> lastScanSentence(state.lastScanAt, now)
-        else -> "${Format.count(state.groupCount)} csoport · ${Format.bytes(state.reclaimableBytes)}"
+        else -> groups(state.groupCount) + SEPARATOR + Format.bytes(state.reclaimableBytes)
     }
 
+    @Composable
+    @ReadOnlyComposable
     fun scanProgress(progress: HashProgress): String {
-        val phase = when (progress.phase) {
-            HashPhase.QUICK -> "Gyors összevetés"
-            HashPhase.FULL -> "Pontos ellenőrzés"
-            HashPhase.PERCEPTUAL -> "Hasonló képek keresése"
-            HashPhase.IDLE -> "Keresés indul"
-            HashPhase.DONE -> "Csoportosítás"
-        }
+        val phase = stringResource(
+            when (progress.phase) {
+                HashPhase.QUICK -> R.string.dedup_phase_quick
+                HashPhase.FULL -> R.string.dedup_phase_full
+                HashPhase.PERCEPTUAL -> R.string.dedup_phase_perceptual
+                HashPhase.IDLE -> R.string.dedup_phase_idle
+                HashPhase.DONE -> R.string.dedup_phase_done
+            },
+        )
         if (progress.total <= 0) return phase
-        return "$phase · ${Format.count(progress.done)} / ${Format.count(progress.total)}"
+        return "$phase$SEPARATOR${Format.count(progress.done)} / ${Format.count(progress.total)}"
     }
 
+    @Composable
+    @ReadOnlyComposable
     fun emptyText(lastScanAt: Long, now: Long): String =
-        "Nem találtunk egyforma vagy nagyon hasonló képeket. ${lastScanSentence(lastScanAt, now)}"
+        stringResource(R.string.dedup_empty_text, lastScanSentence(lastScanAt, now))
 
+    @Composable
+    @ReadOnlyComposable
     fun lastScanSentence(lastScanAt: Long, now: Long): String {
-        if (lastScanAt <= 0L) return "Még nem kerestünk."
+        if (lastScanAt <= 0L) return stringResource(R.string.dedup_last_scan_never)
         val days = (now - lastScanAt) / DAY_MILLIS
         return when {
-            days <= 0L -> "Utoljára ma kerestünk."
-            days == 1L -> "Utoljára tegnap kerestünk."
-            else -> "Utoljára ${Format.count(days)} napja kerestünk."
+            days <= 0L -> stringResource(R.string.dedup_last_scan_today)
+            days == 1L -> stringResource(R.string.dedup_last_scan_yesterday)
+            else -> pluralStringResource(R.plurals.dedup_last_scan_days, days.toInt(), Format.count(days))
         }
     }
 
+    @Composable
+    @ReadOnlyComposable
+    private fun groups(count: Int): String = pluralStringResource(R.plurals.dedup_groups, count, Format.count(count))
+
+    private const val SEPARATOR = " · "
     private const val DAY_MILLIS = 24L * 60 * 60 * 1000
 }

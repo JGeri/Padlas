@@ -7,11 +7,13 @@ import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import hu.padlas.core.common.di.IoDispatcher
+import hu.padlas.core.common.format.Format
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.dao.DupDao
 import hu.padlas.core.database.entity.AuditAction
 import hu.padlas.core.database.entity.AuditEntry
+import hu.padlas.feature.dedup.R
 import hu.padlas.feature.dedup.group.DupCandidate
 import hu.padlas.feature.dedup.group.DupGrouper
 import hu.padlas.feature.dedup.group.toDupCandidate
@@ -43,13 +45,21 @@ class DupWorker @AssistedInject constructor(
             val now = System.currentTimeMillis()
             val grouping = grouper.group(loadCandidates(), now)
             dupDao.replaceAll(grouping.groups, grouping.members)
-            record(now, grouping.exactReclaimableBytes, "${grouping.groups.size} csoport, ${grouping.exactLoserCount} azonos másolat")
+            record(now, grouping.exactReclaimableBytes, note(grouping.groups.size, grouping.exactLoserCount))
             Result.success()
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (failure: Exception) {
             if (runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.failure()
         }
+    }
+
+    /** The log shows the note as it was written, in the language the app ran in at the time. */
+    private fun note(groupCount: Int, identicalCount: Int): String {
+        val resources = applicationContext.resources
+        val groups = resources.getQuantityString(R.plurals.dedup_groups, groupCount, Format.count(groupCount))
+        val identical = resources.getQuantityString(R.plurals.dedup_log_identical, identicalCount, Format.count(identicalCount))
+        return "$groups, $identical"
     }
 
     /**

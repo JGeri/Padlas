@@ -52,10 +52,10 @@ class PadlasApp : Application(), Configuration.Provider, SingletonImageLoader.Fa
         val manager = getSystemService(NotificationManager::class.java) ?: return
         val channel = NotificationChannel(
             WORK_CHANNEL_ID,
-            getString(R.string.work_channel_name),
+            getString(R.string.app_work_channel_name),
             NotificationManager.IMPORTANCE_LOW,
         ).apply {
-            description = getString(R.string.work_channel_description)
+            description = getString(R.string.app_work_channel_description)
             setShowBadge(false)
         }
         manager.createNotificationChannel(channel)

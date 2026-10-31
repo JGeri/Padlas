@@ -1,6 +1,7 @@
 package hu.padlas.main
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.animateColorAsState
@@ -56,11 +57,13 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import hu.padlas.R
 import hu.padlas.core.design.component.frosted
 import hu.padlas.core.design.component.glass
 import hu.padlas.core.design.motion.LocalReducedMotion
@@ -76,10 +79,10 @@ import hu.padlas.feature.sort.setup.SwipeHomeRoute
 import hu.padlas.home.HomeRoute
 import hu.padlas.home.Tool
 
-enum class MainTab(val label: String, val icon: ImageVector, val selectedIcon: ImageVector) {
-    HOME("Áttekintés", Icons.Outlined.SpaceDashboard, Icons.Rounded.SpaceDashboard),
-    SWIPE("Válogatás", Icons.Outlined.Swipe, Icons.Rounded.Swipe),
-    STORAGE("Tárhely", Icons.Outlined.DonutLarge, Icons.Rounded.DonutLarge),
+enum class MainTab(@StringRes val label: Int, val icon: ImageVector, val selectedIcon: ImageVector) {
+    HOME(R.string.app_tab_overview, Icons.Outlined.SpaceDashboard, Icons.Rounded.SpaceDashboard),
+    SWIPE(R.string.app_tab_sort, Icons.Outlined.Swipe, Icons.Rounded.Swipe),
+    STORAGE(R.string.app_tab_storage, Icons.Outlined.DonutLarge, Icons.Rounded.DonutLarge),
 }
 
 private val BarHeight = 68.dp
@@ -251,7 +254,7 @@ private fun FloatingTabBar(selected: MainTab, onSelect: (MainTab) -> Unit, modif
                             .scale(1f + 0.12f * lift),
                     )
                     Spacer(Modifier.height(3.dp))
-                    Text(text = tab.label, style = PadlasTheme.type.micro, color = tint)
+                    Text(text = stringResource(tab.label), style = PadlasTheme.type.micro, color = tint)
                 }
             }
         }

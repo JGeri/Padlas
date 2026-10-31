@@ -18,6 +18,7 @@ import hu.padlas.core.database.entity.AuditEntry
 import hu.padlas.core.database.entity.DupKind
 import hu.padlas.core.database.model.DupGroupWithMembers
 import hu.padlas.core.media.MediaOps
+import hu.padlas.feature.dedup.R
 import hu.padlas.feature.dedup.group.isProtected
 import hu.padlas.feature.dedup.group.toDupCandidate
 import hu.padlas.feature.dedup.hash.HashPipeline
@@ -170,6 +171,8 @@ internal class DedupViewModel @Inject constructor(
         val ids = batch.losers.map { it.first }
         trashed += ids
         marks.update { all -> all - batch.groupIds.toSet() }
+        // The log shows the note as it was written, so it goes in the language of the moment.
+        val note = context.getString(R.string.dedup_log_extra_copy)
         viewModelScope.launch {
             // The files are in the bin either way; a failed write (a full disk) is left for
             // the next scan to square instead of taking the screen down.
@@ -186,7 +189,7 @@ internal class DedupViewModel @Inject constructor(
                                 assetId = assetId,
                                 sizeBytes = sizeBytes,
                                 reversible = true,
-                                note = "duplikátum-vesztes",
+                                note = note,
                             )
                         },
                     )

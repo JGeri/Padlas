@@ -31,6 +31,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -40,6 +41,7 @@ import hu.padlas.core.design.component.LinearMeter
 import hu.padlas.core.design.component.PadlasCard
 import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.RollingNumber
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.haptics
@@ -50,6 +52,7 @@ import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.ProgressGradient
 import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
+import hu.padlas.feature.transcode.R
 import hu.padlas.feature.transcode.data.TranscodeMath
 import hu.padlas.feature.transcode.data.VideoItem
 
@@ -139,7 +142,7 @@ internal fun VideoCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = item.failureReason ?: "A tömörítés megszakadt.",
+                        text = item.failureReason?.asString() ?: stringResource(R.string.transcode_failed_default),
                         style = PadlasTheme.type.caption,
                         color = Ink.Danger,
                         maxLines = 2,
@@ -147,7 +150,7 @@ internal fun VideoCard(
                         modifier = Modifier.weight(1f),
                     )
                     PadlasTextButton(
-                        text = "Újra",
+                        text = stringResource(R.string.transcode_retry),
                         onClick = onRetry,
                         icon = Icons.Rounded.Refresh,
                         modifier = Modifier.heightIn(min = 44.dp),
@@ -235,7 +238,7 @@ private fun Saving(item: VideoItem, done: Boolean, flash: Float) {
             color = color,
         )
         Text(
-            text = if (done) "megspórolva" else "várható",
+            text = stringResource(if (done) R.string.transcode_saved else R.string.transcode_expected),
             style = PadlasTheme.type.micro,
             color = Ink.TextTertiary,
             maxLines = 1,
@@ -247,17 +250,21 @@ private fun Saving(item: VideoItem, done: Boolean, flash: Float) {
 private fun StatusLine(item: VideoItem, progress: Float?) {
     val (text, color) = when (item.state) {
         JobState.RUNNING -> (
-            if (progress != null && progress > 0f) "Tömörítés · ${Format.percent(progress)}" else "Tömörítés…"
+            if (progress != null && progress > 0f) {
+                stringResource(R.string.transcode_status_running_percent, Format.percent(progress))
+            } else {
+                stringResource(R.string.transcode_status_running)
+            }
             ) to Ink.Accent
-        JobState.PENDING -> "Sorra kerül" to Ink.TextTertiary
-        JobState.FAILED -> "Nem sikerült" to Ink.Danger
+        JobState.PENDING -> stringResource(R.string.transcode_status_pending) to Ink.TextTertiary
+        JobState.FAILED -> stringResource(R.string.transcode_status_failed) to Ink.Danger
         JobState.SUCCEEDED -> if (item.published) {
-            "Kész · az eredeti még helyet foglal" to Ink.Warning
+            stringResource(R.string.transcode_status_published) to Ink.Warning
         } else {
-            "Kész · cserére vár" to Ink.Success
+            stringResource(R.string.transcode_status_done) to Ink.Success
         }
-        JobState.CANCELLED -> "Leállítva" to Ink.TextTertiary
-        null -> "Tömöríthető" to Ink.TextTertiary
+        JobState.CANCELLED -> stringResource(R.string.transcode_status_cancelled) to Ink.TextTertiary
+        null -> stringResource(R.string.transcode_status_candidate) to Ink.TextTertiary
     }
     Text(text = text, style = PadlasTheme.type.caption, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }

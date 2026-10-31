@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="transcode_title">Large videos</string>
+    <string name="transcode_subtitle_hot">Paused · the phone is warm</string>
+    <string name="transcode_in_progress">Compression in progress</string>
+    <plurals name="transcode_videos">
+        <item quantity="one">%1$s video</item>
+        <item quantity="other">%1$s videos</item>
+    </plurals>
+    <string name="transcode_stop">Stop compression</string>
+    <string name="transcode_start">Start compression</string>
+    <plurals name="transcode_bar_noun">
+        <item quantity="one">video</item>
+        <item quantity="other">videos</item>
+    </plurals>
+    <string name="transcode_approx">about</string>
+
+    <string name="transcode_empty_title">No large videos</string>
+    <string name="transcode_empty_text">Videos larger than %1$s show up here. There are none on the phone right now.</string>
+
+    <string name="transcode_hero_label">Can be saved</string>
+    <string name="transcode_hero_caption">Compressed, they come out about half the size, and the quality barely changes to the eye. It runs only while charging, so it doesn\'t drain the phone.</string>
+    <plurals name="transcode_saved_so_far">
+        <item quantity="one">%1$s saved so far · %2$s video</item>
+        <item quantity="other">%1$s saved so far · %2$s videos</item>
+    </plurals>
+    <string name="transcode_list_title">Videos, largest first</string>
+
+    <string name="transcode_hot_title">Paused because the phone is warm</string>
+    <string name="transcode_hot_text">It picks up again on its own once the phone cools down, so the phone doesn\'t slow down or heat up further.</string>
+    <plurals name="transcode_remaining">
+        <item quantity="one">%1$s more video to go</item>
+        <item quantity="other">%1$s more videos to go</item>
+    </plurals>
+    <string name="transcode_last">The last video is in progress</string>
+    <string name="transcode_starting">Starting</string>
+    <string name="transcode_charger_title">Starts once plugged in</string>
+    <string name="transcode_charger_text">Compression runs only while charging, with a healthy battery. Leave the phone on the charger overnight.</string>
+    <plurals name="transcode_queued_title">
+        <item quantity="one">%1$s video waiting in the queue</item>
+        <item quantity="other">%1$s videos waiting in the queue</item>
+    </plurals>
+    <string name="transcode_queued_text">Start compression, and they finish one by one while the phone charges.</string>
+
+    <plurals name="transcode_finished">
+        <item quantity="one">%1$s video is ready</item>
+        <item quantity="other">%1$s videos are ready</item>
+    </plurals>
+    <string name="transcode_originals_waiting">The originals still take up space</string>
+    <string name="transcode_replace_text">Replace the originals with the compressed versions. The old ones go to the trash.</string>
+    <string name="transcode_pending_removal_text">%1$s is freed once the old copies go to the trash.</string>
+    <string name="transcode_replace">Replace originals</string>
+    <string name="transcode_trash_originals">Move originals to trash</string>
+
+    <string name="transcode_failed_default">Compression was interrupted.</string>
+    <string name="transcode_retry">Retry</string>
+    <string name="transcode_saved">saved</string>
+    <string name="transcode_expected">estimated</string>
+    <string name="transcode_status_running">Compressing…</string>
+    <string name="transcode_status_running_percent">Compressing · %1$s</string>
+    <string name="transcode_status_pending">Queued</string>
+    <string name="transcode_status_failed">Failed</string>
+    <string name="transcode_status_published">Done · the original still takes up space</string>
+    <string name="transcode_status_done">Done · ready to replace</string>
+    <string name="transcode_status_cancelled">Stopped</string>
+    <string name="transcode_status_candidate">Can be compressed</string>
+
+    <string name="transcode_notification_title">Compressing videos</string>
+    <string name="transcode_notification_starting">Starting compression</string>
+
+    <string name="transcode_failure_missing_asset">The original video is gone.</string>
+    <string name="transcode_failure_no_gain">Compression didn\'t make it any smaller.</string>
+    <string name="transcode_failure_retrial_failed">The output failed the check.</string>
+    <string name="transcode_failure_missing_output">The output file wasn\'t created.</string>
+    <string name="transcode_failure_truncated">The output is shorter than the original.</string>
+    <string name="transcode_failure_no_video_track">The output has no video track.</string>
+    <string name="transcode_failure_no_frame">Couldn\'t get a frame out of the output.</string>
+    <string name="transcode_failure_unreadable">The output can\'t be read back.</string>
+    <string name="transcode_failure_empty_output">The output file came out empty.</string>
+    <string name="transcode_failure_encoder_refused">The hardware encoder refused the file.</string>
+</resources>

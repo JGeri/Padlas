@@ -7,6 +7,8 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.PluralsRes
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -69,6 +71,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -76,7 +80,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import hu.padlas.R
 import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiPlural
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.design.component.ButtonSize
 import hu.padlas.core.design.component.ButtonStyle
 import hu.padlas.core.design.component.GaugeSegment
@@ -91,6 +99,7 @@ import hu.padlas.core.design.component.ProgressStrip
 import hu.padlas.core.design.component.SectionHeader
 import hu.padlas.core.design.component.StaggeredColumnItem
 import hu.padlas.core.design.component.StorageGauge
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.component.drawGlow
 import hu.padlas.core.design.component.glass
 import hu.padlas.core.design.motion.LocalReducedMotion
@@ -164,12 +173,12 @@ fun HomeRoute(
         item(key = "header") {
             StaggeredColumnItem(0) {
                 LargeHeader(
-                    title = "Padlás",
+                    title = stringResource(R.string.app_name),
                     subtitle = headerLine(state),
                     actions = {
                         PadlasIconButton(
                             icon = Icons.Rounded.Settings,
-                            contentDescription = "Beállítások",
+                            contentDescription = stringResource(R.string.home_settings),
                             onClick = { onOpen(Tool.SETTINGS, "tool-SETTINGS") },
                             modifier = Modifier.morphBounds("tool-SETTINGS"),
                         )
@@ -201,7 +210,11 @@ fun HomeRoute(
                 PadlasCard(modifier = Modifier.fillMaxWidth().animateItem()) {
                     ProgressStrip(
                         fraction = scanning.fraction,
-                        label = "Galéria beolvasása · ${Format.count(scanning.scanned)} / ${Format.count(scanning.total)}",
+                        label = stringResource(
+                            R.string.home_indexing,
+                            Format.count(scanning.scanned),
+                            Format.count(scanning.total),
+                        ),
                     )
                 }
             }
@@ -218,7 +231,7 @@ fun HomeRoute(
         }
 
         if (wins.isNotEmpty()) {
-            item(key = "wins-title") { StaggeredColumnItem(3) { SectionHeader(title = "Gyors nyereség") } }
+            item(key = "wins-title") { StaggeredColumnItem(3) { SectionHeader(title = stringResource(R.string.home_wins_title)) } }
             wins.chunked(2).forEachIndexed { index, row ->
                 item(key = "wins-$index") {
                     StaggeredColumnItem(4 + index) {
@@ -236,8 +249,8 @@ fun HomeRoute(
         if (state.device.oneDriveRisk) {
             item(key = "onedrive") {
                 ListRow(
-                    title = "A OneDrive-szinkron be lehet kapcsolva",
-                    subtitle = "Ilyenkor a helyi törlés a felhőből is törölhet. Törlés előtt kapcsold ki a Samsung Galéria szinkronját.",
+                    title = stringResource(R.string.home_onedrive_title),
+                    subtitle = stringResource(R.string.home_onedrive_text),
                     icon = Icons.Rounded.Warning,
                     iconTint = Ink.Warning,
                     showChevron = false,
@@ -245,7 +258,7 @@ fun HomeRoute(
             }
         }
 
-        item(key = "tools-title") { StaggeredColumnItem(7) { SectionHeader(title = "Eszközök") } }
+        item(key = "tools-title") { StaggeredColumnItem(7) { SectionHeader(title = stringResource(R.string.home_tools_title)) } }
         tools.chunked(2).forEachIndexed { index, row ->
             item(key = "tools-$index") {
                 StaggeredColumnItem(8 + index) {
@@ -261,9 +274,14 @@ fun HomeRoute(
     }
 }
 
+@Composable
 private fun headerLine(state: HomeUiState): String {
     val total = state.photoCount + state.videoCount
-    return if (total > 0) "${Format.count(total)} fotó és videó" else "Tárhely és galéria egy helyen"
+    return if (total > 0) {
+        pluralStringResource(R.plurals.home_header_count, total, Format.count(total))
+    } else {
+        stringResource(R.string.home_header_empty)
+    }
 }
 
 @Composable
@@ -272,23 +290,19 @@ private fun AccessHero(partial: Boolean, onGrant: () -> Unit, onOpenSettings: ()
         Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
             IconBubble(icon = Icons.Rounded.PhotoLibrary, tint = Ink.Accent, size = 48.dp, iconSize = 24.dp)
             Text(
-                text = if (partial) "Csak néhány fotót látok" else "Engedd meg a fotók elérését",
+                text = stringResource(if (partial) R.string.home_access_partial_title else R.string.home_access_title),
                 style = PadlasTheme.type.title,
                 color = Ink.Text,
             )
             Text(
-                text = if (partial) {
-                    "Most csak a kiválasztott képekhez férek hozzá. A teljes válogatáshoz és a javaslatokhoz minden fotó és videó kell."
-                } else {
-                    "A válogatáshoz és a takarítási javaslatokhoz látnom kell a fotóidat és videóidat. Semmi nem hagyja el a telefont."
-                },
+                text = stringResource(if (partial) R.string.home_access_partial_text else R.string.home_access_text),
                 style = PadlasTheme.type.body,
                 color = Ink.TextSecondary,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
-                PadlasButton(text = "Hozzáférés", onClick = onGrant, size = ButtonSize.Medium, modifier = Modifier.weight(1f))
+                PadlasButton(text = stringResource(R.string.home_access_grant), onClick = onGrant, size = ButtonSize.Medium, modifier = Modifier.weight(1f))
                 PadlasButton(
-                    text = "Beállítások",
+                    text = stringResource(R.string.home_settings),
                     onClick = onOpenSettings,
                     style = ButtonStyle.Secondary,
                     size = ButtonSize.Medium,
@@ -302,10 +316,13 @@ private fun AccessHero(partial: Boolean, onGrant: () -> Unit, onOpenSettings: ()
 @Composable
 private fun StorageHero(state: HomeUiState, onAnalyze: () -> Unit) {
     val volume = state.device.volume
+    val photos = stringResource(R.string.home_photos)
+    val videos = stringResource(R.string.home_videos)
+    val other = stringResource(R.string.home_other)
     val segments = listOf(
-        GaugeSegment("Fotók", state.photoBytes, CategoryColor.Photos),
-        GaugeSegment("Videók", state.videoBytes, CategoryColor.Videos),
-        GaugeSegment("Minden más", state.otherBytes, CategoryColor.Apps),
+        GaugeSegment(photos, state.photoBytes, CategoryColor.Photos),
+        GaugeSegment(videos, state.videoBytes, CategoryColor.Videos),
+        GaugeSegment(other, state.otherBytes, CategoryColor.Apps),
     )
     PadlasCard(modifier = Modifier.fillMaxWidth(), onClick = onAnalyze, contentPadding = 18.dp, shape = Shapes.hero) {
         Column {
@@ -320,21 +337,25 @@ private fun StorageHero(state: HomeUiState, onAnalyze: () -> Unit) {
                 )
                 Spacer(Modifier.width(18.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
-                    LegendLine("Fotók", Format.bytes(state.photoBytes), CategoryColor.Photos)
-                    LegendLine("Videók", Format.bytes(state.videoBytes), CategoryColor.Videos)
-                    LegendLine("Minden más", Format.bytes(state.otherBytes), CategoryColor.Apps)
-                    LegendLine("Összesen", Format.bytes(volume.totalBytes), Ink.TextTertiary)
+                    LegendLine(photos, Format.bytes(state.photoBytes), CategoryColor.Photos)
+                    LegendLine(videos, Format.bytes(state.videoBytes), CategoryColor.Videos)
+                    LegendLine(other, Format.bytes(state.otherBytes), CategoryColor.Apps)
+                    LegendLine(stringResource(R.string.home_total), Format.bytes(volume.totalBytes), Ink.TextTertiary)
                 }
             }
             Spacer(Modifier.height(Space.m))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = if (volume.totalBytes > 0) "${(volume.usedBytes * 100 / volume.totalBytes)}% foglalt" else "Mérés…",
+                    text = if (volume.totalBytes > 0) {
+                        stringResource(R.string.home_used, Format.percent((volume.usedBytes * 100 / volume.totalBytes) / 100f))
+                    } else {
+                        stringResource(R.string.home_measuring)
+                    },
                     style = PadlasTheme.type.caption,
                     color = Ink.TextSecondary,
                     modifier = Modifier.weight(1f),
                 )
-                Text(text = "Tárhely elemzése", style = PadlasTheme.type.label, color = Ink.Accent)
+                Text(text = stringResource(R.string.home_analyze), style = PadlasTheme.type.label, color = Ink.Accent)
                 Spacer(Modifier.width(4.dp))
                 Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, tint = Ink.Accent, modifier = Modifier.size(16.dp))
             }
@@ -401,10 +422,10 @@ private fun SwipeHero(state: HomeUiState, onStart: () -> Unit, onPending: () -> 
             PhotoFan(state.newest.map { MediaThumb(Uri.parse(it.uri), 256) })
             Spacer(Modifier.width(18.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = "Válogass swipe-pal", style = PadlasTheme.type.title, color = Ink.Text)
+                Text(text = stringResource(R.string.home_swipe_title), style = PadlasTheme.type.title, color = Ink.Text)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Balra törlés, jobbra marad, felfelé kedvenc",
+                    text = stringResource(R.string.home_swipe_hint),
                     style = PadlasTheme.type.caption,
                     color = Ink.TextSecondary,
                 )
@@ -417,9 +438,9 @@ private fun SwipeHero(state: HomeUiState, onStart: () -> Unit, onPending: () -> 
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = if (state.reviewable > 0) {
-                        "${Format.count(state.reviewed)} / ${Format.count(state.reviewable)} átnézve"
+                        stringResource(R.string.home_reviewed, Format.count(state.reviewed), Format.count(state.reviewable))
                     } else {
-                        "Még nincs mit átnézni"
+                        stringResource(R.string.home_nothing_to_review)
                     },
                     style = PadlasTheme.type.micro,
                     color = Ink.TextSecondary,
@@ -440,7 +461,12 @@ private fun SwipeHero(state: HomeUiState, onStart: () -> Unit, onPending: () -> 
                 Icon(Icons.Rounded.Delete, contentDescription = null, tint = Ink.Danger, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "${Format.count(state.pending.itemCount)} elem vár törlésre · ${Format.bytes(state.pending.totalBytes)}",
+                    text = pluralStringResource(
+                        R.plurals.home_pending,
+                        state.pending.itemCount,
+                        Format.count(state.pending.itemCount),
+                        Format.bytes(state.pending.totalBytes),
+                    ),
                     style = PadlasTheme.type.label,
                     color = Ink.Text,
                     modifier = Modifier.weight(1f),
@@ -486,7 +512,7 @@ private fun PhotoFan(thumbs: List<MediaThumb>) {
 private data class Win(
     val tool: Tool,
     val value: String,
-    val label: String,
+    val label: UiText,
     val icon: ImageVector,
     val tint: Color,
     val weight: Long,
@@ -494,21 +520,23 @@ private data class Win(
 
 private fun winsOf(state: HomeUiState): List<Win> = buildList {
     if (state.duplicates.itemCount > 0) {
-        add(Win(Tool.DUPLICATES, Format.bytes(state.duplicates.totalBytes), "${Format.count(state.duplicates.itemCount)} duplikátum", Icons.Rounded.ContentCopy, Ink.Accent, state.duplicates.totalBytes))
+        add(Win(Tool.DUPLICATES, Format.bytes(state.duplicates.totalBytes), counted(R.plurals.home_win_duplicates, state.duplicates.itemCount), Icons.Rounded.ContentCopy, Ink.Accent, state.duplicates.totalBytes))
     }
     if (state.discardable.itemCount > 0) {
-        add(Win(Tool.DISCARD, Format.bytes(state.discardable.totalBytes), "${Format.count(state.discardable.itemCount)} eldobható kép", Icons.Rounded.Screenshot, Ink.Warning, state.discardable.totalBytes))
+        add(Win(Tool.DISCARD, Format.bytes(state.discardable.totalBytes), counted(R.plurals.home_win_discard, state.discardable.itemCount), Icons.Rounded.Screenshot, Ink.Warning, state.discardable.totalBytes))
     }
     if (state.largeVideos.itemCount > 0) {
-        add(Win(Tool.VIDEOS, Format.bytes(state.largeVideos.totalBytes), "${Format.count(state.largeVideos.itemCount)} nagy videó", Icons.Rounded.VideoLibrary, CategoryColor.Videos, state.largeVideos.totalBytes / 2))
+        add(Win(Tool.VIDEOS, Format.bytes(state.largeVideos.totalBytes), counted(R.plurals.home_win_videos, state.largeVideos.itemCount), Icons.Rounded.VideoLibrary, CategoryColor.Videos, state.largeVideos.totalBytes / 2))
     }
     if (state.trashTotal > 0) {
-        add(Win(Tool.TRASH, Format.bytes(state.trashTotal), "a kukában", Icons.Rounded.DeleteSweep, Ink.Danger, state.trashTotal))
+        add(Win(Tool.TRASH, Format.bytes(state.trashTotal), uiText(R.string.home_win_trash), Icons.Rounded.DeleteSweep, Ink.Danger, state.trashTotal))
     }
     if (state.oldPhotos.itemCount > 0) {
-        add(Win(Tool.OLD_PHOTOS, Format.bytes(state.oldPhotos.totalBytes), "${Format.count(state.oldPhotos.itemCount)} régi fotó", Icons.Rounded.CalendarMonth, Ink.Info, state.oldPhotos.totalBytes / 4))
+        add(Win(Tool.OLD_PHOTOS, Format.bytes(state.oldPhotos.totalBytes), counted(R.plurals.home_win_old_photos, state.oldPhotos.itemCount), Icons.Rounded.CalendarMonth, Ink.Info, state.oldPhotos.totalBytes / 4))
     }
 }.sortedByDescending { it.weight }
+
+private fun counted(@PluralsRes id: Int, count: Int): UiText = uiPlural(id, count, Format.count(count))
 
 @Composable
 private fun WinTile(win: Win, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -521,23 +549,29 @@ private fun WinTile(win: Win, onClick: () -> Unit, modifier: Modifier = Modifier
             IconBubble(icon = win.icon, tint = win.tint, size = 38.dp, iconSize = 19.dp)
             Spacer(Modifier.height(12.dp))
             Text(text = win.value, style = PadlasTheme.type.numericLarge, color = Ink.Text, maxLines = 1)
-            Text(text = win.label, style = PadlasTheme.type.caption, color = Ink.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text = win.label.asString(), style = PadlasTheme.type.caption, color = Ink.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
 
-private data class ToolEntry(val tool: Tool, val title: String, val subtitle: String, val icon: ImageVector, val tint: Color)
+private data class ToolEntry(
+    val tool: Tool,
+    @StringRes val title: Int,
+    @StringRes val subtitle: Int,
+    val icon: ImageVector,
+    val tint: Color,
+)
 
 private val tools = listOf(
-    ToolEntry(Tool.STORAGE, "Tárhely-elemző", "Mi foglalja a helyet", Icons.Rounded.DonutLarge, Ink.Accent),
-    ToolEntry(Tool.DUPLICATES, "Duplikátumok", "Azonos és hasonló képek", Icons.Rounded.ContentCopy, Ink.Info),
-    ToolEntry(Tool.VIDEOS, "Nagy videók", "Tömörítés minőségvesztés nélkül", Icons.Rounded.VideoLibrary, CategoryColor.Videos),
-    ToolEntry(Tool.DISCARD, "Eldobható képek", "Képernyőképek és letöltések", Icons.Rounded.Screenshot, Ink.Warning),
-    ToolEntry(Tool.BROWSE, "Böngészés", "Mappák és hónapok rácsban", Icons.Rounded.FolderOpen, CategoryColor.Documents),
-    ToolEntry(Tool.TRASH, "Kuka", "Visszaállítás vagy ürítés", Icons.Rounded.DeleteSweep, Ink.Danger),
-    ToolEntry(Tool.CLOUD, "Felhő archívum", "Mentés Google Drive-ra", Icons.Rounded.CloudUpload, CategoryColor.Cloud),
-    ToolEntry(Tool.RULES, "Szabályok", "Automatikus rendrakás", Icons.AutoMirrored.Rounded.Rule, Ink.Success),
-    ToolEntry(Tool.LOG, "Napló", "Minden művelet visszanézhető", Icons.Rounded.History, Ink.TextSecondary),
+    ToolEntry(Tool.STORAGE, R.string.home_tool_storage, R.string.home_tool_storage_text, Icons.Rounded.DonutLarge, Ink.Accent),
+    ToolEntry(Tool.DUPLICATES, R.string.home_tool_duplicates, R.string.home_tool_duplicates_text, Icons.Rounded.ContentCopy, Ink.Info),
+    ToolEntry(Tool.VIDEOS, R.string.home_tool_videos, R.string.home_tool_videos_text, Icons.Rounded.VideoLibrary, CategoryColor.Videos),
+    ToolEntry(Tool.DISCARD, R.string.home_tool_discard, R.string.home_tool_discard_text, Icons.Rounded.Screenshot, Ink.Warning),
+    ToolEntry(Tool.BROWSE, R.string.home_tool_browse, R.string.home_tool_browse_text, Icons.Rounded.FolderOpen, CategoryColor.Documents),
+    ToolEntry(Tool.TRASH, R.string.home_tool_trash, R.string.home_tool_trash_text, Icons.Rounded.DeleteSweep, Ink.Danger),
+    ToolEntry(Tool.CLOUD, R.string.home_tool_cloud, R.string.home_tool_cloud_text, Icons.Rounded.CloudUpload, CategoryColor.Cloud),
+    ToolEntry(Tool.RULES, R.string.home_tool_rules, R.string.home_tool_rules_text, Icons.AutoMirrored.Rounded.Rule, Ink.Success),
+    ToolEntry(Tool.LOG, R.string.home_tool_log, R.string.home_tool_log_text, Icons.Rounded.History, Ink.TextSecondary),
 )
 
 @Composable
@@ -550,8 +584,8 @@ private fun ToolTile(tool: ToolEntry, onClick: () -> Unit, modifier: Modifier = 
         Column {
             IconBubble(icon = tool.icon, tint = tool.tint, size = 40.dp)
             Spacer(Modifier.height(12.dp))
-            Text(text = tool.title, style = PadlasTheme.type.bodyStrong, color = Ink.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(text = tool.subtitle, style = PadlasTheme.type.caption, color = Ink.TextSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(text = stringResource(tool.title), style = PadlasTheme.type.bodyStrong, color = Ink.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text = stringResource(tool.subtitle), style = PadlasTheme.type.caption, color = Ink.TextSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
 }

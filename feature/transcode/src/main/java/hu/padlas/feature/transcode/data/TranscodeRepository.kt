@@ -1,10 +1,13 @@
 package hu.padlas.feature.transcode.data
 
 import android.content.Context
+import android.content.res.Configuration
 import android.net.Uri
 import androidx.sqlite.db.SimpleSQLiteQuery
 import dagger.hilt.android.qualifiers.ApplicationContext
 import hu.padlas.core.common.di.IoDispatcher
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.dao.AssetDao
 import hu.padlas.core.database.dao.AuditDao
 import hu.padlas.core.database.dao.TranscodeJobDao
@@ -17,6 +20,7 @@ import hu.padlas.core.database.model.SizeAndCount
 import hu.padlas.core.media.MediaOps
 import hu.padlas.core.media.MediaStoreScanner
 import java.io.File
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
@@ -86,7 +90,7 @@ class TranscodeRepository @Inject constructor(
             if (thermal.isThrottled()) return BatchOutcome(done, failed, paused = true)
             val asset = withContext(io) { assetDao.byId(job.assetId) }
             if (asset == null || !asset.isVideo) {
-                withContext(io) { jobDao.setState(job.assetId, JobState.FAILED, MISSING_ASSET, now()) }
+                withContext(io) { jobDao.setState(job.assetId, JobState.FAILED, TranscodeFailure.MISSING_ASSET.name, now()) }
                 failed++
                 return@repeat
             }
@@ -112,7 +116,7 @@ class TranscodeRepository @Inject constructor(
         val export = transcoder.transcode(request, onProgress)
         if (export is ExportOutcome.Failure) return fail(asset.mediaStoreId, output, export.reason)
         val produced = (export as ExportOutcome.Success).resultBytes
-        if (produced >= asset.sizeBytes) return fail(asset.mediaStoreId, output, NO_GAIN)
+        if (produced >= asset.sizeBytes) return fail(asset.mediaStoreId, output, TranscodeFailure.NO_GAIN.name)
         val trial = trialDecoder.verify(output, asset.durationMs ?: 0L)
         if (trial is TrialResult.Broken) return fail(asset.mediaStoreId, output, trial.reason)
         withContext(io) { jobDao.markSucceeded(asset.mediaStoreId, produced, output.absolutePath, now()) }
@@ -141,7 +145,7 @@ class TranscodeRepository @Inject constructor(
             val asset = assetDao.byId(assetId) ?: continue
             val trial = trialDecoder.verify(File(path), asset.durationMs ?: 0L)
             if (trial !is TrialResult.Playable) {
-                jobDao.setState(assetId, JobState.FAILED, RETRIAL_FAILED, now())
+                jobDao.setState(assetId, JobState.FAILED, TranscodeFailure.RETRIAL_FAILED.name, now())
                 continue
             }
             val published = publisher.publish(asset, File(path), trial) ?: continue
@@ -217,10 +221,22 @@ class TranscodeRepository @Inject constructor(
                 durationMs = asset.durationMs ?: 0L,
                 heightFraction = TranscodeMath.heightFraction(original, largest),
                 state = job?.state,
-                failureReason = job?.failureReason,
+                failureReason = job?.failureReason?.let(::failureText),
                 published = job?.outputPath?.startsWith(CONTENT_SCHEME) == true,
             )
         }
+    }
+
+    private fun failureText(stored: String): UiText {
+        val failure = TranscodeFailure.entries.firstOrNull { it.name == stored } ?: legacyFailures[stored]
+        return if (failure != null) uiText(failure.text) else UiText.Raw(stored)
+    }
+
+    /** Jobs that failed before reasons were stored by name hold the Hungarian sentence itself. */
+    private val legacyFailures: Map<String, TranscodeFailure> by lazy {
+        val hungarian = Configuration(context.resources.configuration).apply { setLocale(Locale.forLanguageTag("hu")) }
+        val resources = context.createConfigurationContext(hungarian).resources
+        TranscodeFailure.entries.associateBy { resources.getString(it.text) }
     }
 
     private fun cacheDir(): File = File(context.cacheDir, CACHE_DIR).apply { mkdirs() }
@@ -234,9 +250,6 @@ class TranscodeRepository @Inject constructor(
         const val CONTENT_SCHEME = "content://"
         const val OUTPUT_MIME = "video/mp4"
         const val OUTPUT_EXTENSION = ".mp4"
-        const val MISSING_ASSET = "Az eredeti videó eltűnt."
-        const val NO_GAIN = "A tömörítés nem hozott nyereséget."
-        const val RETRIAL_FAILED = "A kimenet az ellenőrzésnél megbukott."
         val VIDEO_QUERY = """
             SELECT * FROM asset
             WHERE mimeType LIKE 'video/%' AND state IN ('LOCAL', 'PROTECTED') AND sizeBytes > ?
@@ -254,7 +267,7 @@ data class VideoItem(
     val durationMs: Long,
     val heightFraction: Float,
     val state: JobState?,
-    val failureReason: String?,
+    val failureReason: UiText?,
     val published: Boolean,
 )
 

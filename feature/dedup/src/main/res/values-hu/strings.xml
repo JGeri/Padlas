@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dedup_title">Duplikátumok</string>
+    <string name="dedup_reclaimable">Felszabadítható</string>
+    <string name="dedup_keep_badge">Marad</string>
+    <string name="dedup_suggested_badge">Javasolt</string>
+    <string name="dedup_protected_badge">Védett</string>
+    <string name="dedup_will_trash">Kukába kerül</string>
+    <string name="dedup_view_mark">Ez mehet</string>
+    <string name="dedup_view_keep">Ezt tartom meg</string>
+    <string name="dedup_keep_suggested">Csak a javasolt marad</string>
+    <string name="dedup_review_hint">Koppints a képekre, amelyek mehetnek; amit nem jelölsz ki, az marad. Hosszan nyomva nagyban is megnézheted.</string>
+    <string name="dedup_all_action">Kijelöltek kukába</string>
+    <plurals name="dedup_bar_noun">
+        <item quantity="one">fájl kukába</item>
+        <item quantity="other">fájl kukába</item>
+    </plurals>
+    <string name="dedup_group_action">Kukába</string>
+    <string name="dedup_section_action">Mind kukába</string>
+    <string name="dedup_rescan">Keresés újra</string>
+    <string name="dedup_first_scan">Keresés indítása</string>
+    <string name="dedup_empty_title">Nincs duplikátum</string>
+    <string name="dedup_scanning_title">Duplikátumok keresése</string>
+    <string name="dedup_scanning_text">Átnézzük a galériát. Ez néhány percig is eltarthat, közben nyugodtan bezárhatod.</string>
+    <string name="dedup_trash_title">A kuka is helyet foglal</string>
+    <string name="dedup_trash_text">A kukába tett fájlok még 30 napig a telefonon maradnak, utána a rendszer törli őket.</string>
+
+    <string name="dedup_section_exact">Azonos</string>
+    <string name="dedup_section_burst">Sorozat</string>
+    <string name="dedup_section_similar">Hasonló</string>
+    <string name="dedup_lead_exact">Bájtra egyező másolatok. Egy példány marad, a többi nyugodtan mehet.</string>
+    <string name="dedup_lead_burst">Sorozatfelvételek. Egy fejfordítás vagy egy mosoly is lehet a különbség, ezért innen semmi nem megy magától: koppints arra, ami mehet. A legélesebbet javasoljuk megtartani.</string>
+    <string name="dedup_lead_similar">Hasonló, de nem egyforma képek. Innen semmi nem megy magától: koppints arra, ami mehet.</string>
+
+    <plurals name="dedup_group_exact">
+        <item quantity="one">%1$s egyforma fájl</item>
+        <item quantity="other">%1$s egyforma fájl</item>
+    </plurals>
+    <plurals name="dedup_group_burst">
+        <item quantity="one">%1$s képes sorozat</item>
+        <item quantity="other">%1$s képes sorozat</item>
+    </plurals>
+    <plurals name="dedup_group_similar">
+        <item quantity="one">%1$s hasonló kép</item>
+        <item quantity="other">%1$s hasonló kép</item>
+    </plurals>
+    <plurals name="dedup_group_extra">
+        <item quantity="one">%1$s felesleges · %2$s</item>
+        <item quantity="other">%1$s felesleges · %2$s</item>
+    </plurals>
+    <plurals name="dedup_groups">
+        <item quantity="one">%1$s csoport</item>
+        <item quantity="other">%1$s csoport</item>
+    </plurals>
+    <plurals name="dedup_files">
+        <item quantity="one">%1$s fájl</item>
+        <item quantity="other">%1$s fájl</item>
+    </plurals>
+    <plurals name="dedup_pictures">
+        <item quantity="one">%1$s kép</item>
+        <item quantity="other">%1$s kép</item>
+    </plurals>
+    <string name="dedup_selected">%1$s kijelölve</string>
+    <string name="dedup_nothing_selected">Semmi nincs kijelölve</string>
+    <string name="dedup_marked">%1$s kukába · %2$s</string>
+
+    <string name="dedup_hero_exact">%1$s %2$s: ezekből egy példány marad, a többi mehet.</string>
+    <plurals name="dedup_hero_copies">
+        <item quantity="one">%1$s bájtra egyező másolat</item>
+        <item quantity="other">%1$s bájtra egyező másolat</item>
+    </plurals>
+    <plurals name="dedup_hero_in_groups">
+        <item quantity="one">%1$s csoportban</item>
+        <item quantity="other">%1$s csoportban</item>
+    </plurals>
+    <plurals name="dedup_hero_review">
+        <item quantity="one">%1$s sorozat és hasonló csoport vár átnézésre; azokból csak az megy, amit te jelölsz ki.</item>
+        <item quantity="other">%1$s sorozat és hasonló csoport vár átnézésre; azokból csak az megy, amit te jelölsz ki.</item>
+    </plurals>
+    <string name="dedup_hero_zoom">Bármelyik képet megnézheted nagyban.</string>
+
+    <string name="dedup_searching">Keresés folyamatban</string>
+    <string name="dedup_phase_quick">Gyors összevetés</string>
+    <string name="dedup_phase_full">Pontos ellenőrzés</string>
+    <string name="dedup_phase_perceptual">Hasonló képek keresése</string>
+    <string name="dedup_phase_idle">Keresés indul</string>
+    <string name="dedup_phase_done">Csoportosítás</string>
+
+    <string name="dedup_empty_text">Nem találtunk egyforma vagy nagyon hasonló képeket. %1$s</string>
+    <string name="dedup_last_scan_never">Még nem kerestünk.</string>
+    <string name="dedup_last_scan_today">Utoljára ma kerestünk.</string>
+    <string name="dedup_last_scan_yesterday">Utoljára tegnap kerestünk.</string>
+    <plurals name="dedup_last_scan_days">
+        <item quantity="one">Utoljára %1$s napja kerestünk.</item>
+        <item quantity="other">Utoljára %1$s napja kerestünk.</item>
+    </plurals>
+
+    <string name="dedup_log_extra_copy">felesleges másolat</string>
+    <plurals name="dedup_log_identical">
+        <item quantity="one">%1$s azonos másolat</item>
+        <item quantity="other">%1$s azonos másolat</item>
+    </plurals>
+</resources>

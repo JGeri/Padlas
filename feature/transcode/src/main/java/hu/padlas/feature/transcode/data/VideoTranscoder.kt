@@ -35,7 +35,10 @@ data class TranscodeRequest(
 
 sealed interface ExportOutcome {
     data class Success(val resultBytes: Long, val durationMs: Long) : ExportOutcome
-    data class Failure(val reason: String) : ExportOutcome
+    /** [reason] is a [TranscodeFailure] name, or the encoder's own message. */
+    data class Failure(val reason: String) : ExportOutcome {
+        constructor(failure: TranscodeFailure) : this(failure.name)
+    }
 }
 
 /**
@@ -107,7 +110,7 @@ class VideoTranscoder @Inject constructor(@ApplicationContext private val contex
                 onSettled()
                 val bytes = request.output.length()
                 if (bytes <= 0L) {
-                    continuation.resume(ExportOutcome.Failure(EMPTY_OUTPUT))
+                    continuation.resume(ExportOutcome.Failure(TranscodeFailure.EMPTY_OUTPUT))
                     return
                 }
                 continuation.resume(ExportOutcome.Success(bytes, exportResult.durationMs))
@@ -119,7 +122,7 @@ class VideoTranscoder @Inject constructor(@ApplicationContext private val contex
                 exportException: ExportException,
             ) {
                 onSettled()
-                continuation.resume(ExportOutcome.Failure(exportException.message ?: ENCODER_REFUSED))
+                continuation.resume(ExportOutcome.Failure(exportException.message ?: TranscodeFailure.ENCODER_REFUSED.name))
             }
         }
         transformer.addListener(listener)
@@ -128,13 +131,11 @@ class VideoTranscoder @Inject constructor(@ApplicationContext private val contex
         runCatching { transformer.start(item, request.output.absolutePath) }
             .onFailure { failure ->
                 onSettled()
-                continuation.resume(ExportOutcome.Failure(failure.message ?: ENCODER_REFUSED))
+                continuation.resume(ExportOutcome.Failure(failure.message ?: TranscodeFailure.ENCODER_REFUSED.name))
             }
     }
 
     private companion object {
         const val PROGRESS_POLL_MS = 400L
-        const val EMPTY_OUTPUT = "A kimeneti fájl üres maradt."
-        const val ENCODER_REFUSED = "A hardveres enkóder visszautasította a fájlt."
     }
 }
