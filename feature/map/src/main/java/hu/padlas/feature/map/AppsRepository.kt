@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.graphics.drawable.toBitmap
 import dagger.hilt.android.qualifiers.ApplicationContext
 import hu.padlas.core.common.di.IoDispatcher
+import hu.padlas.core.media.DemoMode
 import hu.padlas.core.media.StorageProbe
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -53,7 +54,8 @@ internal class AppsRepository @Inject constructor(
     fun hasAccess(): Boolean = probe.hasUsageStatsPermission()
 
     suspend fun refresh(force: Boolean) {
-        if (!hasAccess()) {
+        // Screenshot mode shows mock files only; the owner's app list is not one of them.
+        if (!hasAccess() || DemoMode.folder(context) != null) {
             _apps.value = null
             return
         }

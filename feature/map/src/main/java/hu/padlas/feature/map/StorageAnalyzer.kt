@@ -9,6 +9,7 @@ import android.os.storage.StorageManager
 import androidx.compose.runtime.Immutable
 import dagger.hilt.android.qualifiers.ApplicationContext
 import hu.padlas.core.common.di.ApplicationScope
+import hu.padlas.core.media.DemoMode
 import hu.padlas.core.common.di.DefaultDispatcher
 import hu.padlas.core.common.di.IoDispatcher
 import java.nio.file.Files
@@ -90,7 +91,10 @@ internal class StorageAnalyzer @Inject constructor(
     /** FUSE answers several stat calls at once; past four the daemon itself is the queue. */
     private val walkDispatcher = io.limitedParallelism(PARALLELISM)
 
-    val rootPath: String by lazy { Environment.getExternalStorageDirectory().absolutePath.trimEnd('/') }
+    val rootPath: String by lazy {
+        val volume = Environment.getExternalStorageDirectory().absolutePath.trimEnd('/')
+        DemoMode.folder(context)?.let { "$volume/${it.trimEnd('/')}" } ?: volume
+    }
 
     private val isScanning: Boolean get() = scanJob?.isActive == true
 

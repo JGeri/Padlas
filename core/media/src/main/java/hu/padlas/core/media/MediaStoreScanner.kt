@@ -52,14 +52,21 @@ class MediaStoreCursorScanner @Inject constructor(
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : MediaStoreScanner {
 
+    /** Images and videos; in [DemoMode] only those under its folder. */
+    private val mediaSelection: String by lazy {
+        val demo = DemoMode.folder(context) ?: return@lazy MEDIA_SELECTION
+        MEDIA_SELECTION + " AND " + MediaStore.MediaColumns.RELATIVE_PATH + " LIKE '" +
+            demo.replace("'", "''") + "%'"
+    }
+
     override fun scan(sinceDateModified: Long): Flow<List<Asset>> = flow {
         val seenAt = System.currentTimeMillis()
         var batch = ArrayList<Asset>(MediaStoreScanner.BATCH_SIZE)
         val incremental = sinceDateModified > 0L
         val selection = if (incremental) {
-            MEDIA_SELECTION + " AND " + MediaStore.Files.FileColumns.DATE_MODIFIED + " > ?"
+            mediaSelection + " AND " + MediaStore.Files.FileColumns.DATE_MODIFIED + " > ?"
         } else {
-            MEDIA_SELECTION
+            mediaSelection
         }
         val args = if (incremental) arrayOf(sinceDateModified.toString()) else null
         val order = MediaStore.Files.FileColumns._ID + " ASC"
@@ -81,7 +88,7 @@ class MediaStoreCursorScanner @Inject constructor(
     override fun scanIds(ids: Collection<Long>): Flow<List<Asset>> = flow {
         val seenAt = System.currentTimeMillis()
         for (chunk in ids.chunked(ID_CHUNK)) {
-            val selection = MEDIA_SELECTION + " AND " + MediaStore.Files.FileColumns._ID +
+            val selection = mediaSelection + " AND " + MediaStore.Files.FileColumns._ID +
                 " IN (" + chunk.joinToString(",") { "?" } + ")"
             val batch = ArrayList<Asset>(chunk.size)
             query(PROJECTION, selection, chunk.map { it.toString() }.toTypedArray(), null)?.use { cursor ->
@@ -98,7 +105,7 @@ class MediaStoreCursorScanner @Inject constructor(
     override suspend fun currentIds(): Set<Long> = withContext(io) {
         val ids = HashSet<Long>()
         val projection = arrayOf(MediaStore.Files.FileColumns._ID)
-        query(projection, MEDIA_SELECTION, null, null)?.use { cursor ->
+        query(projection, mediaSelection, null, null)?.use { cursor ->
             val index = cursor.getColumnIndex(MediaStore.Files.FileColumns._ID)
             while (cursor.moveToNext()) {
                 currentCoroutineContext().ensureActive()
@@ -109,7 +116,7 @@ class MediaStoreCursorScanner @Inject constructor(
     }
 
     override suspend fun assetById(mediaStoreId: Long): Asset? = withContext(io) {
-        val selection = MEDIA_SELECTION + " AND " + MediaStore.Files.FileColumns._ID + " = ?"
+        val selection = mediaSelection + " AND " + MediaStore.Files.FileColumns._ID + " = ?"
         query(PROJECTION, selection, arrayOf(mediaStoreId.toString()), null)?.use { cursor ->
             if (cursor.moveToFirst()) {
                 cursor.toAsset(Columns(cursor), System.currentTimeMillis())
