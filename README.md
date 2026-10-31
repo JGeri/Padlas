@@ -124,7 +124,7 @@ aláírt legyen — de két ilyen build nem frissíti egymást a készüléken, 
 Kiadás:
 
 ```bash
-git tag v2.1.1 && git push origin v2.1.1
+git tag v2.1.2 && git push origin v2.1.2
 ```
 
 ## Böngészés mappa és hónap szerint
@@ -162,7 +162,7 @@ telepítés elakad, az szinte mindig nem az aláírás, hanem a készülék véd
 Ellenőrzés géppel, ha bizonytalan a hiba oka:
 
 ```bash
-adb install -r padlas-2.1.1.apk   # a pontos hibakódot ez írja ki
+adb install -r padlas-2.1.2.apk   # a pontos hibakódot ez írja ki
 ```
 
 ## Google Drive
