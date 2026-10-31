@@ -31,6 +31,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -82,7 +84,9 @@ internal class DedupViewModel @Inject constructor(
 
     private val local: Flow<Pair<Long, Set<String>>> = combine(trashedBytes, pendingGroups, ::Pair)
 
-    private val scanning: Flow<Boolean> = DedupScheduler.observeScan(context)
+    // WorkManager is reached inside the flow, so a WorkManager that is not there (a JVM
+    // test, a process without the initializer) lands in the catch instead of the constructor.
+    private val scanning: Flow<Boolean> = flow { emitAll(DedupScheduler.observeScan(context)) }
         .catch { emit(false) }
 
     val state: StateFlow<DedupUiState> =

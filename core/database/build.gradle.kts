@@ -28,6 +28,12 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
+        // MigrationTestHelper reads the exported schemas from the test assets.
+        unitTests.isIncludeAndroidResources = true
+    }
+
+    sourceSets {
+        getByName("test").assets.srcDir("$projectDir/schemas")
     }
 }
 
@@ -60,4 +66,5 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.truth)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(project(":core:testing"))
 }
