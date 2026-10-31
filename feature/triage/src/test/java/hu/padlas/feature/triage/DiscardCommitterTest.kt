@@ -2,7 +2,6 @@ package hu.padlas.feature.triage
 
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
-import hu.padlas.core.common.result.Outcome
 import hu.padlas.core.database.PadlasDatabase
 import hu.padlas.core.database.entity.AssetState
 import hu.padlas.core.database.entity.AuditAction
@@ -42,7 +41,7 @@ class DiscardCommitterTest {
     fun `a protected row never reaches the dialog, even when asked for by id`() = runTest(dispatcher) {
         db.assetDao().upsertAll(listOf(asset(1), asset(2, protectedManually = true), asset(3, state = AssetState.PROTECTED)))
 
-        val pending = (committer.prepare(listOf(1, 2, 3)) as Outcome.Success).value
+        val pending = (committer.prepare(listOf(1, 2, 3)) as Prepared.Ready).batch
 
         assertThat(pending.ids).containsExactly(1L)
         assertThat(media.requests.single().ids).containsExactly(1L)
@@ -52,7 +51,7 @@ class DiscardCommitterTest {
     fun `a batch of protected rows only is refused before any dialog`() = runTest(dispatcher) {
         db.assetDao().upsertAll(listOf(asset(1, protectedManually = true)))
 
-        assertThat(committer.prepare(listOf(1))).isInstanceOf(Outcome.Failure::class.java)
+        assertThat(committer.prepare(listOf(1))).isInstanceOf(Prepared.Failed::class.java)
         assertThat(media.requests).isEmpty()
     }
 
@@ -60,7 +59,7 @@ class DiscardCommitterTest {
     fun `every row gets its card before the dialog, and a batch over one dialog is cut`() = runTest(dispatcher) {
         db.assetDao().upsertAll(assets(1_200))
 
-        val pending = (committer.prepare((1L..1_200L).toList()) as Outcome.Success).value
+        val pending = (committer.prepare((1L..1_200L).toList()) as Prepared.Ready).batch
 
         assertThat(pending.count).isEqualTo(1_000)
         assertThat(pending.more).isTrue()
@@ -72,7 +71,7 @@ class DiscardCommitterTest {
     @Test
     fun `finishing drops the rows and logs a deletion that cannot be undone`() = runTest(dispatcher) {
         db.assetDao().upsertAll(assets(3, sizeBytes = 500))
-        val pending = (committer.prepare(listOf(1, 2, 3)) as Outcome.Success).value
+        val pending = (committer.prepare(listOf(1, 2, 3)) as Prepared.Ready).batch
 
         val freed = committer.finish(pending)
 
