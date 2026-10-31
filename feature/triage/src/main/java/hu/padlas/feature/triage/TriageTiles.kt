@@ -6,11 +6,14 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,6 +28,11 @@ import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Place
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
+import androidx.compose.material.icons.rounded.Groups
+import androidx.compose.material.icons.rounded.Navigation
+import androidx.compose.material.icons.rounded.PlayCircle
+import androidx.compose.material.icons.rounded.Smartphone
+import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -184,7 +192,7 @@ internal fun GroupHeader(
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(top = Space.xl, bottom = Space.s)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconBubble(icon = kindIcon(group.kind), tint = kindTint(group.kind), size = 40.dp)
+            IconBubble(icon = groupIcon(group), tint = groupTint(group), size = 40.dp)
             Spacer(Modifier.width(Space.m))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -223,6 +231,24 @@ internal fun GroupHeader(
             modifier = Modifier.padding(top = Space.s),
         )
     }
+}
+
+internal fun groupIcon(group: TriageGroup): ImageVector = when (group.source) {
+    ShotSource.NAVIGATION -> Icons.Rounded.Navigation
+    ShotSource.HOME -> Icons.Rounded.Smartphone
+    ShotSource.GAME -> Icons.Rounded.SportsEsports
+    ShotSource.MEDIA -> Icons.Rounded.PlayCircle
+    ShotSource.SOCIAL -> Icons.Rounded.Groups
+    null -> kindIcon(group.kind)
+}
+
+internal fun groupTint(group: TriageGroup): Color = when (group.source) {
+    ShotSource.NAVIGATION -> Ink.Info
+    ShotSource.HOME -> Ink.TextSecondary
+    ShotSource.GAME -> Ink.Warning
+    ShotSource.MEDIA -> Ink.Danger
+    ShotSource.SOCIAL -> Ink.Accent
+    null -> kindTint(group.kind)
 }
 
 internal fun kindIcon(kind: ShotKind?): ImageVector = when (kind) {
@@ -318,5 +344,28 @@ internal const val KEEP_BADGE = "Marad"
 private const val SCATTER_MS = 40
 private const val FALL_DISTANCE_PX = 220f
 internal const val FALL_AWAY_MS = 520L
+/**
+ * The rest of a big group folded into one tile, so a thousand Instagram shots do not stand
+ * between the user and the next group. A tap lays them all out.
+ */
+@Composable
+internal fun MoreTile(count: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(Shapes.small)
+            .background(Ink.SurfaceHigh)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(text = "+${Format.count(count)}", style = PadlasTheme.type.title, color = Ink.Text, maxLines = 1)
+        Text(text = "mind", style = PadlasTheme.type.caption, color = Ink.TextSecondary)
+    }
+}
+
+/** A group shows two rows until it is opened; the more tile takes the last place. */
+internal const val PREVIEW_TILES = 8
+
 internal val TileSpacing = 3.dp
 internal const val GRID_COLUMNS = 4

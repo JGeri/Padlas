@@ -15,6 +15,11 @@ import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 
 /**
  * The cédula of spec 1.6. Written before the file is destroyed, never after: once the
@@ -46,22 +51,16 @@ class CardWriter @Inject constructor(
         if (pending.isEmpty()) return@withContext emptyList()
 
         val now = System.currentTimeMillis()
-        val cards = pending.map { asset ->
-            val cardId = UUID.randomUUID().toString()
-            val thumb = runCatching {
-                thumbnails.writeCardThumbnail(cardId, Uri.parse(asset.uri))
-            }.getOrNull()
-            CardEntity(
-                cardId = cardId,
-                assetId = asset.mediaStoreId,
-                thumbPath = thumb,
-                ocrText = asset.ocrText,
-                dateTaken = asset.dateTaken,
-                originalPath = asset.relativePath + asset.displayName,
-                displayName = asset.displayName,
-                sizeBytes = asset.sizeBytes,
-                createdAt = now,
-            )
+        // A round can be a thousand shots: one thumbnail after the other kept the user
+        // waiting half a minute before the delete dialog. A few at a time is what the
+        // thumbnail decoder takes without starving the screen.
+        val gate = Semaphore(THUMBNAIL_PARALLELISM)
+        val cards = coroutineScope {
+            pending.map { asset ->
+                async {
+                    gate.withPermit { cardOf(asset, now) }
+                }
+            }.awaitAll()
         }
 
         cardDao.upsertAll(cards)
@@ -80,7 +79,26 @@ class CardWriter @Inject constructor(
         cards
     }
 
+    private suspend fun cardOf(asset: Asset, now: Long): CardEntity {
+        val cardId = UUID.randomUUID().toString()
+        val thumb = runCatching {
+            thumbnails.writeCardThumbnail(cardId, Uri.parse(asset.uri))
+        }.getOrNull()
+        return CardEntity(
+            cardId = cardId,
+            assetId = asset.mediaStoreId,
+            thumbPath = thumb,
+            ocrText = asset.ocrText,
+            dateTaken = asset.dateTaken,
+            originalPath = asset.relativePath + asset.displayName,
+            displayName = asset.displayName,
+            sizeBytes = asset.sizeBytes,
+            createdAt = now,
+        )
+    }
+
     private companion object {
         const val SQLITE_ARGUMENT_LIMIT = 900
+        const val THUMBNAIL_PARALLELISM = 4
     }
 }

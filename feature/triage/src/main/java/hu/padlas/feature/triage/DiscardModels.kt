@@ -22,6 +22,8 @@ data class TriageGroup(
     val hint: String,
     val items: List<ShotItem>,
     val locked: Boolean,
+    /** Set for a group built from the app the shots came from instead of their text. */
+    val source: ShotSource? = null,
 )
 
 /** Three sizes, three places the bytes are still sitting. Spec M9. */

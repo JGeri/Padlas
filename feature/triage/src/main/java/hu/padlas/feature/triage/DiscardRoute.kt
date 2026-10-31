@@ -247,6 +247,7 @@ private fun DiscardGrid(
     modifier: Modifier = Modifier,
 ) {
     var showProtected by rememberSaveable { mutableStateOf(false) }
+    var opened by rememberSaveable { mutableStateOf(listOf<String>()) }
     val open = state.groups.filterNot { it.locked }
     val protectedGroups = state.groups.filter { it.locked }
     val entrance = rememberEntrance()
@@ -264,10 +265,10 @@ private fun DiscardGrid(
                 label = "Felszabadítható",
                 value = Format.bytesValue(selection.discardBytes),
                 unit = Format.bytesUnit(selection.discardBytes),
-                caption = "Képernyőképek és letöltött képek, amikre valószínűleg már nincs szükséged. " +
-                    "A felismert csoportok ki vannak jelölve törlésre, koppints arra, amit megtartanál. " +
-                    "A még fel nem ismert képeket csak a „Mind törlése” jelöli ki. " +
-                    "Hosszan nyomva bármelyik képet megnézheted nagyban.",
+                caption = "Képernyőképek és letöltött képek, amikre valószínűleg már nincs szükséged, " +
+                    "appok szerint csoportosítva. A navigációs, rendszer- és játékképek ki vannak jelölve " +
+                    "törlésre, koppints arra, amit megtartanál. A közösségi, videós és még fel nem ismert " +
+                    "képeket csak a „Mind törlése” jelöli ki. Hosszan nyomva bármelyik képet megnézheted nagyban.",
                 modifier = Modifier.entrance(entrance),
             )
         }
@@ -281,7 +282,9 @@ private fun DiscardGrid(
                     modifier = Modifier.entrance(entrance).then(itemMotion()),
                 )
             }
-            items(items = group.items, key = { it.id }) { item ->
+            val folded = group.key !in opened && group.items.size > PREVIEW_TILES
+            val shown = if (folded) group.items.take(PREVIEW_TILES - 1) else group.items
+            items(items = shown, key = { it.id }) { item ->
                 ShotTile(
                     item = item,
                     kept = item.id in selection.kept,
@@ -290,6 +293,15 @@ private fun DiscardGrid(
                     onView = { onView(group, item) },
                     modifier = Modifier.entrance(entrance).then(itemMotion()),
                 )
+            }
+            if (folded) {
+                item(key = "more-${group.key}") {
+                    MoreTile(
+                        count = group.items.size - shown.size,
+                        onClick = { opened = opened + group.key },
+                        modifier = Modifier.entrance(entrance).then(itemMotion()),
+                    )
+                }
             }
         }
         protectedGroups.forEach { group ->
@@ -342,7 +354,7 @@ private fun LazyGridScope.protectedSection(
         ) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconBubble(icon = kindIcon(group.kind), tint = kindTint(group.kind))
+                    IconBubble(icon = groupIcon(group), tint = groupTint(group))
                     Spacer(Modifier.width(Space.m))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(

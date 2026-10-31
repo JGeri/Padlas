@@ -42,6 +42,7 @@ internal class DiscardViewModel @Inject constructor(
     private val committer: DiscardCommitter,
     private val mediaOps: MediaOps,
     private val oneDriveGuard: OneDriveGuard,
+    private val installedApps: InstalledApps,
 ) : ViewModel() {
 
     private val reload = MutableStateFlow(0)
@@ -71,7 +72,7 @@ internal class DiscardViewModel @Inject constructor(
         combine(assetDao.observeByShotKind(), reload) { aggregates, _ -> aggregates }
             .conflate()
             .map<List<ShotKindAggregate>, List<TriageGroup>?> { aggregates ->
-                loadGroups(aggregates).also(::keepUnrecognised)
+                loadGroups(aggregates).also(::keepStartKept)
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), null)
 
@@ -201,33 +202,69 @@ internal class DiscardViewModel @Inject constructor(
     /**
      * Pictures the recognition pass has not read yet are only guessed to be throwaway from
      * their folder, so they start on the keep side: thousands of them must never go out
-     * with one tap on a button the user did not mean for them.
+     * with one tap on a button the user did not mean for them. Social and media shots are
+     * certain about their app but may still be memories, so they start kept as well.
      */
-    private fun keepUnrecognised(loaded: List<TriageGroup>) {
-        val fresh = loaded.filter { it.kind == null }
+    private fun keepStartKept(loaded: List<TriageGroup>) {
+        val fresh = loaded
+            .filter { group -> group.source?.startsKept ?: (group.kind == null) }
             .flatMap { group -> group.items.map { it.id } }
             .filter { seenUnrecognised.add(it) }
         if (fresh.isNotEmpty()) kept.update { it + fresh }
     }
 
+    /**
+     * Shots whose file name says which app they came from, and that app is a navigation,
+     * home-screen, game, media or social one, are grouped by the app: that is certain the
+     * moment the file exists, while the text recognition takes a while to get round to
+     * seven thousand pictures and reads a Waze screen as an address. SECRET still wins:
+     * anything the recognition locked stays locked, whatever app it came from.
+     */
     private suspend fun loadGroups(aggregates: List<ShotKindAggregate>): List<TriageGroup> {
+        val installed = installedApps.sources()
         val loaded = ArrayList<TriageGroup>(aggregates.size)
+        val sourced = ArrayList<SourcedShot<Asset>>()
         for (aggregate in aggregates) {
             val kind = aggregate.shotKind
             val assets = if (kind == ShotKind.SECRET) secretAssets() else assetDao.ephemeralOfKind(kind)
-            if (assets.isEmpty()) continue
+            val byText = if (kind == ShotKind.SECRET) {
+                assets
+            } else {
+                assets.filter { asset ->
+                    val app = ShotSources.appOf(asset.displayName)
+                    val source = app?.let { ShotSources.sourceOf(it, installed) }
+                    if (app != null && source != null) sourced += SourcedShot(asset, app, source, asset.sizeBytes)
+                    source == null
+                }
+            }
+            if (byText.isEmpty()) continue
             loaded += TriageGroup(
                 key = groupKey(kind),
                 kind = kind,
                 title = kindTitle(kind),
                 hint = kindHint(kind),
-                items = assets.map { it.toItem() },
+                items = byText.map { it.toItem() },
                 locked = kind == ShotKind.SECRET,
+            )
+        }
+        val bySource = ShotSources.group(sourced).map { group ->
+            TriageGroup(
+                key = group.key,
+                kind = null,
+                title = group.title,
+                hint = if (group.apps.size == 1) {
+                    "${group.source.title} · ${group.source.hint}"
+                } else {
+                    "${group.apps.joinToString(", ")} · ${group.source.hint}"
+                },
+                items = group.items.sortedByDescending { it.dateTaken }.map { it.toItem() },
+                locked = false,
+                source = group.source,
             )
         }
         // The DAO already orders by reclaimable bytes; this only pushes the two groups
         // nobody can act on to the bottom, and the sort is stable.
-        return loaded.sortedBy { order(it.kind) }
+        return bySource + loaded.sortedBy { order(it.kind) }
     }
 
     /**
