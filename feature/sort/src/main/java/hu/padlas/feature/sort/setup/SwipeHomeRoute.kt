@@ -63,6 +63,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -89,6 +91,7 @@ import hu.padlas.core.design.component.SegmentedControl
 import hu.padlas.core.design.component.SelectionMark
 import hu.padlas.core.design.component.StaggeredColumnItem
 import hu.padlas.core.design.component.Toast
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.component.frosted
 import hu.padlas.core.design.component.glass
 import hu.padlas.core.design.component.rememberSystemRequest
@@ -103,6 +106,8 @@ import hu.padlas.core.design.theme.Space
 import hu.padlas.core.media.MediaThumb
 import hu.padlas.feature.sort.ui.Cover
 import hu.padlas.feature.sort.MediaFilter
+import hu.padlas.feature.sort.R
+import hu.padlas.feature.sort.SwipeDates
 import hu.padlas.feature.sort.SwipeOrder
 
 private val RiseSpring = spring<IntOffset>(dampingRatio = 0.78f, stiffness = Spring.StiffnessMediumLow)
@@ -146,8 +151,8 @@ fun SwipeHomeRoute(
             item(key = "header") {
                 StaggeredColumnItem(0) {
                     LargeHeader(
-                        title = "Válogatás",
-                        subtitle = "Koppints egy hónapra, és jöhetnek a kártyák.",
+                        title = stringResource(R.string.sort_home_title),
+                        subtitle = stringResource(R.string.sort_home_subtitle),
                     )
                 }
             }
@@ -168,8 +173,8 @@ fun SwipeHomeRoute(
             if (state.isEmpty) {
                 item(key = "empty") {
                     EmptyState(
-                        title = "Még üres a galéria",
-                        text = "A beolvasás a háttérben fut. Pár perc, és itt látod a hónapokat és a mappákat.",
+                        title = stringResource(R.string.sort_home_empty_title),
+                        text = stringResource(R.string.sort_home_empty_text),
                         icon = Icons.Rounded.PhotoLibrary,
                     )
                 }
@@ -177,7 +182,7 @@ fun SwipeHomeRoute(
                 item(key = "tabs") {
                     StaggeredColumnItem(1) {
                         SegmentedControl(
-                            options = listOf("Hónapok", "Mappák"),
+                            options = listOf(stringResource(R.string.sort_tab_months), stringResource(R.string.sort_tab_folders)),
                             selectedIndex = state.tab.ordinal,
                             onSelect = { viewModel.setTab(SetupTab.entries[it]) },
                         )
@@ -204,7 +209,7 @@ fun SwipeHomeRoute(
                             Icon(Icons.Rounded.TouchApp, contentDescription = null, tint = Ink.TextTertiary, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                text = "Hosszan nyomva többet is kijelölhetsz.",
+                                text = stringResource(R.string.sort_home_hint),
                                 style = PadlasTheme.type.caption,
                                 color = Ink.TextTertiary,
                             )
@@ -262,7 +267,7 @@ fun SwipeHomeRoute(
                 .padding(bottom = bottom),
         ) {
             StartBar(
-                label = state.selectionLabel,
+                label = state.selectionLabel.asString(),
                 count = state.preview?.itemCount,
                 bytes = state.preview?.totalBytes ?: 0L,
                 onClear = viewModel::clearSelection,
@@ -276,7 +281,7 @@ fun SwipeHomeRoute(
         }
 
         Toast(
-            message = state.message,
+            message = state.message?.asString(),
             onShown = viewModel::consumeMessage,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -286,9 +291,9 @@ fun SwipeHomeRoute(
 
     if (confirmDelete) {
         ConfirmDialog(
-            title = "${Format.count(state.pending.itemCount)} elem törlése?",
-            text = "${Format.bytes(state.pending.totalBytes)} kerül törlésre a telefonról.",
-            confirmLabel = "Törlés",
+            title = pluralStringResource(R.plurals.sort_delete_confirm_title, state.pending.itemCount, Format.count(state.pending.itemCount)),
+            text = stringResource(R.string.sort_delete_from_phone, Format.bytes(state.pending.totalBytes)),
+            confirmLabel = stringResource(R.string.sort_delete),
             destructive = true,
             icon = Icons.Rounded.Delete,
             onConfirm = {
@@ -315,12 +320,12 @@ private fun PendingCard(
                 IconBubble(icon = Icons.Rounded.Delete, tint = Ink.Danger)
                 Column(Modifier.padding(start = Space.m).weight(1f)) {
                     Text(
-                        text = "${Format.count(count)} elem vár törlésre",
+                        text = pluralStringResource(R.plurals.sort_pending_count, count, Format.count(count)),
                         style = PadlasTheme.type.bodyStrong,
                         color = Ink.Text,
                     )
                     Text(
-                        text = "${Format.bytes(bytes)} szabadul fel",
+                        text = stringResource(R.string.sort_pending_frees, Format.bytes(bytes)),
                         style = PadlasTheme.type.caption,
                         color = Ink.TextSecondary,
                     )
@@ -328,7 +333,7 @@ private fun PendingCard(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
                 PadlasButton(
-                    text = "Átnézés",
+                    text = stringResource(R.string.sort_review),
                     onClick = onReview,
                     style = ButtonStyle.Secondary,
                     size = ButtonSize.Medium,
@@ -336,7 +341,7 @@ private fun PendingCard(
                     modifier = Modifier.weight(1f),
                 )
                 PadlasButton(
-                    text = "Törlés most",
+                    text = stringResource(R.string.sort_delete_now),
                     onClick = onDelete,
                     style = ButtonStyle.Destructive,
                     size = ButtonSize.Medium,
@@ -361,21 +366,21 @@ private fun FilterRow(
     var orderMenu by remember { mutableStateOf(false) }
     LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
         item {
-            Chip(text = "Mind", selected = media == MediaFilter.ALL, onClick = { onMedia(MediaFilter.ALL) })
+            Chip(text = stringResource(R.string.sort_filter_all), selected = media == MediaFilter.ALL, onClick = { onMedia(MediaFilter.ALL) })
         }
         item {
-            Chip(text = "Fotók", icon = Icons.Rounded.Photo, selected = media == MediaFilter.PHOTOS, onClick = {
+            Chip(text = stringResource(R.string.sort_filter_photos), icon = Icons.Rounded.Photo, selected = media == MediaFilter.PHOTOS, onClick = {
                 onMedia(if (media == MediaFilter.PHOTOS) MediaFilter.ALL else MediaFilter.PHOTOS)
             })
         }
         item {
-            Chip(text = "Videók", icon = Icons.Rounded.Videocam, selected = media == MediaFilter.VIDEOS, onClick = {
+            Chip(text = stringResource(R.string.sort_filter_videos), icon = Icons.Rounded.Videocam, selected = media == MediaFilter.VIDEOS, onClick = {
                 onMedia(if (media == MediaFilter.VIDEOS) MediaFilter.ALL else MediaFilter.VIDEOS)
             })
         }
         item {
             Chip(
-                text = "Csak új",
+                text = stringResource(R.string.sort_filter_new_only),
                 icon = Icons.Rounded.NewReleases,
                 selected = onlyUnreviewed,
                 onClick = { onOnlyUnreviewed(!onlyUnreviewed) },
@@ -411,12 +416,15 @@ private fun FilterRow(
     }
 }
 
-private fun SwipeOrder.label(): String = when (this) {
-    SwipeOrder.NEWEST -> "Legújabb elöl"
-    SwipeOrder.OLDEST -> "Legrégebbi elöl"
-    SwipeOrder.LARGEST -> "Legnagyobb elöl"
-    SwipeOrder.RANDOM -> "Véletlen sorrend"
-}
+@Composable
+private fun SwipeOrder.label(): String = stringResource(
+    when (this) {
+        SwipeOrder.NEWEST -> R.string.sort_order_newest
+        SwipeOrder.OLDEST -> R.string.sort_order_oldest
+        SwipeOrder.LARGEST -> R.string.sort_order_largest
+        SwipeOrder.RANDOM -> R.string.sort_order_random
+    },
+)
 
 @Composable
 private fun YearHeader(year: YearGroup, selecting: Boolean, onToggle: () -> Unit) {
@@ -429,14 +437,14 @@ private fun YearHeader(year: YearGroup, selecting: Boolean, onToggle: () -> Unit
         Column(Modifier.weight(1f)) {
             Text(text = year.year.toString(), style = PadlasTheme.type.title, color = Ink.Text)
             Text(
-                text = "${Format.count(year.itemCount)} elem · ${Format.bytes(year.totalBytes)}",
+                text = pluralStringResource(R.plurals.sort_items_size, year.itemCount, Format.count(year.itemCount), Format.bytes(year.totalBytes)),
                 style = PadlasTheme.type.caption,
                 color = Ink.TextSecondary,
             )
         }
         if (selecting) {
             Chip(
-                text = if (year.allSelected) "Kijelölés le" else "Teljes év",
+                text = stringResource(if (year.allSelected) R.string.sort_deselect else R.string.sort_whole_year),
                 selected = year.allSelected,
                 onClick = onToggle,
             )
@@ -535,7 +543,7 @@ private fun MonthTile(
                         .background(Ink.Background.copy(alpha = 0.55f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Rounded.CheckCircle, contentDescription = "Átnézve", tint = Ink.Success, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Rounded.CheckCircle, contentDescription = stringResource(R.string.sort_reviewed), tint = Ink.Success, modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -544,7 +552,7 @@ private fun MonthTile(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = cell.name,
+                text = SwipeDates.monthName(cell.key),
                 style = PadlasTheme.type.title.copy(fontSize = PadlasTheme.type.bodyStrong.fontSize),
                 color = Ink.Text,
                 maxLines = 1,
@@ -639,9 +647,9 @@ private fun FolderRow(
                 .weight(1f)
                 .padding(horizontal = Space.m),
         ) {
-            Text(text = folder.name, style = PadlasTheme.type.bodyStrong, color = Ink.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text = folder.name.asString(), style = PadlasTheme.type.bodyStrong, color = Ink.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                text = "${Format.count(folder.itemCount)} elem · ${Format.bytes(folder.totalBytes)}",
+                text = pluralStringResource(R.plurals.sort_items_size, folder.itemCount, Format.count(folder.itemCount), Format.bytes(folder.totalBytes)),
                 style = PadlasTheme.type.caption,
                 color = Ink.TextSecondary,
                 maxLines = 1,
@@ -676,14 +684,20 @@ private fun StartBar(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            PadlasIconButton(icon = Icons.Rounded.Close, contentDescription = "Kijelölés törlése", onClick = onClear, size = 36.dp, iconSize = 18.dp)
+            PadlasIconButton(
+                icon = Icons.Rounded.Close,
+                contentDescription = stringResource(R.string.sort_clear_selection),
+                onClick = onClear,
+                size = 36.dp,
+                iconSize = 18.dp,
+            )
         }
         Spacer(Modifier.height(Space.m))
         PadlasButton(
             text = when {
-                count == null -> "Számolás…"
-                count == 0 -> "Nincs átnézendő elem"
-                else -> "Indítás · ${Format.count(count)} elem · ${Format.bytes(bytes)}"
+                count == null -> stringResource(R.string.sort_counting)
+                count == 0 -> stringResource(R.string.sort_nothing_to_review)
+                else -> pluralStringResource(R.plurals.sort_start, count, Format.count(count), Format.bytes(bytes))
             },
             onClick = onStart,
             enabled = count != null && count > 0,

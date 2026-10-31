@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sort_join">%1$s · %2$s</string>
+    <string name="sort_next_batch">%1$s · next batch coming</string>
+    <string name="sort_tally_freed">%1$s freed</string>
+    <plurals name="sort_tally_trashed">
+        <item quantity="one">%1$s item moved to trash</item>
+        <item quantity="other">%1$s items moved to trash</item>
+    </plurals>
+    <string name="sort_refused">The system didn\'t allow the deletion right now.</string>
+    <string name="sort_cancelled">Deletion canceled.</string>
+    <string name="sort_not_recorded">Deleted, but the records didn\'t update. Is your storage full?</string>
+    <plurals name="sort_delete_confirm_title">
+        <item quantity="one">Delete %1$s item?</item>
+        <item quantity="other">Delete %1$s items?</item>
+    </plurals>
+    <string name="sort_delete_from_phone">%1$s will be deleted from your phone.</string>
+    <string name="sort_delete_explain_permanent">%1$s will be deleted permanently. This can\'t be undone.</string>
+    <string name="sort_delete_explain_trash">%1$s goes to the system trash and can be restored for 30 days.</string>
+    <string name="sort_delete">Delete</string>
+    <string name="sort_delete_now">Delete now</string>
+    <string name="sort_delete_pill">"Delete · "</string>
+    <string name="sort_delete_bytes">Delete · %1$s</string>
+    <plurals name="sort_delete_items_bytes">
+        <item quantity="one">Delete %1$s item · %2$s</item>
+        <item quantity="other">Delete %1$s items · %2$s</item>
+    </plurals>
+    <plurals name="sort_pending_count">
+        <item quantity="one">%1$s item waiting for deletion</item>
+        <item quantity="other">%1$s items waiting for deletion</item>
+    </plurals>
+    <string name="sort_pending_frees">Frees up %1$s</string>
+    <string name="sort_marked_for_deletion">Marked for deletion</string>
+    <string name="sort_close">Close</string>
+    <string name="sort_back">Back</string>
+    <string name="sort_undo">Undo</string>
+    <string name="sort_keep">Keep</string>
+    <string name="sort_kept">Kept</string>
+    <string name="sort_favorite">Favorite</string>
+    <string name="sort_protected">Protected</string>
+    <string name="sort_video">Video</string>
+    <string name="sort_review">Review</string>
+    <string name="sort_new_session">New sort</string>
+
+    <string name="sort_title_whole_gallery">Whole gallery</string>
+    <plurals name="sort_title_months">
+        <item quantity="one">%1$s month</item>
+        <item quantity="other">%1$s months</item>
+    </plurals>
+    <plurals name="sort_title_folders">
+        <item quantity="one">%1$s folder</item>
+        <item quantity="other">%1$s folders</item>
+    </plurals>
+    <string name="sort_title_photos">photos</string>
+    <string name="sort_title_videos">videos</string>
+
+    <string name="sort_session_nothing_to_delete">Nothing to delete.</string>
+    <string name="sort_session_refused">The system didn\'t allow the deletion right now. Your marks are kept.</string>
+    <string name="sort_session_cancelled">Deletion canceled. Your marks are kept.</string>
+    <string name="sort_session_not_saved">Couldn\'t save the decision. Is your storage full?</string>
+    <plurals name="sort_session_favorites_synced">
+        <item quantity="one">%1$s favorite added to Gallery</item>
+        <item quantity="other">%1$s favorites added to Gallery</item>
+    </plurals>
+    <string name="sort_session_empty_title">Nothing to review</string>
+    <string name="sort_session_empty_text">You\'ve already decided on everything in this sort. Pick another month or folder.</string>
+
+    <string name="sort_hint_title">How it works</string>
+    <string name="sort_hint_left">Swipe left</string>
+    <string name="sort_hint_left_result">marks it for deletion</string>
+    <string name="sort_hint_right">Swipe right</string>
+    <string name="sort_hint_right_result">keeps it</string>
+    <string name="sort_hint_up">Swipe up</string>
+    <string name="sort_hint_up_result">makes it a favorite</string>
+    <string name="sort_hint_text">Tap to zoom into a photo or pause a video. Marked items are deleted in one system dialog at the end of the deck, but you can delete them anytime with the button at the top right.</string>
+    <string name="sort_hint_start">Let\'s go</string>
+
+    <string name="sort_summary_done">Done!</string>
+    <plurals name="sort_summary_reviewed">
+        <item quantity="one">You reviewed %1$s item.</item>
+        <item quantity="other">You reviewed %1$s items.</item>
+    </plurals>
+    <string name="sort_summary_favorites">Favorites</string>
+    <string name="sort_summary_to_delete">To delete</string>
+    <string name="sort_summary_review_first">Review first</string>
+    <string name="sort_summary_freed">%1$s freed</string>
+    <string name="sort_summary_in_trash">%1$s in the trash</string>
+    <string name="sort_summary_trash_note">The system deletes it permanently in 30 days. Need the space now? Empty the trash.</string>
+    <string name="sort_summary_open_trash">Open trash</string>
+    <plurals name="sort_summary_sync_favorites">
+        <item quantity="one">Add %1$s favorite to Gallery</item>
+        <item quantity="other">Add %1$s favorites to Gallery</item>
+    </plurals>
+    <string name="sort_summary_sync_favorites_text">Also marks them as favorites in your phone\'s gallery.</string>
+
+    <string name="sort_selection_photos_only">photos only</string>
+    <string name="sort_selection_videos_only">videos only</string>
+    <string name="sort_selection_unreviewed_only">unreviewed only</string>
+    <string name="sort_selection_all_items">all items</string>
+    <string name="sort_internal_storage">Internal storage</string>
+
+    <string name="sort_home_title">Sort</string>
+    <string name="sort_home_subtitle">Tap a month to start swiping.</string>
+    <string name="sort_home_empty_title">Your gallery is still empty</string>
+    <string name="sort_home_empty_text">The scan is running in the background. In a few minutes you\'ll see your months and folders here.</string>
+    <string name="sort_tab_months">Months</string>
+    <string name="sort_tab_folders">Folders</string>
+    <string name="sort_home_hint">Long-press to select more than one.</string>
+    <string name="sort_filter_all">All</string>
+    <string name="sort_filter_photos">Photos</string>
+    <string name="sort_filter_videos">Videos</string>
+    <string name="sort_filter_new_only">New only</string>
+    <string name="sort_order_newest">Newest first</string>
+    <string name="sort_order_oldest">Oldest first</string>
+    <string name="sort_order_largest">Largest first</string>
+    <string name="sort_order_random">Random order</string>
+    <plurals name="sort_items_size">
+        <item quantity="one">%1$s item · %2$s</item>
+        <item quantity="other">%1$s items · %2$s</item>
+    </plurals>
+    <string name="sort_deselect">Deselect</string>
+    <string name="sort_whole_year">Whole year</string>
+    <string name="sort_reviewed">Reviewed</string>
+    <string name="sort_clear_selection">Clear selection</string>
+    <string name="sort_counting">Counting…</string>
+    <string name="sort_nothing_to_review">Nothing to review</string>
+    <plurals name="sort_start">
+        <item quantity="one">Start · %1$s item · %2$s</item>
+        <item quantity="other">Start · %1$s items · %2$s</item>
+    </plurals>
+
+    <string name="sort_unmute">Unmute</string>
+    <string name="sort_mute">Mute</string>
+    <string name="sort_stamp_keep">KEEP</string>
+    <string name="sort_stamp_delete">DELETE</string>
+
+    <plurals name="sort_pending_subtitle">
+        <item quantity="one">%1$s item · %2$s · tap to keep</item>
+        <item quantity="other">%1$s items · %2$s · tap to keep</item>
+    </plurals>
+    <string name="sort_pending_empty_title">Nothing left to delete</string>
+    <string name="sort_pending_empty_text">You\'ve handled every marked item.</string>
+</resources>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="browse_items_size">
+        <item quantity="one">%1$s elem · %2$s</item>
+        <item quantity="other">%1$s elem · %2$s</item>
+    </plurals>
+    <string name="browse_selected_count">%1$s kijelölve</string>
+    <string name="browse_selected_size">%1$s kijelölve · %2$s</string>
+    <string name="browse_select_all">Mind</string>
+    <string name="browse_clear_selection">Kijelölés törlése</string>
+    <string name="browse_video">Videó</string>
+    <string name="browse_delete">Törlés</string>
+    <string name="browse_next_batch">%1$s · jön a következő adag</string>
+
+    <string name="browse_title">Böngészés</string>
+    <string name="browse_clear_filter">Szűrő törlése</string>
+    <string name="browse_select_hint">Koppints a kijelöléshez, nyomd hosszan a nagyításhoz</string>
+    <string name="browse_empty_title">Még nincs mit mutatni</string>
+    <string name="browse_empty_text">A galéria beolvasása után itt látod az összes fotót és videót.</string>
+    <string name="browse_no_results_title">Nincs találat</string>
+    <string name="browse_no_results_text">Erre a szűrőre nincs találat. Próbálj másik mappát vagy hónapot.</string>
+    <string name="browse_older_than_year">1 évnél régebbi</string>
+    <string name="browse_older_than_half_year">Fél évnél régebbi</string>
+    <string name="browse_photos">Fotók</string>
+    <string name="browse_videos">Videók</string>
+    <string name="browse_folders">Mappák</string>
+    <string name="browse_months">Hónapok</string>
+    <string name="browse_move_to_trash">Kukába</string>
+    <string name="browse_upload">Felhőbe</string>
+    <string name="browse_protect">Védetté teszem</string>
+
+    <plurals name="browse_select_capped">
+        <item quantity="one">Az első %1$s elem van kijelölve.</item>
+        <item quantity="other">Az első %1$s elem van kijelölve.</item>
+    </plurals>
+    <plurals name="browse_archive_queued">
+        <item quantity="one">%1$s elem sorba állt a padlásra.</item>
+        <item quantity="other">%1$s elem sorba állt a padlásra.</item>
+    </plurals>
+    <string name="browse_not_saved">A változást nem sikerült menteni. Megtelt a tárhely?</string>
+    <string name="browse_only_protected">A kijelölésben csak védett elem van.</string>
+    <string name="browse_trash_unavailable">A kuka nem nyitható meg.</string>
+    <string name="browse_trash_cancelled">Nem került semmi a kukába.</string>
+    <string name="browse_trashed_more">%1$s a kukában · jön a következő adag</string>
+    <string name="browse_trashed">%1$s a kukában. Amíg ott van, helyet foglal.</string>
+    <plurals name="browse_protected">
+        <item quantity="one">%1$s elem védett lett.</item>
+        <item quantity="other">%1$s elem védett lett.</item>
+    </plurals>
+
+    <string name="browse_trash_title">Kuka</string>
+    <plurals name="browse_trash_restored">
+        <item quantity="one">%1$s elem visszaállítva</item>
+        <item quantity="other">%1$s elem visszaállítva</item>
+    </plurals>
+    <string name="browse_trash_freed">%1$s felszabadítva</string>
+    <string name="browse_trash_not_recorded">Kész, de a nyilvántartás nem frissült. Megtelt a tárhely?</string>
+    <string name="browse_trash_refused">A rendszer most nem engedte a műveletet.</string>
+    <string name="browse_trash_empty_title">Üres a kuka</string>
+    <string name="browse_trash_empty_text">Nincs törölt fotó vagy videó, ami még helyet foglalna.</string>
+    <string name="browse_trash_confirm_title">Végleges törlés?</string>
+    <string name="browse_trash_confirm_text">%1$s véglegesen törlődik. Ez nem vonható vissza.</string>
+    <string name="browse_trash_restore">Visszaállítás</string>
+    <string name="browse_trash_space">foglal helyet a kukában</string>
+    <string name="browse_trash_explain">A rendszer 30 nap után magától törli őket. Ha most kell a hely, ürítsd a kukát; a kijelölt elemeket vissza is állíthatod.</string>
+    <string name="browse_trash_empty_action">Kuka ürítése</string>
+    <string name="browse_trash_samsung">A Samsung Galéria saját kukájában további %1$s van. Azt a Galéria appban ürítheted.</string>
+    <string name="browse_trash_expires_today">ma törlődik</string>
+    <plurals name="browse_trash_days_left">
+        <item quantity="one">%1$s nap</item>
+        <item quantity="other">%1$s nap</item>
+    </plurals>
+</resources>

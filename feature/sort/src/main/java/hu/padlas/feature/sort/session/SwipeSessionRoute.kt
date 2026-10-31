@@ -58,6 +58,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,6 +77,7 @@ import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.RollingNumber
 import hu.padlas.core.design.component.Toast
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.component.glass
 import hu.padlas.core.design.component.glow
 import hu.padlas.core.design.component.rememberSystemRequest
@@ -89,6 +92,7 @@ import hu.padlas.core.design.theme.Shapes
 import hu.padlas.core.design.theme.Space
 import hu.padlas.core.design.theme.auroraBackground
 import hu.padlas.feature.sort.DeleteMode
+import hu.padlas.feature.sort.R
 import hu.padlas.feature.sort.SwipeAction
 import hu.padlas.feature.sort.ui.SwipeCardView
 import hu.padlas.feature.sort.ui.SwipeDeck
@@ -178,11 +182,11 @@ fun SwipeSessionRoute(
                         )
 
                         Phase.EMPTY -> EmptyState(
-                            title = "Nincs mit átnézni",
-                            text = "Ebben a válogatásban minden elemről döntöttél már. Válassz másik hónapot vagy mappát.",
+                            title = stringResource(R.string.sort_session_empty_title),
+                            text = stringResource(R.string.sort_session_empty_text),
                             icon = Icons.Rounded.DoneAll,
                             tint = Ink.Success,
-                            actionLabel = "Új válogatás",
+                            actionLabel = stringResource(R.string.sort_new_session),
                             onAction = onNewSession,
                         )
 
@@ -242,7 +246,7 @@ fun SwipeSessionRoute(
         }
 
         Toast(
-            message = state.message,
+            message = state.message?.asString(),
             onShown = viewModel::consumeMessage,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -253,9 +257,9 @@ fun SwipeSessionRoute(
 
     if (confirmDelete) {
         ConfirmDialog(
-            title = "${Format.count(state.pending.itemCount)} elem törlése?",
+            title = pluralStringResource(R.plurals.sort_delete_confirm_title, state.pending.itemCount, Format.count(state.pending.itemCount)),
             text = deleteExplanation(state),
-            confirmLabel = "Törlés",
+            confirmLabel = stringResource(R.string.sort_delete),
             destructive = true,
             icon = Icons.Rounded.Delete,
             onConfirm = {
@@ -270,12 +274,11 @@ fun SwipeSessionRoute(
 
 private enum class Phase { LOADING, EMPTY, DONE, DECK }
 
-internal fun deleteExplanation(state: SessionUiState): String =
-    if (state.deleteMode == DeleteMode.PERMANENT) {
-        "${Format.bytes(state.pending.totalBytes)} véglegesen törlődik. Ez nem vonható vissza."
-    } else {
-        "${Format.bytes(state.pending.totalBytes)} a rendszer kukájába kerül, 30 napig visszaállítható."
-    }
+@Composable
+internal fun deleteExplanation(state: SessionUiState): String = stringResource(
+    if (state.deleteMode == DeleteMode.PERMANENT) R.string.sort_delete_explain_permanent else R.string.sort_delete_explain_trash,
+    Format.bytes(state.pending.totalBytes),
+)
 
 @Composable
 private fun SessionTopBar(state: SessionUiState, onClose: () -> Unit, onDeleteNow: () -> Unit) {
@@ -286,11 +289,11 @@ private fun SessionTopBar(state: SessionUiState, onClose: () -> Unit, onDeleteNo
             .padding(horizontal = Space.m),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PadlasIconButton(icon = Icons.Rounded.Close, contentDescription = "Bezárás", onClick = onClose)
+        PadlasIconButton(icon = Icons.Rounded.Close, contentDescription = stringResource(R.string.sort_close), onClick = onClose)
         Spacer(Modifier.width(Space.m))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = state.title,
+                text = state.title?.asString().orEmpty(),
                 style = PadlasTheme.type.title,
                 color = Ink.Text,
                 maxLines = 1,
@@ -356,11 +359,11 @@ private fun DeletePill(count: Int, bytes: Long, busy: Boolean, onClick: () -> Un
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Rounded.Delete, contentDescription = "Törlés most", tint = Ink.Danger, modifier = Modifier.size(18.dp))
+        Icon(Icons.Rounded.Delete, contentDescription = stringResource(R.string.sort_delete_now), tint = Ink.Danger, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(6.dp))
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "Törlés · ", style = PadlasTheme.type.label, color = Ink.Text, maxLines = 1)
+                Text(text = stringResource(R.string.sort_delete_pill), style = PadlasTheme.type.label, color = Ink.Text, maxLines = 1)
                 RollingNumber(value = Format.count(count), style = PadlasTheme.type.label, color = Ink.Text)
             }
             Text(text = Format.bytes(bytes), style = PadlasTheme.type.micro, color = Ink.Danger, maxLines = 1)
@@ -406,10 +409,10 @@ private fun ActionButtons(canUndo: Boolean, onUndo: () -> Unit, onSwipe: (SwipeA
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RoundAction(Icons.AutoMirrored.Rounded.Undo, "Vissza", Ink.TextSecondary, Ink.Surface, 52.dp, glow = false, enabled = canUndo, onClick = onUndo)
-        RoundAction(Icons.Rounded.Close, "Törlés", Ink.Danger, Ink.DangerSoft, 72.dp, onClick = { onSwipe(SwipeAction.DELETE) })
-        RoundAction(Icons.Rounded.Star, "Kedvenc", Ink.Favorite, Ink.FavoriteSoft, 58.dp, onClick = { onSwipe(SwipeAction.FAVORITE) })
-        RoundAction(Icons.Rounded.Check, "Megtartom", Ink.Success, Ink.SuccessSoft, 72.dp, onClick = { onSwipe(SwipeAction.KEEP) })
+        RoundAction(Icons.AutoMirrored.Rounded.Undo, stringResource(R.string.sort_undo), Ink.TextSecondary, Ink.Surface, 52.dp, glow = false, enabled = canUndo, onClick = onUndo)
+        RoundAction(Icons.Rounded.Close, stringResource(R.string.sort_delete), Ink.Danger, Ink.DangerSoft, 72.dp, onClick = { onSwipe(SwipeAction.DELETE) })
+        RoundAction(Icons.Rounded.Star, stringResource(R.string.sort_favorite), Ink.Favorite, Ink.FavoriteSoft, 58.dp, onClick = { onSwipe(SwipeAction.FAVORITE) })
+        RoundAction(Icons.Rounded.Check, stringResource(R.string.sort_keep), Ink.Success, Ink.SuccessSoft, 72.dp, onClick = { onSwipe(SwipeAction.KEEP) })
     }
 }
 
@@ -466,21 +469,21 @@ private fun GestureHint(onDismiss: () -> Unit) {
                 .padding(Space.xl),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(text = "Így működik", style = PadlasTheme.type.title, color = Ink.Text)
+            Text(text = stringResource(R.string.sort_hint_title), style = PadlasTheme.type.title, color = Ink.Text)
             Spacer(Modifier.height(Space.l))
-            HintRow(Icons.Rounded.Close, Ink.Danger, "Húzd balra", "törlésre jelöli")
-            HintRow(Icons.Rounded.Check, Ink.Success, "Húzd jobbra", "megtartod")
-            HintRow(Icons.Rounded.Star, Ink.Favorite, "Húzd felfelé", "kedvenc lesz")
+            HintRow(Icons.Rounded.Close, Ink.Danger, stringResource(R.string.sort_hint_left), stringResource(R.string.sort_hint_left_result))
+            HintRow(Icons.Rounded.Check, Ink.Success, stringResource(R.string.sort_hint_right), stringResource(R.string.sort_hint_right_result))
+            HintRow(Icons.Rounded.Star, Ink.Favorite, stringResource(R.string.sort_hint_up), stringResource(R.string.sort_hint_up_result))
             Spacer(Modifier.height(Space.s))
             Text(
-                text = "Koppintással nagyíthatod a képet, a videót megállíthatod. A megjelölt elemek a pakli végén egyetlen rendszer-párbeszédben törlődnek, de a jobb felső gombbal bármikor törölheted őket.",
+                text = stringResource(R.string.sort_hint_text),
                 style = PadlasTheme.type.caption,
                 color = Ink.TextSecondary,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(Space.xl))
             PadlasButton(
-                text = "Kezdjük",
+                text = stringResource(R.string.sort_hint_start),
                 onClick = {
                     haptic?.tick(0.3f)
                     onDismiss()

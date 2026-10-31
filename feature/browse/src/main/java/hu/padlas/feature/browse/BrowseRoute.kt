@@ -40,6 +40,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -59,6 +61,7 @@ import hu.padlas.core.design.component.PadlasTopBar
 import hu.padlas.core.design.component.PhotoViewer
 import hu.padlas.core.design.component.SelectableTile
 import hu.padlas.core.design.component.Toast
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.component.hairlineTop
 import hu.padlas.core.design.component.rememberSystemRequest
 import hu.padlas.core.design.theme.Ink
@@ -102,14 +105,19 @@ fun BrowseRoute(
     Box(modifier = modifier.fillMaxSize().auroraBackground().systemBarsPadding()) {
         Column(Modifier.fillMaxSize()) {
             PadlasTopBar(
-                title = "Böngészés",
-                subtitle = "${Format.count(state.totals.itemCount)} elem · ${Format.bytes(state.totals.totalBytes)}",
+                title = stringResource(R.string.browse_title),
+                subtitle = pluralStringResource(
+                    R.plurals.browse_items_size,
+                    state.totals.itemCount,
+                    Format.count(state.totals.itemCount),
+                    Format.bytes(state.totals.totalBytes),
+                ),
                 onBack = onBack,
                 action = {
                     if (!state.filter.isEmpty) {
                         PadlasIconButton(
                             icon = Icons.Rounded.FilterAltOff,
-                            contentDescription = "Szűrő törlése",
+                            contentDescription = stringResource(R.string.browse_clear_filter),
                             onClick = viewModel::clearFilter,
                             background = Ink.Surface,
                         )
@@ -135,14 +143,18 @@ fun BrowseRoute(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = if (state.selected.isEmpty()) "Koppints a kijelöléshez, nyomd hosszan a nagyításhoz" else "${Format.count(state.selected.size)} kijelölve",
+                            text = if (state.selected.isEmpty()) {
+                                stringResource(R.string.browse_select_hint)
+                            } else {
+                                stringResource(R.string.browse_selected_count, Format.count(state.selected.size))
+                            },
                             style = PadlasTheme.type.caption,
                             color = Ink.TextSecondary,
                             modifier = Modifier.weight(1f),
                         )
                         if (state.totals.itemCount > 0) {
                             PadlasTextButton(
-                                text = if (state.selected.isEmpty()) "Mind" else "Kijelölés törlése",
+                                text = stringResource(if (state.selected.isEmpty()) R.string.browse_select_all else R.string.browse_clear_selection),
                                 onClick = {
                                     if (state.selected.isEmpty()) viewModel.selectAllMatching() else viewModel.clearSelection()
                                 },
@@ -153,14 +165,10 @@ fun BrowseRoute(
                 if (items.itemCount == 0) {
                     item(span = { GridItemSpan(maxLineSpan) }, key = "empty") {
                         EmptyState(
-                            title = if (state.filter.isEmpty) "Még nincs mit mutatni" else "Nincs találat",
-                            text = if (state.filter.isEmpty) {
-                                "A galéria beolvasása után itt látod az összes fotót és videót."
-                            } else {
-                                "Erre a szűrőre nincs találat. Próbálj másik mappát vagy hónapot."
-                            },
+                            title = stringResource(if (state.filter.isEmpty) R.string.browse_empty_title else R.string.browse_no_results_title),
+                            text = stringResource(if (state.filter.isEmpty) R.string.browse_empty_text else R.string.browse_no_results_text),
                             icon = if (state.filter.isEmpty) Icons.Rounded.PhotoLibrary else Icons.Rounded.SearchOff,
-                            actionLabel = if (state.filter.isEmpty) null else "Szűrő törlése",
+                            actionLabel = if (state.filter.isEmpty) null else stringResource(R.string.browse_clear_filter),
                             onAction = viewModel::clearFilter,
                         )
                     }
@@ -192,7 +200,7 @@ fun BrowseRoute(
         }
 
         Toast(
-            message = state.message,
+            message = state.message?.asString(),
             onShown = viewModel::dismissMessage,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -213,7 +221,7 @@ private fun FilterRails(state: BrowseUiState, viewModel: BrowseViewModel) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
             item {
                 Chip(
-                    text = "1 évnél régebbi",
+                    text = stringResource(R.string.browse_older_than_year),
                     icon = Icons.Rounded.History,
                     selected = state.filter.olderThanDays == 365,
                     onClick = { viewModel.applyPreset(if (state.filter.olderThanDays == 365) null else 365) },
@@ -221,14 +229,14 @@ private fun FilterRails(state: BrowseUiState, viewModel: BrowseViewModel) {
             }
             item {
                 Chip(
-                    text = "Fél évnél régebbi",
+                    text = stringResource(R.string.browse_older_than_half_year),
                     selected = state.filter.olderThanDays == 180,
                     onClick = { viewModel.applyPreset(if (state.filter.olderThanDays == 180) null else 180) },
                 )
             }
             item {
                 Chip(
-                    text = "Fotók",
+                    text = stringResource(R.string.browse_photos),
                     icon = Icons.Rounded.Photo,
                     selected = state.filter.mediaType == BrowseMediaType.PHOTO,
                     onClick = {
@@ -238,7 +246,7 @@ private fun FilterRails(state: BrowseUiState, viewModel: BrowseViewModel) {
             }
             item {
                 Chip(
-                    text = "Videók",
+                    text = stringResource(R.string.browse_videos),
                     icon = Icons.Rounded.Videocam,
                     selected = state.filter.mediaType == BrowseMediaType.VIDEO,
                     onClick = {
@@ -248,7 +256,7 @@ private fun FilterRails(state: BrowseUiState, viewModel: BrowseViewModel) {
             }
         }
         if (state.buckets.isNotEmpty()) {
-            Text(text = "Mappák", style = PadlasTheme.type.label, color = Ink.TextSecondary)
+            Text(text = stringResource(R.string.browse_folders), style = PadlasTheme.type.label, color = Ink.TextSecondary)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
                 items(state.buckets, key = { it.bucketId }) { bucket ->
                     Chip(
@@ -262,11 +270,11 @@ private fun FilterRails(state: BrowseUiState, viewModel: BrowseViewModel) {
             }
         }
         if (state.months.isNotEmpty()) {
-            Text(text = "Hónapok", style = PadlasTheme.type.label, color = Ink.TextSecondary)
+            Text(text = stringResource(R.string.browse_months), style = PadlasTheme.type.label, color = Ink.TextSecondary)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
                 items(state.months, key = { it.month }) { month ->
                     Chip(
-                        text = month.month.hungarianMonth(),
+                        text = month.month.monthLabel(),
                         trailing = Format.bytes(month.totalBytes),
                         selected = month.month in state.filter.months,
                         onClick = { viewModel.toggleMonth(month.month) },
@@ -285,7 +293,7 @@ private fun AssetTile(asset: Asset, selected: Boolean, model: android.net.Uri, o
         selected = selected,
         onToggle = onToggle,
         onLongPress = onLongPress,
-        badge = if (asset.isVideo) asset.durationMs?.let(Format::duration) ?: "Videó" else null,
+        badge = if (asset.isVideo) asset.durationMs?.let(Format::duration) ?: stringResource(R.string.browse_video) else null,
         image = { tileModifier ->
             AsyncImage(
                 model = thumb,
@@ -315,13 +323,13 @@ private fun SelectionBar(
             .padding(start = Space.page, end = Space.page, top = Space.xl, bottom = Space.l),
     ) {
         Text(
-            text = "${Format.count(count)} kijelölve · ${Format.bytes(bytes)}",
+            text = stringResource(R.string.browse_selected_size, Format.count(count), Format.bytes(bytes)),
             style = PadlasTheme.type.bodyStrong,
             color = Ink.Text,
         )
         Spacer(Modifier.height(Space.s))
         PadlasButton(
-            text = "Kukába",
+            text = stringResource(R.string.browse_move_to_trash),
             onClick = onTrash,
             enabled = !busy,
             style = ButtonStyle.Destructive,
@@ -331,7 +339,7 @@ private fun SelectionBar(
         Spacer(Modifier.height(Space.s))
         Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
             PadlasButton(
-                text = "Felhőbe",
+                text = stringResource(R.string.browse_upload),
                 onClick = onArchive,
                 enabled = !busy,
                 style = ButtonStyle.Secondary,
@@ -340,7 +348,7 @@ private fun SelectionBar(
                 modifier = Modifier.weight(1f),
             )
             PadlasButton(
-                text = "Védetté teszem",
+                text = stringResource(R.string.browse_protect),
                 onClick = onProtect,
                 enabled = !busy,
                 style = ButtonStyle.Secondary,
@@ -352,12 +360,15 @@ private fun SelectionBar(
     }
 }
 
-private val MONTH_LABEL: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("yyyy. MMMM", Locale.forLanguageTag("hu-HU"))
-
-/** "2024-07" -> "2024. július"; an unparseable value stays as it is rather than crashing. */
-private fun String.hungarianMonth(): String =
-    runCatching { YearMonth.parse(this).format(MONTH_LABEL) }.getOrDefault(this)
+/**
+ * "2024-07" -> "2024. július" in Hungarian, "July 2024" in English, in the app's language; an
+ * unparseable value stays as it is rather than crashing. Stand-alone month names, because some
+ * languages inflect the month inside a full date.
+ */
+private fun String.monthLabel(locale: Locale = Locale.getDefault()): String = runCatching {
+    val pattern = if (locale.language == "hu") "yyyy. MMMM" else "LLLL yyyy"
+    YearMonth.parse(this).format(DateTimeFormatter.ofPattern(pattern, locale))
+}.getOrDefault(this)
 
 /** The selection bar over the grid: dense enough to read over photos, no blur to pay for. */
 private val BarTint = Ink.SurfaceSolid.copy(alpha = 0.94f)

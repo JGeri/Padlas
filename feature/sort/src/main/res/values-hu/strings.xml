@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sort_join">%1$s · %2$s</string>
+    <string name="sort_next_batch">%1$s · jön a következő adag</string>
+    <string name="sort_tally_freed">%1$s felszabadítva</string>
+    <plurals name="sort_tally_trashed">
+        <item quantity="one">%1$s elem a kukába került</item>
+        <item quantity="other">%1$s elem a kukába került</item>
+    </plurals>
+    <string name="sort_refused">A rendszer most nem engedte a törlést.</string>
+    <string name="sort_cancelled">A törlés elmaradt.</string>
+    <string name="sort_not_recorded">A törlés megtörtént, de a nyilvántartás nem frissült. Megtelt a tárhely?</string>
+    <plurals name="sort_delete_confirm_title">
+        <item quantity="one">%1$s elem törlése?</item>
+        <item quantity="other">%1$s elem törlése?</item>
+    </plurals>
+    <string name="sort_delete_from_phone">%1$s kerül törlésre a telefonról.</string>
+    <string name="sort_delete_explain_permanent">%1$s véglegesen törlődik. Ez nem vonható vissza.</string>
+    <string name="sort_delete_explain_trash">%1$s a rendszer kukájába kerül, 30 napig visszaállítható.</string>
+    <string name="sort_delete">Törlés</string>
+    <string name="sort_delete_now">Törlés most</string>
+    <string name="sort_delete_pill">"Törlés · "</string>
+    <string name="sort_delete_bytes">Törlés · %1$s</string>
+    <plurals name="sort_delete_items_bytes">
+        <item quantity="one">%1$s elem törlése · %2$s</item>
+        <item quantity="other">%1$s elem törlése · %2$s</item>
+    </plurals>
+    <plurals name="sort_pending_count">
+        <item quantity="one">%1$s elem vár törlésre</item>
+        <item quantity="other">%1$s elem vár törlésre</item>
+    </plurals>
+    <string name="sort_pending_frees">%1$s szabadul fel</string>
+    <string name="sort_marked_for_deletion">Törlésre jelölve</string>
+    <string name="sort_close">Bezárás</string>
+    <string name="sort_back">Vissza</string>
+    <string name="sort_undo">Vissza</string>
+    <string name="sort_keep">Megtartom</string>
+    <string name="sort_kept">Megtartva</string>
+    <string name="sort_favorite">Kedvenc</string>
+    <string name="sort_protected">Védett</string>
+    <string name="sort_video">Videó</string>
+    <string name="sort_review">Átnézés</string>
+    <string name="sort_new_session">Új válogatás</string>
+
+    <string name="sort_title_whole_gallery">Teljes galéria</string>
+    <plurals name="sort_title_months">
+        <item quantity="one">%1$s hónap</item>
+        <item quantity="other">%1$s hónap</item>
+    </plurals>
+    <plurals name="sort_title_folders">
+        <item quantity="one">%1$s mappa</item>
+        <item quantity="other">%1$s mappa</item>
+    </plurals>
+    <string name="sort_title_photos">fotók</string>
+    <string name="sort_title_videos">videók</string>
+
+    <string name="sort_session_nothing_to_delete">Nincs mit törölni.</string>
+    <string name="sort_session_refused">A rendszer most nem engedte a törlést, a jelölések megmaradtak.</string>
+    <string name="sort_session_cancelled">A törlés elmaradt, a jelölések megmaradtak.</string>
+    <string name="sort_session_not_saved">A döntést nem sikerült menteni. Megtelt a tárhely?</string>
+    <plurals name="sort_session_favorites_synced">
+        <item quantity="one">%1$s kedvenc a Galériában</item>
+        <item quantity="other">%1$s kedvenc a Galériában</item>
+    </plurals>
+    <string name="sort_session_empty_title">Nincs mit átnézni</string>
+    <string name="sort_session_empty_text">Ebben a válogatásban minden elemről döntöttél már. Válassz másik hónapot vagy mappát.</string>
+
+    <string name="sort_hint_title">Így működik</string>
+    <string name="sort_hint_left">Húzd balra</string>
+    <string name="sort_hint_left_result">törlésre jelöli</string>
+    <string name="sort_hint_right">Húzd jobbra</string>
+    <string name="sort_hint_right_result">megtartod</string>
+    <string name="sort_hint_up">Húzd felfelé</string>
+    <string name="sort_hint_up_result">kedvenc lesz</string>
+    <string name="sort_hint_text">Koppintással nagyíthatod a képet, a videót megállíthatod. A megjelölt elemek a pakli végén egyetlen rendszer-párbeszédben törlődnek, de a jobb felső gombbal bármikor törölheted őket.</string>
+    <string name="sort_hint_start">Kezdjük</string>
+
+    <string name="sort_summary_done">Kész!</string>
+    <plurals name="sort_summary_reviewed">
+        <item quantity="one">%1$s elemet néztél át.</item>
+        <item quantity="other">%1$s elemet néztél át.</item>
+    </plurals>
+    <string name="sort_summary_favorites">Kedvenc</string>
+    <string name="sort_summary_to_delete">Törlésre</string>
+    <string name="sort_summary_review_first">Átnézem előtte</string>
+    <string name="sort_summary_freed">%1$s felszabadult</string>
+    <string name="sort_summary_in_trash">%1$s a kukában</string>
+    <string name="sort_summary_trash_note">A rendszer 30 nap múlva véglegesen törli. Ha most kell a hely, ürítsd a kukát.</string>
+    <string name="sort_summary_open_trash">Kuka megnyitása</string>
+    <plurals name="sort_summary_sync_favorites">
+        <item quantity="one">%1$s kedvenc a Galériába</item>
+        <item quantity="other">%1$s kedvenc a Galériába</item>
+    </plurals>
+    <string name="sort_summary_sync_favorites_text">Megjelölöm őket kedvencként a telefon galériájában is.</string>
+
+    <string name="sort_selection_photos_only">csak fotók</string>
+    <string name="sort_selection_videos_only">csak videók</string>
+    <string name="sort_selection_unreviewed_only">csak át nem nézett</string>
+    <string name="sort_selection_all_items">minden elem</string>
+    <string name="sort_internal_storage">Belső tárhely</string>
+
+    <string name="sort_home_title">Válogatás</string>
+    <string name="sort_home_subtitle">Koppints egy hónapra, és jöhetnek a kártyák.</string>
+    <string name="sort_home_empty_title">Még üres a galéria</string>
+    <string name="sort_home_empty_text">A beolvasás a háttérben fut. Pár perc, és itt látod a hónapokat és a mappákat.</string>
+    <string name="sort_tab_months">Hónapok</string>
+    <string name="sort_tab_folders">Mappák</string>
+    <string name="sort_home_hint">Hosszan nyomva többet is kijelölhetsz.</string>
+    <string name="sort_filter_all">Mind</string>
+    <string name="sort_filter_photos">Fotók</string>
+    <string name="sort_filter_videos">Videók</string>
+    <string name="sort_filter_new_only">Csak új</string>
+    <string name="sort_order_newest">Legújabb elöl</string>
+    <string name="sort_order_oldest">Legrégebbi elöl</string>
+    <string name="sort_order_largest">Legnagyobb elöl</string>
+    <string name="sort_order_random">Véletlen sorrend</string>
+    <plurals name="sort_items_size">
+        <item quantity="one">%1$s elem · %2$s</item>
+        <item quantity="other">%1$s elem · %2$s</item>
+    </plurals>
+    <string name="sort_deselect">Kijelölés le</string>
+    <string name="sort_whole_year">Teljes év</string>
+    <string name="sort_reviewed">Átnézve</string>
+    <string name="sort_clear_selection">Kijelölés törlése</string>
+    <string name="sort_counting">Számolás…</string>
+    <string name="sort_nothing_to_review">Nincs átnézendő elem</string>
+    <plurals name="sort_start">
+        <item quantity="one">Indítás · %1$s elem · %2$s</item>
+        <item quantity="other">Indítás · %1$s elem · %2$s</item>
+    </plurals>
+
+    <string name="sort_unmute">Hang be</string>
+    <string name="sort_mute">Hang ki</string>
+    <string name="sort_stamp_keep">MARAD</string>
+    <string name="sort_stamp_delete">TÖRLÉS</string>
+
+    <plurals name="sort_pending_subtitle">
+        <item quantity="one">%1$s elem · %2$s · koppints, ami maradjon</item>
+        <item quantity="other">%1$s elem · %2$s · koppints, ami maradjon</item>
+    </plurals>
+    <string name="sort_pending_empty_title">Nincs több törlendő</string>
+    <string name="sort_pending_empty_text">Minden megjelölt elemet elintéztél.</string>
+</resources>

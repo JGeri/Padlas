@@ -44,6 +44,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import hu.padlas.core.common.format.Format
@@ -57,6 +59,7 @@ import hu.padlas.core.design.theme.Ink
 import hu.padlas.core.design.theme.PadlasTheme
 import hu.padlas.core.design.theme.Space
 import hu.padlas.feature.sort.DeleteMode
+import hu.padlas.feature.sort.R
 
 @Composable
 internal fun SessionSummary(
@@ -78,10 +81,10 @@ internal fun SessionSummary(
         verticalArrangement = Arrangement.spacedBy(Space.m),
     ) {
         DrawnCheck()
-        StaggeredColumnItem(1) { Text(text = "Kész!", style = PadlasTheme.type.headline, color = Ink.Text) }
+        StaggeredColumnItem(1) { Text(text = stringResource(R.string.sort_summary_done), style = PadlasTheme.type.headline, color = Ink.Text) }
         StaggeredColumnItem(2) {
             Text(
-                text = "${Format.count(state.total)} elemet néztél át.",
+                text = pluralStringResource(R.plurals.sort_summary_reviewed, state.total, Format.count(state.total)),
                 style = PadlasTheme.type.body,
                 color = Ink.TextSecondary,
                 textAlign = TextAlign.Center,
@@ -96,21 +99,21 @@ internal fun SessionSummary(
                 .height(IntrinsicSize.Min),
         ) {
             StatTile(
-                label = "Megtartva",
+                label = stringResource(R.string.sort_kept),
                 value = Format.count(state.kept),
                 icon = Icons.Rounded.Check,
                 tint = Ink.Success,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             StatTile(
-                label = "Kedvenc",
+                label = stringResource(R.string.sort_summary_favorites),
                 value = Format.count(state.favorited),
                 icon = Icons.Rounded.Star,
                 tint = Ink.Favorite,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             StatTile(
-                label = "Törlésre",
+                label = stringResource(R.string.sort_summary_to_delete),
                 value = Format.count(state.deleted),
                 caption = Format.bytes(state.deletedBytes),
                 icon = Icons.Rounded.DeleteOutline,
@@ -127,7 +130,11 @@ internal fun SessionSummary(
                         IconBubble(icon = Icons.Rounded.Delete, tint = Ink.Danger)
                         Column(Modifier.padding(start = Space.m).weight(1f)) {
                             Text(
-                                text = "${Format.count(state.pending.itemCount)} elem vár törlésre",
+                                text = pluralStringResource(
+                                    R.plurals.sort_pending_count,
+                                    state.pending.itemCount,
+                                    Format.count(state.pending.itemCount),
+                                ),
                                 style = PadlasTheme.type.bodyStrong,
                                 color = Ink.Text,
                             )
@@ -140,7 +147,7 @@ internal fun SessionSummary(
                     }
                     Spacer(Modifier.height(Space.xs))
                     PadlasButton(
-                        text = "Törlés · ${Format.bytes(state.pending.totalBytes)}",
+                        text = stringResource(R.string.sort_delete_bytes, Format.bytes(state.pending.totalBytes)),
                         onClick = onDelete,
                         style = ButtonStyle.Destructive,
                         icon = Icons.Rounded.Delete,
@@ -148,7 +155,7 @@ internal fun SessionSummary(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     PadlasButton(
-                        text = "Átnézem előtte",
+                        text = stringResource(R.string.sort_summary_review_first),
                         onClick = onReview,
                         style = ButtonStyle.Secondary,
                         icon = Icons.Rounded.GridView,
@@ -163,17 +170,16 @@ internal fun SessionSummary(
                         IconBubble(icon = Icons.Rounded.CheckCircle, tint = Ink.Success)
                         Column(Modifier.padding(start = Space.m).weight(1f)) {
                             Text(
-                                text = if (state.freedPermanently) {
-                                    "${Format.bytes(state.freedBytes)} felszabadult"
-                                } else {
-                                    "${Format.bytes(state.freedBytes)} a kukában"
-                                },
+                                text = stringResource(
+                                    if (state.freedPermanently) R.string.sort_summary_freed else R.string.sort_summary_in_trash,
+                                    Format.bytes(state.freedBytes),
+                                ),
                                 style = PadlasTheme.type.bodyStrong,
                                 color = Ink.Text,
                             )
                             if (!state.freedPermanently) {
                                 Text(
-                                    text = "A rendszer 30 nap múlva véglegesen törli. Ha most kell a hely, ürítsd a kukát.",
+                                    text = stringResource(R.string.sort_summary_trash_note),
                                     style = PadlasTheme.type.caption,
                                     color = Ink.TextSecondary,
                                 )
@@ -182,7 +188,7 @@ internal fun SessionSummary(
                     }
                     if (!state.freedPermanently && state.deleteMode == DeleteMode.TRASH) {
                         PadlasButton(
-                            text = "Kuka megnyitása",
+                            text = stringResource(R.string.sort_summary_open_trash),
                             onClick = onOpenTrash,
                             style = ButtonStyle.Secondary,
                             icon = Icons.Rounded.DeleteOutline,
@@ -195,8 +201,12 @@ internal fun SessionSummary(
 
         if (state.unsyncedFavorites > 0) {
             ListRow(
-                title = "${Format.count(state.unsyncedFavorites)} kedvenc a Galériába",
-                subtitle = "Megjelölöm őket kedvencként a telefon galériájában is.",
+                title = pluralStringResource(
+                    R.plurals.sort_summary_sync_favorites,
+                    state.unsyncedFavorites,
+                    Format.count(state.unsyncedFavorites),
+                ),
+                subtitle = stringResource(R.string.sort_summary_sync_favorites_text),
                 icon = Icons.Rounded.AddCircle,
                 iconTint = Ink.Favorite,
                 onClick = onSyncFavorites,
@@ -204,8 +214,8 @@ internal fun SessionSummary(
         }
 
         Spacer(Modifier.height(Space.s))
-        PadlasButton(text = "Új válogatás", onClick = onNewSession, modifier = Modifier.fillMaxWidth())
-        PadlasButton(text = "Bezárás", onClick = onClose, style = ButtonStyle.Ghost, modifier = Modifier.fillMaxWidth())
+        PadlasButton(text = stringResource(R.string.sort_new_session), onClick = onNewSession, modifier = Modifier.fillMaxWidth())
+        PadlasButton(text = stringResource(R.string.sort_close), onClick = onClose, style = ButtonStyle.Ghost, modifier = Modifier.fillMaxWidth())
     }
 }
 

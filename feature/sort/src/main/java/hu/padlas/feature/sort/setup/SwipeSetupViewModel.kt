@@ -8,17 +8,23 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.padlas.core.common.format.Format
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiPlural
+import hu.padlas.core.common.text.uiText
 import hu.padlas.core.database.model.SizeAndCount
 import hu.padlas.core.database.model.SwipeBucketStat
 import hu.padlas.core.database.model.SwipeMonthStat
 import hu.padlas.feature.sort.DeleteBatch
 import hu.padlas.feature.sort.DeleteTally
-import hu.padlas.feature.sort.HungarianDates
 import hu.padlas.feature.sort.MediaFilter
+import hu.padlas.feature.sort.R
+import hu.padlas.feature.sort.SwipeDates
 import hu.padlas.feature.sort.SwipeFilter
 import hu.padlas.feature.sort.SwipeOrder
 import hu.padlas.feature.sort.SwipePreferences
 import hu.padlas.feature.sort.SwipeRepository
+import hu.padlas.feature.sort.joinedByDots
+import hu.padlas.feature.sort.withNextBatch
 import javax.inject.Inject
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
@@ -43,7 +49,6 @@ internal enum class SetupTab { MONTHS, FOLDERS }
 @Immutable
 internal data class MonthCell(
     val key: String,
-    val name: String,
     val itemCount: Int,
     val totalBytes: Long,
     val reviewedCount: Int,
@@ -67,7 +72,7 @@ internal data class YearGroup(
 @Immutable
 internal data class FolderItem(
     val bucketId: Long,
-    val name: String,
+    val name: UiText,
     val path: String,
     val itemCount: Int,
     val totalBytes: Long,
@@ -88,33 +93,33 @@ internal data class SetupUiState(
     val preview: SizeAndCount? = null,
     val pending: SizeAndCount = SizeAndCount(0, 0),
     val busy: Boolean = false,
-    val message: String? = null,
+    val message: UiText? = null,
     /** Long-press turns tiles into checkboxes; until then a tap opens the deck at once. */
     val selecting: Boolean = false,
 ) {
     val isEmpty: Boolean get() = !loading && years.isEmpty() && folders.isEmpty()
 
-    val selectionLabel: String
+    val selectionLabel: UiText
         get() {
-            val parts = ArrayList<String>()
+            val parts = ArrayList<UiText>()
             val months = filter.months.sortedDescending()
             when {
-                months.size == 1 -> parts += HungarianDates.month(months.first())
-                months.size > 1 -> parts += "${Format.count(months.size)} hónap"
+                months.size == 1 -> parts += UiText.Raw(SwipeDates.month(months.first()))
+                months.size > 1 -> parts += uiPlural(R.plurals.sort_title_months, months.size, Format.count(months.size))
             }
             val folderNames = folders.filter { it.selected }.map { it.name }
             when {
                 folderNames.size == 1 -> parts += folderNames.first()
-                folderNames.size > 1 -> parts += "${Format.count(folderNames.size)} mappa"
+                folderNames.size > 1 -> parts += uiPlural(R.plurals.sort_title_folders, folderNames.size, Format.count(folderNames.size))
             }
-            if (parts.isEmpty()) parts += "Teljes galéria"
+            if (parts.isEmpty()) parts += uiText(R.string.sort_title_whole_gallery)
             when (filter.media) {
-                MediaFilter.PHOTOS -> parts += "csak fotók"
-                MediaFilter.VIDEOS -> parts += "csak videók"
+                MediaFilter.PHOTOS -> parts += uiText(R.string.sort_selection_photos_only)
+                MediaFilter.VIDEOS -> parts += uiText(R.string.sort_selection_videos_only)
                 MediaFilter.ALL -> Unit
             }
-            parts += if (filter.onlyUnreviewed) "csak át nem nézett" else "minden elem"
-            return parts.joinToString(" · ")
+            parts += uiText(if (filter.onlyUnreviewed) R.string.sort_selection_unreviewed_only else R.string.sort_selection_all_items)
+            return parts.joinedByDots()
         }
 }
 
@@ -251,7 +256,7 @@ internal class SwipeSetupViewModel @Inject constructor(
             val batch = repository.deleteRequest(pending)
             if (batch == null) {
                 local.update {
-                    it.copy(busy = false, message = if (pending.isEmpty()) null else "A rendszer most nem engedte a törlést.")
+                    it.copy(busy = false, message = if (pending.isEmpty()) null else uiText(R.string.sort_refused))
                 }
                 return@launch
             }
@@ -264,7 +269,7 @@ internal class SwipeSetupViewModel @Inject constructor(
         val batch = pendingBatch
         pendingBatch = null
         if (batch == null || !confirmed) {
-            local.update { it.copy(busy = false, message = if (batch != null) "A törlés elmaradt." else null) }
+            local.update { it.copy(busy = false, message = if (batch != null) uiText(R.string.sort_cancelled) else null) }
             return
         }
         viewModelScope.launch {
@@ -274,8 +279,8 @@ internal class SwipeSetupViewModel @Inject constructor(
                 it.copy(
                     busy = false,
                     message = when {
-                        !recorded -> "A törlés megtörtént, de a nyilvántartás nem frissült. Megtelt a tárhely?"
-                        batch.truncated -> "$text · jön a következő adag"
+                        !recorded -> uiText(R.string.sort_not_recorded)
+                        batch.truncated -> text.withNextBatch()
                         else -> text
                     },
                 )
@@ -291,7 +296,7 @@ internal class SwipeSetupViewModel @Inject constructor(
 
     private fun years(months: List<SwipeMonthStat>, filter: SwipeFilter): List<YearGroup> =
         months
-            .groupBy { HungarianDates.year(it.month) }
+            .groupBy { SwipeDates.year(it.month) }
             .toSortedMap(compareByDescending { it })
             .map { (year, stats) ->
                 YearGroup(
@@ -299,7 +304,6 @@ internal class SwipeSetupViewModel @Inject constructor(
                     months = stats.sortedBy { it.month }.map { stat ->
                         MonthCell(
                             key = stat.month,
-                            name = HungarianDates.monthName(stat.month),
                             itemCount = stat.itemCount,
                             totalBytes = stat.totalBytes,
                             reviewedCount = stat.reviewedCount,
@@ -312,7 +316,8 @@ internal class SwipeSetupViewModel @Inject constructor(
 
     private fun SwipeBucketStat.toFolder(filter: SwipeFilter): FolderItem = FolderItem(
         bucketId = bucketId,
-        name = bucketName.ifBlank { relativePath.trimEnd('/').substringAfterLast('/').ifBlank { "Belső tárhely" } },
+        name = bucketName.ifBlank { relativePath.trimEnd('/').substringAfterLast('/') }
+            .let { if (it.isBlank()) uiText(R.string.sort_internal_storage) else UiText.Raw(it) },
         path = relativePath,
         itemCount = itemCount,
         totalBytes = totalBytes,
@@ -330,7 +335,7 @@ internal class SwipeSetupViewModel @Inject constructor(
         ContentUris.withAppendedId(collection, it)
     }
 
-    private data class LocalState(val busy: Boolean = false, val message: String? = null, val selecting: Boolean = false)
+    private data class LocalState(val busy: Boolean = false, val message: UiText? = null, val selecting: Boolean = false)
 
     companion object {
         const val HERO_START = "swipe-start"
