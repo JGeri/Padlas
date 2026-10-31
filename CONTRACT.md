@@ -20,8 +20,16 @@ need a dependency that is missing, say so in your final report instead.
 2. Hilt for DI: `@Inject constructor`, `@HiltViewModel`, `@Singleton` where the object
    holds state. Workers use `@HiltWorker` + `@AssistedInject`.
 3. All I/O on `@IoDispatcher`, hashing on `@HashDispatcher` (see `core:common`).
-4. UI text is **Hungarian**, active verbs, sentence case, numbers always through
-   `hu.padlas.core.common.format.Format`. Never hardcode a byte string.
+4. UI text lives in string resources, never in Kotlin source: English in the module's
+   `res/values/strings.xml` (the default), Hungarian in `res/values-hu/strings.xml`.
+   Resource names carry the module as prefix (`dedup_title`, `sort_session_done`). A count
+   that changes the noun is a `<plurals>` (English needs it; Hungarian repeats the same text
+   for `one` and `other`). Composables use `stringResource`/`pluralStringResource`; view
+   models, workers and repositories hand over `UiText` (`uiText(R.string.x, arg)`), which
+   the UI resolves with `asString()`. Numbers and sizes always go through
+   `hu.padlas.core.common.format.Format` and into the string as `%s` / `%1$s` arguments;
+   never hardcode a byte string. Copy: active verbs, sentence case, in both languages.
+   "Padlás" is a name and is not translated.
 5. Comments explain *why*, never *what*. No file headers, no banner comments, no TODOs.
 6. No `!!`, no `GlobalScope`, no `runBlocking` outside tests.
 7. Every destructive path must satisfy the invariants in spec chapter 4 (INV-1..INV-7).
@@ -51,7 +59,16 @@ object Format {
 package hu.padlas.core.common.result
 sealed interface Outcome<out T> { data class Success<T>; data class Failure(message, cause) }
 inline fun <T> outcomeOf(message: String = "...", block: () -> T): Outcome<T>
+
+package hu.padlas.core.common.text
+sealed interface UiText { Res(id, args); Plural(id, count, args); Raw(value); fun resolve(resources) }
+fun uiText(@StringRes id: Int, vararg args: Any): UiText
+fun uiPlural(@PluralsRes id: Int, count: Int, vararg args: Any): UiText
+// core:design: @Composable fun UiText.asString(): String
 ```
+
+`Format` follows the app's language (`Locale.getDefault()`, which per-app language
+settings update): "12,4 GB" and "2 341" in Hungarian, "12.4 GB" and "2,341" in English.
 
 ## core:database (done — read the sources, do not change them)
 

@@ -38,6 +38,7 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":core:common"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     api(platform(libs.compose.bom))

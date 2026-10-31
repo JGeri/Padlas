@@ -1,9 +1,20 @@
 package hu.padlas.core.common.format
 
 import com.google.common.truth.Truth.assertThat
+import java.util.Locale
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 
 class FormatTest {
+
+    private val original = Locale.getDefault()
+
+    @Before
+    fun hungarian() = Locale.setDefault(Locale.forLanguageTag("hu-HU"))
+
+    @After
+    fun restore() = Locale.setDefault(original)
 
     private val nbsp = ' '
 
@@ -55,5 +66,12 @@ class FormatTest {
     fun `duration switches to hours when needed`() {
         assertThat(Format.duration(65_000)).isEqualTo("1:05")
         assertThat(Format.duration(3_725_000)).isEqualTo("1:02:05")
+    }
+
+    @Test
+    fun `english uses a dot decimal and comma grouping`() {
+        Locale.setDefault(Locale.US)
+        assertThat(Format.bytes(1024)).isEqualTo("1.0 KB")
+        assertThat(Format.count(25_431)).isEqualTo("25,431")
     }
 }

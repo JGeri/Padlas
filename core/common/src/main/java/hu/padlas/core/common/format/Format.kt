@@ -5,19 +5,21 @@ import kotlin.math.abs
 import kotlin.math.roundToLong
 
 /**
- * Every number the user sees goes through here. Hungarian conventions: comma decimal
- * separator, a narrow no-break space for grouping, unit always present.
+ * Every number the user sees goes through here, in the conventions of the language the app
+ * runs in: "12,8 GB" and "2 341" in Hungarian, "12.8 GB" and "2,341" in English. The unit is
+ * always present.
  */
 object Format {
 
-    private val HU: Locale = Locale.forLanguageTag("hu-HU")
+    /** The app's language, which Android keeps as the default; it may differ from the phone's. */
+    private val locale: Locale get() = Locale.getDefault()
 
     /** U+202F. */
     private const val GROUP = ' '
 
     /**
-     * Depending on the CLDR build the JDK emits U+00A0 or a plain space as the Hungarian
-     * grouping separator. Pinning one character keeps the tabular figures of Geist Mono
+     * Depending on the CLDR build the JDK emits U+00A0 or a plain space as a space-like
+     * grouping separator (Hungarian, French). Pinning one character keeps the tabular figures of Geist Mono
      * aligned across every screen.
      */
     private fun String.normalizeGrouping(): String =
@@ -38,7 +40,7 @@ object Format {
             bytes >= 100 -> 0
             else -> 1
         }
-        val formatted = String.format(HU, "%,.${decimals}f", bytes).normalizeGrouping()
+        val formatted = String.format(locale, "%,.${decimals}f", bytes).normalizeGrouping()
         return buildString {
             if (negative) append('-')
             append(formatted)
@@ -53,12 +55,11 @@ object Format {
     fun bytesUnit(value: Long): String = bytes(value).substringAfterLast(' ')
 
     /** 2341 -> "2 341" */
-    fun count(value: Long): String = String.format(HU, "%,d", value).normalizeGrouping()
+    fun count(value: Long): String = String.format(locale, "%,d", value).normalizeGrouping()
 
     fun count(value: Int): String = count(value.toLong())
 
-    /** 0.34 -> "34%" */
-    /** 0 / 0 is a real case (an empty folder, a volume that reports nothing); NaN cannot be rounded. */
+    /** 0.34 -> "34%". 0 / 0 is a real case (an empty folder, a volume that reports nothing); NaN cannot be rounded. */
     fun percent(fraction: Float): String = if (fraction.isNaN()) "0%" else "${(fraction * 100f).roundToLong()}%"
 
     fun duration(millis: Long): String {
@@ -66,9 +67,9 @@ object Format {
         val minutes = totalSeconds / 60
         val seconds = totalSeconds % 60
         return if (minutes >= 60) {
-            String.format(HU, "%d:%02d:%02d", minutes / 60, minutes % 60, seconds)
+            String.format(locale, "%d:%02d:%02d", minutes / 60, minutes % 60, seconds)
         } else {
-            String.format(HU, "%d:%02d", minutes, seconds)
+            String.format(locale, "%d:%02d", minutes, seconds)
         }
     }
 }

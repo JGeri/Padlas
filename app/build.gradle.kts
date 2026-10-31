@@ -41,6 +41,12 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
+    // English is the default; the per-app language list in system settings is generated
+    // from the values-xx folders, so Hungarian can be picked on an English phone and back.
+    androidResources {
+        generateLocaleConfig = true
+    }
+
     signingConfigs {
         if (releaseStoreFile != null) {
             create("release") {
