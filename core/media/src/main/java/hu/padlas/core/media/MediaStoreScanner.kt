@@ -57,6 +57,27 @@ class MediaStoreScanner @Inject constructor(
         if (batch.isNotEmpty()) emit(batch)
     }.flowOn(io)
 
+    /**
+     * Rows by id, whatever their timestamps say. A file copied in with its old modification
+     * time sorts below the incremental watermark, so the indexer asks for it by name.
+     */
+    fun scanIds(ids: Collection<Long>): Flow<List<Asset>> = flow {
+        val seenAt = System.currentTimeMillis()
+        for (chunk in ids.chunked(ID_CHUNK)) {
+            val selection = MEDIA_SELECTION + " AND " + MediaStore.Files.FileColumns._ID +
+                " IN (" + chunk.joinToString(",") { "?" } + ")"
+            val batch = ArrayList<Asset>(chunk.size)
+            query(PROJECTION, selection, chunk.map { it.toString() }.toTypedArray(), null)?.use { cursor ->
+                val columns = Columns(cursor)
+                while (cursor.moveToNext()) {
+                    currentCoroutineContext().ensureActive()
+                    batch += cursor.toAsset(columns, seenAt)
+                }
+            }
+            if (batch.isNotEmpty()) emit(batch)
+        }
+    }.flowOn(io)
+
     /** Ids currently in MediaStore, so the indexer can drop rows deleted outside the app. */
     suspend fun currentIds(): Set<Long> = withContext(io) {
         val ids = HashSet<Long>()
@@ -162,6 +183,9 @@ class MediaStoreScanner @Inject constructor(
 
     companion object {
         const val BATCH_SIZE = 500
+
+        /** Well under SQLite's variable limit, which MediaProvider's own queries share. */
+        private const val ID_CHUNK = 500
 
         private const val MILLIS_PER_SECOND = 1000L
 

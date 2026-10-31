@@ -71,9 +71,12 @@ class IndexRepository @Inject constructor(
 
         val since = if (fromScratch) 0L else sinceWatermark()
         var scanned = 0
+        var changed = 0
         var bytes = 0L
-        scanner.scan(since).collect { batch ->
-            val merged = merge(batch, now)
+        val store: suspend (List<Asset>) -> Unit = { batch ->
+            val existing = assetDao.byIds(batch.map { it.mediaStoreId }).associateBy { it.mediaStoreId }
+            val merged = batch.map { fresh -> mergeAsset(existing[fresh.mediaStoreId], fresh, now) }
+            changed += batch.count { fresh -> existing[fresh.mediaStoreId]?.sameFileAs(fresh) != true }
             assetDao.upsertAll(merged)
             scanned += merged.size
             bytes += merged.sumOf { it.sizeBytes }
@@ -84,24 +87,40 @@ class IndexRepository @Inject constructor(
                 bucket = merged.lastOrNull()?.bucketName.orEmpty(),
             )
         }
+        scanner.scan(since).collect(store)
+        if (!fromScratch) {
+            // The watermark only sees files modified after the newest one indexed. A photo
+            // copied in from a PC, a backup or another phone keeps its old timestamp and
+            // would never show up, so whatever MediaStore lists that the index lacks is
+            // read by id.
+            val known = assetDao.allIds().toHashSet()
+            scanner.scanIds(liveIds.filterNot { it in known }).collect(store)
+        }
 
-        val reconciled = reconcileDeletions(liveIds)
+        val reconciled = reconcileDeletions(liveIds, now)
         val count = assetDao.count()
         val localBytes = assetDao.observeLocalBytes().first()
         val durationMs = SystemClock.elapsedRealtime() - startedAt
 
         // One entry per run, never per asset: 25k audit rows would drown the log (INV-5).
-        auditDao.insert(
-            AuditEntry(
-                timestamp = now,
-                action = AuditAction.INDEXED,
-                assetId = null,
-                sizeBytes = localBytes,
-                reversible = false,
-                payloadJson = runPayload(scanned, count, reconciled, durationMs, fromScratch),
-                note = if (fromScratch) NOTE_FULL else NOTE_INCREMENTAL,
-            ),
-        )
+        // A pass that found nothing new only moves the last such line to now; the sync runs
+        // whenever any app touches shared storage, and would otherwise fill the log.
+        val last = auditDao.latest(AuditAction.INDEXED)
+        if (!fromScratch && changed == 0 && !reconciled.touched && last?.note == NOTE_INCREMENTAL) {
+            auditDao.touch(last.id, now)
+        } else {
+            auditDao.insert(
+                AuditEntry(
+                    timestamp = now,
+                    action = AuditAction.INDEXED,
+                    assetId = null,
+                    sizeBytes = localBytes,
+                    reversible = false,
+                    payloadJson = runPayload(scanned, count, reconciled, durationMs, fromScratch),
+                    note = if (fromScratch) NOTE_FULL else NOTE_INCREMENTAL,
+                ),
+            )
+        }
         if (reconciled.touched) {
             auditDao.insert(
                 AuditEntry(
@@ -128,24 +147,29 @@ class IndexRepository @Inject constructor(
     private suspend fun sinceWatermark(): Long =
         ((assetDao.latestDateModified() ?: 0L) - 1L).coerceAtLeast(0L)
 
-    private suspend fun merge(batch: List<Asset>, now: Long): List<Asset> {
-        if (batch.isEmpty()) return batch
-        val existing = assetDao.byIds(batch.map { it.mediaStoreId }).associateBy { it.mediaStoreId }
-        return batch.map { fresh -> mergeAsset(existing[fresh.mediaStoreId], fresh, now) }
-    }
+    private fun Asset.sameFileAs(fresh: Asset): Boolean =
+        sizeBytes == fresh.sizeBytes && dateModified == fresh.dateModified
 
     /**
      * Rows we hold that MediaStore no longer reports. An ARCHIVED asset that vanished
      * locally is not a deletion but a ghost: the bytes are gone, the Drive copy and the
      * catalogue entry must survive (INV-3).
+     *
+     * A trashed file is not gone either: MediaStore hides it from every plain query, but it
+     * sits in the bin for thirty days and the log can still bring it back, which needs its
+     * row. Only a trashed row older than the bin is dropped. One that MediaStore reports
+     * again was restored somewhere else, from the gallery's bin for example.
      */
-    private suspend fun reconcileDeletions(liveIds: Set<Long>): Reconciled {
+    private suspend fun reconcileDeletions(liveIds: Set<Long>, now: Long): Reconciled {
         // An empty live set means the cursor failed or the permission was revoked between
         // passes. Wiping the whole index on that would be catastrophic and silent.
-        if (liveIds.isEmpty()) return Reconciled(0, 0)
+        if (liveIds.isEmpty()) return Reconciled(0, 0, 0)
+
+        val restored = assetDao.trashedIds().filter { it in liveIds }
+        restored.chunked(ID_CHUNK).forEach { assetDao.markUntrashed(it) }
 
         val missing = assetDao.allIds().filterNot { it in liveIds }
-        if (missing.isEmpty()) return Reconciled(0, 0)
+        if (missing.isEmpty()) return Reconciled(0, 0, restored.size)
 
         var removed = 0
         var ghosted = 0
@@ -155,7 +179,7 @@ class IndexRepository @Inject constructor(
                 .filter { it.state == AssetState.ARCHIVED && it.driveFileId != null }
                 .map { it.mediaStoreId }
             val toDelete = rows
-                .filter { it.state != AssetState.GHOST && it.mediaStoreId !in toGhost }
+                .filter { it.state != AssetState.GHOST && it.mediaStoreId !in toGhost && !it.inBin(now) }
                 .map { it.mediaStoreId }
             if (toGhost.isNotEmpty()) {
                 assetDao.setState(toGhost, AssetState.GHOST)
@@ -166,8 +190,11 @@ class IndexRepository @Inject constructor(
                 removed += toDelete.size
             }
         }
-        return Reconciled(removed, ghosted)
+        return Reconciled(removed, ghosted, restored.size)
     }
+
+    private fun Asset.inBin(now: Long): Boolean =
+        state == AssetState.TRASHED && (trashedAt ?: 0L) > now - TRASH_RETENTION_MS
 
     private fun runPayload(
         scanned: Int,
@@ -181,19 +208,24 @@ class IndexRepository @Inject constructor(
         append(JSON_TOTAL).append(total).append(",")
         append(JSON_REMOVED).append(reconciled.removed).append(",")
         append(JSON_GHOSTED).append(reconciled.ghosted).append(",")
+        append(JSON_RESTORED).append(reconciled.restored).append(",")
         append(JSON_DURATION).append(durationMs).append(",")
         append(JSON_FULL).append(fromScratch)
         append("}")
     }
 
-    private data class Reconciled(val removed: Int, val ghosted: Int) {
-        val touched: Boolean get() = removed > 0 || ghosted > 0
+    private data class Reconciled(val removed: Int, val ghosted: Int, val restored: Int) {
+        val touched: Boolean get() = removed > 0 || ghosted > 0 || restored > 0
 
-        fun payload(): String = "{" + JSON_REMOVED + removed + "," + JSON_GHOSTED + ghosted + "}"
+        fun payload(): String =
+            "{" + JSON_REMOVED + removed + "," + JSON_GHOSTED + ghosted + "," + JSON_RESTORED + restored + "}"
     }
 
     private companion object {
         const val ID_CHUNK = 400
+
+        /** MediaStore empties its bin after thirty days; two more cover a phone that was off. */
+        const val TRASH_RETENTION_MS = 32L * 24 * 60 * 60 * 1000
         const val ALREADY_RUNNING = "A beolvasás már fut."
         const val SCAN_FAILED = "A beolvasás megszakadt."
         const val NOTE_FULL = "Teljes beolvasás"
@@ -204,6 +236,7 @@ class IndexRepository @Inject constructor(
         const val JSON_TOTAL = "\"total\":"
         const val JSON_REMOVED = "\"removed\":"
         const val JSON_GHOSTED = "\"ghosted\":"
+        const val JSON_RESTORED = "\"restored\":"
         const val JSON_DURATION = "\"durationMs\":"
         const val JSON_FULL = "\"full\":"
     }

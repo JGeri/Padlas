@@ -137,7 +137,7 @@ interface AssetDao {
         """
         SELECT bucketId, bucketName, MIN(relativePath) AS relativePath,
                COUNT(*) AS itemCount, COALESCE(SUM(sizeBytes), 0) AS totalBytes
-        FROM asset WHERE state != 'GHOST'
+        FROM asset WHERE state NOT IN ('GHOST', 'TRASHED')
         GROUP BY bucketId, bucketName ORDER BY totalBytes DESC
         """,
     )
@@ -419,6 +419,9 @@ interface AssetDao {
 
     @Query("UPDATE asset SET state = 'LOCAL', trashedAt = NULL WHERE mediaStoreId IN (:ids)")
     suspend fun markUntrashed(ids: List<Long>)
+
+    @Query("SELECT mediaStoreId FROM asset WHERE state = 'TRASHED'")
+    suspend fun trashedIds(): List<Long>
 
     @Query(
         """

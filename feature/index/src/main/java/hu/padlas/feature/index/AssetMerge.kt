@@ -55,7 +55,7 @@ internal fun mergeAsset(existing: Asset?, fresh: Asset, now: Long): Asset {
         hashedAt = if (keepDerived) existing.hashedAt else 0L,
         triagedAt = if (keepDerived || secret) existing.triagedAt else 0L,
         deferredAt = existing.deferredAt,
-        trashedAt = existing.trashedAt,
+        trashedAt = if (existing.state == AssetState.TRASHED) null else existing.trashedAt,
         ghostThumbPath = existing.ghostThumbPath,
         lastSeenAt = now,
     )
@@ -63,9 +63,11 @@ internal fun mergeAsset(existing: Asset?, fresh: Asset, now: Long): Asset {
 
 /**
  * A GHOST row whose file turned up in MediaStore again was restored from Drive or copied
- * back by hand; it is the same asset, not a new one.
+ * back by hand; it is the same asset, not a new one. A TRASHED one that MediaStore reports
+ * again came back out of the bin, since MediaStore never lists what is still in it.
  */
 private fun restoredState(existing: Asset): AssetState = when {
+    existing.state == AssetState.TRASHED -> AssetState.LOCAL
     existing.state != AssetState.GHOST -> existing.state
     existing.driveFileId != null -> AssetState.ARCHIVED
     else -> AssetState.LOCAL

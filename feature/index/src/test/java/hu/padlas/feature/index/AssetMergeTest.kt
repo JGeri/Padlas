@@ -96,6 +96,16 @@ class AssetMergeTest {
         assertThat(merged.driveFileId).isEqualTo("drive-1")
     }
 
+    @Test
+    fun `a trashed asset that MediaStore lists again came back out of the bin`() {
+        val existing = scanned().copy(state = AssetState.TRASHED, trashedAt = 99L)
+
+        val merged = mergeAsset(existing, scanned(), NOW)
+
+        assertThat(merged.state).isEqualTo(AssetState.LOCAL)
+        assertThat(merged.trashedAt).isNull()
+    }
+
     private fun scanned(): Asset = Asset(
         mediaStoreId = 1L,
         uri = "content://media/external/images/media/1",
