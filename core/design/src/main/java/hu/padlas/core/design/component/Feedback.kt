@@ -35,10 +35,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import hu.padlas.core.design.R
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.theme.Ink
@@ -105,7 +107,7 @@ fun ConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    dismissLabel: String = "Mégse",
+    dismissLabel: String = stringResource(R.string.design_cancel),
     destructive: Boolean = false,
     icon: ImageVector = Icons.Rounded.Info,
 ) {

@@ -31,6 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -71,12 +73,8 @@ internal fun LazyListScope.appsSection(
     if (apps.apps.isEmpty()) {
         item(key = "apps-loading") {
             EmptyState(
-                title = if (apps.loading) "Appok mérése…" else "Nincs mit mutatni",
-                text = if (apps.loading) {
-                    "A rendszer egyenként adja meg az appok méretét, ez eltarthat néhány másodpercig."
-                } else {
-                    "A rendszer nem adott vissza méreteket."
-                },
+                title = stringResource(if (apps.loading) R.string.map_apps_measuring else R.string.map_apps_nothing),
+                text = stringResource(if (apps.loading) R.string.map_apps_measuring_text else R.string.map_apps_no_sizes),
                 icon = Icons.Rounded.Schedule,
                 tint = Ink.TextSecondary,
                 modifier = Modifier.then(itemMotion()),
@@ -98,17 +96,22 @@ internal fun LazyListScope.appsSection(
     }
     item(key = "apps-head") {
         Column(modifier = Modifier.then(itemMotion()).padding(start = Space.page, end = Space.page, top = Space.l, bottom = Space.m)) {
-            SectionHeader(title = "Appok méret szerint")
+            SectionHeader(title = stringResource(R.string.map_apps_by_size))
             Text(
-                text = "${Format.count(apps.apps.size)} app · ${Format.bytes(apps.apps.sumOf { it.totalBytes })}",
+                text = pluralStringResource(
+                    R.plurals.map_apps_count,
+                    apps.apps.size,
+                    Format.count(apps.apps.size),
+                    Format.bytes(apps.apps.sumOf { it.totalBytes }),
+                ),
                 style = PadlasTheme.type.caption,
                 color = Ink.TextSecondary,
             )
             Spacer(Modifier.height(Space.m))
             Row(horizontalArrangement = Arrangement.spacedBy(Space.l)) {
-                LegendItem(label = "Program", value = "", color = AppPartColor.Program)
-                LegendItem(label = "Adat", value = "", color = AppPartColor.Data)
-                LegendItem(label = "Gyorsítótár", value = "", color = AppPartColor.Cache)
+                LegendItem(label = stringResource(R.string.map_app_part_program), value = "", color = AppPartColor.Program)
+                LegendItem(label = stringResource(R.string.map_app_part_data), value = "", color = AppPartColor.Data)
+                LegendItem(label = stringResource(R.string.map_app_part_cache), value = "", color = AppPartColor.Cache)
             }
         }
     }
@@ -177,9 +180,14 @@ private fun CacheTour(
                 IconBubble(icon = Icons.Rounded.CleaningServices, tint = Ink.Warning, size = 44.dp, iconSize = 22.dp)
                 Spacer(Modifier.width(Space.m))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Gyorsítótár-túra", style = PadlasTheme.type.title, color = Ink.Text)
+                    Text(text = stringResource(R.string.map_cache_tour_title), style = PadlasTheme.type.title, color = Ink.Text)
                     Text(
-                        text = "${Format.bytes(stops.sumOf { it.cacheBytes })} gyorsítótár ${Format.count(stops.size)} appban",
+                        text = pluralStringResource(
+                            R.plurals.map_cache_tour_summary,
+                            stops.size,
+                            Format.bytes(stops.sumOf { it.cacheBytes }),
+                            Format.count(stops.size),
+                        ),
                         style = PadlasTheme.type.caption,
                         color = Ink.TextSecondary,
                     )
@@ -187,7 +195,7 @@ private fun CacheTour(
             }
             Spacer(Modifier.height(Space.m))
             Text(
-                text = "Más appok gyorsítótárát csak a rendszer ürítheti. Végigvezetünk a legnagyobbakon.",
+                text = stringResource(R.string.map_cache_tour_text),
                 style = PadlasTheme.type.body,
                 color = Ink.TextSecondary,
             )
@@ -197,12 +205,12 @@ private fun CacheTour(
                     Icon(Icons.Rounded.DoneAll, contentDescription = null, tint = Ink.Success, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(Space.s))
                     Text(
-                        text = "Végigértél a listán.",
+                        text = stringResource(R.string.map_cache_tour_done),
                         style = PadlasTheme.type.bodyStrong,
                         color = Ink.Text,
                         modifier = Modifier.weight(1f),
                     )
-                    PadlasTextButton(text = "Újrakezdés", onClick = onRestart)
+                    PadlasTextButton(text = stringResource(R.string.map_cache_tour_restart), onClick = onRestart)
                 }
                 return@Column
             }
@@ -225,7 +233,7 @@ private fun CacheTour(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "${Format.bytes(current.cacheBytes)} gyorsítótár",
+                        text = stringResource(R.string.map_cache_amount, Format.bytes(current.cacheBytes)),
                         style = PadlasTheme.type.caption,
                         color = Ink.Warning,
                     )
@@ -239,14 +247,14 @@ private fun CacheTour(
             Spacer(Modifier.height(Space.m))
             Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
                 PadlasButton(
-                    text = "Megnyitás",
+                    text = stringResource(R.string.map_open),
                     onClick = { onOpen(current.packageName) },
                     icon = Icons.AutoMirrored.Rounded.OpenInNew,
                     size = ButtonSize.Medium,
                     modifier = Modifier.weight(1f),
                 )
                 PadlasButton(
-                    text = "Következő",
+                    text = stringResource(R.string.map_next),
                     onClick = onNext,
                     style = ButtonStyle.Secondary,
                     size = ButtonSize.Medium,
@@ -255,7 +263,7 @@ private fun CacheTour(
             }
             Spacer(Modifier.height(Space.s))
             Text(
-                text = "Az app adatlapján: Tárhely › Gyorsítótár törlése",
+                text = stringResource(R.string.map_cache_tour_path),
                 style = PadlasTheme.type.micro,
                 color = Ink.TextTertiary,
                 textAlign = TextAlign.Center,

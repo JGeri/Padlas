@@ -33,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -46,6 +48,7 @@ import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.PadlasTextButton
 import hu.padlas.core.design.component.SectionHeader
 import hu.padlas.core.design.component.SelectionMark
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.itemMotion
 import hu.padlas.core.design.theme.CategoryColor
@@ -56,7 +59,7 @@ import hu.padlas.core.design.theme.Space
 
 internal fun LazyListScope.typesSection(types: TypesUi, onCategory: (FileCategory) -> Unit) {
     item(key = "types-head") {
-        SectionHeader(title = "Kategóriák", modifier = Modifier.then(itemMotion()).padding(horizontal = Space.page, vertical = Space.s))
+        SectionHeader(title = stringResource(R.string.map_categories), modifier = Modifier.then(itemMotion()).padding(horizontal = Space.page, vertical = Space.s))
     }
     val total = types.totalBytes.coerceAtLeast(1L)
     itemsIndexed(types.categories, key = { _, it -> "cat-" + it.category.name }) { index, category ->
@@ -71,7 +74,7 @@ internal fun LazyListScope.typesSection(types: TypesUi, onCategory: (FileCategor
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = category.category.label,
+                        text = stringResource(category.category.label),
                         style = PadlasTheme.type.bodyStrong,
                         color = Ink.Text,
                         modifier = Modifier.weight(1f),
@@ -80,7 +83,7 @@ internal fun LazyListScope.typesSection(types: TypesUi, onCategory: (FileCategor
                 }
                 Row {
                     Text(
-                        text = "${Format.count(category.count)} fájl",
+                        text = pluralStringResource(R.plurals.map_count_files, category.count, Format.count(category.count)),
                         style = PadlasTheme.type.caption,
                         color = Ink.TextSecondary,
                         modifier = Modifier.weight(1f),
@@ -101,7 +104,7 @@ internal fun LazyListScope.typesSection(types: TypesUi, onCategory: (FileCategor
     if (types.extensions.isEmpty()) return
     item(key = "ext-head") {
         SectionHeader(
-            title = "Kiterjesztések",
+            title = stringResource(R.string.map_extensions),
             modifier = Modifier.then(itemMotion()).padding(start = Space.page, end = Space.page, top = Space.xl, bottom = Space.s),
         )
     }
@@ -118,7 +121,7 @@ internal fun LazyListScope.typesSection(types: TypesUi, onCategory: (FileCategor
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "${Format.count(extension.count)} fájl",
+                        text = pluralStringResource(R.plurals.map_count_files, extension.count, Format.count(extension.count)),
                         style = PadlasTheme.type.caption,
                         color = Ink.TextSecondary,
                         modifier = Modifier.weight(1f),
@@ -138,7 +141,7 @@ internal fun LazyListScope.typesSection(types: TypesUi, onCategory: (FileCategor
 
 @Composable
 private fun ExtensionBadge(extension: ExtensionTotal) {
-    val label = if (extension.extension.isEmpty()) "nincs" else "." + extension.extension
+    val label = if (extension.extension.isEmpty()) stringResource(R.string.map_extension_none) else "." + extension.extension
     Box(
         modifier = Modifier
             .defaultMinSize(minWidth = 56.dp)
@@ -186,7 +189,7 @@ internal fun LazyListScope.filesSection(
         return
     }
     item(key = "smart-head") {
-        SectionHeader(title = "Okos takarítás", modifier = Modifier.then(itemMotion()).padding(horizontal = Space.page, vertical = Space.s))
+        SectionHeader(title = stringResource(R.string.map_smart_cleanup), modifier = Modifier.then(itemMotion()).padding(horizontal = Space.page, vertical = Space.s))
     }
     item(key = "smart-rows") {
         Column(
@@ -196,7 +199,7 @@ internal fun LazyListScope.filesSection(
             files.shortcuts.forEach { shortcut ->
                 val style = shortcutStyle(shortcut.kind)
                 ListRow(
-                    title = shortcut.kind.title,
+                    title = stringResource(shortcut.kind.title),
                     subtitle = shortcutSubtitle(shortcut),
                     icon = style.first,
                     iconTint = style.second,
@@ -209,7 +212,7 @@ internal fun LazyListScope.filesSection(
     }
     item(key = "largest-head") {
         SectionHeader(
-            title = "Legnagyobb fájlok",
+            title = stringResource(R.string.map_largest_files),
             modifier = Modifier.then(itemMotion()).padding(start = Space.page, end = Space.page, top = Space.xl),
         )
     }
@@ -224,7 +227,7 @@ internal fun LazyListScope.filesSection(
         ) {
             filterOrder.forEach { category ->
                 Chip(
-                    text = category?.label ?: "Mind",
+                    text = stringResource(category?.label ?: R.string.map_filter_all),
                     selected = files.filter == category,
                     onClick = { onFilter(category) },
                     icon = category?.icon,
@@ -235,8 +238,8 @@ internal fun LazyListScope.filesSection(
     if (files.items.isEmpty()) {
         item(key = "files-empty") {
             EmptyState(
-                title = "Nincs ilyen fájl",
-                text = "Ebben a kategóriában semmi nem foglal helyet.",
+                title = stringResource(R.string.map_files_empty_title),
+                text = stringResource(R.string.map_files_empty_text),
                 icon = Icons.Rounded.DoneAll,
                 tint = Ink.Success,
                 modifier = Modifier.then(itemMotion()),
@@ -263,14 +266,14 @@ private fun LazyListScope.cleanupSection(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 PadlasIconButton(
                     icon = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "Vissza az okos takarításhoz",
+                    contentDescription = stringResource(R.string.map_back_to_smart_cleanup),
                     onClick = onClose,
                     background = Ink.Surface,
                 )
                 Spacer(Modifier.width(Space.m))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = cleanup.title,
+                        text = stringResource(cleanup.title),
                         style = PadlasTheme.type.title,
                         color = Ink.Text,
                         maxLines = 1,
@@ -285,11 +288,11 @@ private fun LazyListScope.cleanupSection(
                 }
             }
             Spacer(Modifier.height(Space.m))
-            Text(text = cleanup.description, style = PadlasTheme.type.body, color = Ink.TextSecondary)
+            Text(text = stringResource(cleanup.description), style = PadlasTheme.type.body, color = Ink.TextSecondary)
             if (files.items.isNotEmpty()) {
                 val all = files.items.all { it.path in selection }
                 PadlasTextButton(
-                    text = if (all) "Kijelölés megszüntetése" else "Mind kijelölése",
+                    text = stringResource(if (all) R.string.map_clear_selection else R.string.map_select_all),
                     onClick = { if (all) onClearSelection() else onSelectAll(files.items) },
                     icon = Icons.Rounded.DoneAll,
                     modifier = Modifier.padding(top = Space.xs),
@@ -300,8 +303,8 @@ private fun LazyListScope.cleanupSection(
     if (files.items.isEmpty()) {
         item(key = "cleanup-empty") {
             EmptyState(
-                title = "Itt tiszta minden",
-                text = "Nincs mit takarítani ebben a csoportban.",
+                title = stringResource(R.string.map_cleanup_empty_title),
+                text = stringResource(R.string.map_cleanup_empty_text),
                 icon = Icons.Rounded.DoneAll,
                 tint = Ink.Success,
                 modifier = Modifier.then(itemMotion()),
@@ -362,7 +365,7 @@ private fun LazyItemScope.FileRow(
                 maxLines = 1,
                 overflow = TextOverflow.MiddleEllipsis,
             )
-            val date = TimeText.date(item.modified)
+            val date = TimeText.date(item.modified).asString()
             Text(
                 text = displayPath(item.parentPath, rootPath) + if (date.isEmpty()) "" else " · $date",
                 style = PadlasTheme.type.caption,
@@ -373,7 +376,7 @@ private fun LazyItemScope.FileRow(
         }
         Spacer(Modifier.width(Space.s))
         Text(
-            text = if (item.isDirectory && item.bytes == 0L) "Üres" else Format.bytes(item.bytes),
+            text = if (item.isDirectory && item.bytes == 0L) stringResource(R.string.map_empty) else Format.bytes(item.bytes),
             style = PadlasTheme.type.numeric,
             color = if (selected) Ink.Text else Ink.TextSecondary,
             maxLines = 1,
@@ -390,18 +393,20 @@ private fun shortcutStyle(kind: Cleanup): Pair<ImageVector, Color> = when (kind)
     Cleanup.EMPTY_DIRS -> Icons.Rounded.FolderOpen to CategoryColor.Other
 }
 
+@Composable
 private fun shortcutSubtitle(shortcut: CleanupSummary): String = when {
-    shortcut.count == 0 -> "Nincs ilyen"
-    shortcut.kind == Cleanup.EMPTY_DIRS -> "${Format.count(shortcut.count)} mappa"
-    shortcut.kind == Cleanup.THUMBNAILS -> "${Format.count(shortcut.count)} mappa"
-    else -> "${Format.count(shortcut.count)} fájl"
+    shortcut.count == 0 -> stringResource(R.string.map_shortcut_none)
+    shortcut.kind == Cleanup.EMPTY_DIRS || shortcut.kind == Cleanup.THUMBNAILS ->
+        pluralStringResource(R.plurals.map_count_folders, shortcut.count, Format.count(shortcut.count))
+    else -> pluralStringResource(R.plurals.map_count_files, shortcut.count, Format.count(shortcut.count))
 }
 
+@Composable
 private fun cleanupSummary(cleanup: Cleanup, items: List<StorageItem>): String = when {
-    items.isEmpty() -> "Nincs ilyen elem"
-    cleanup == Cleanup.EMPTY_DIRS -> "${Format.count(items.size)} mappa"
+    items.isEmpty() -> stringResource(R.string.map_cleanup_no_items)
+    cleanup == Cleanup.EMPTY_DIRS -> pluralStringResource(R.plurals.map_count_folders, items.size, Format.count(items.size))
     else -> {
         val dirs = items.count { it.isDirectory }
-        "${describeCount(items.size - dirs, dirs)} · ${Format.bytes(items.sumOf { it.bytes })}"
+        describeCount(items.size - dirs, dirs).asString() + " · " + Format.bytes(items.sumOf { it.bytes })
     }
 }

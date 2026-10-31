@@ -60,10 +60,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import hu.padlas.core.design.R
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.theme.Ink
@@ -399,7 +401,7 @@ private fun ZoomViewer(
         }
         PadlasIconButton(
             icon = Icons.Rounded.Close,
-            contentDescription = "Bezárás",
+            contentDescription = stringResource(R.string.design_close),
             onClick = { state.close() },
             background = Ink.SurfaceSolid.copy(alpha = 0.72f),
             modifier = Modifier

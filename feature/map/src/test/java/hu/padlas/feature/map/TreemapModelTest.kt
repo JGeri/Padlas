@@ -1,6 +1,8 @@
 package hu.padlas.feature.map
 
 import com.google.common.truth.Truth.assertThat
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiText
 import org.junit.Test
 
 class TreemapModelTest {
@@ -125,7 +127,7 @@ class TreemapModelTest {
         val listing = DirectoryListing.build(root, "$ROOT/DCIM", version = 3)
 
         assertThat(listing.entries.map { it.name }).containsExactly("big.mp4", "Camera").inOrder()
-        assertThat(listing.crumbs.map { it.label }).containsExactly(DirectoryListing.ROOT_LABEL, "DCIM").inOrder()
+        assertThat(listing.crumbs.map { it.label }).containsExactly(uiText(R.string.map_root_label), UiText.Raw("DCIM")).inOrder()
         assertThat(listing.parentPath).isEqualTo(ROOT)
         assertThat(listing.isRoot).isFalse()
         assertThat(DirectoryListing.build(root, "$ROOT/DCIM/Gone", 3).path).isEqualTo("$ROOT/DCIM")

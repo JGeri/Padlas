@@ -61,6 +61,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -77,6 +79,7 @@ import hu.padlas.core.design.component.IconBubble
 import hu.padlas.core.design.component.PadlasButton
 import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.RollingNumber
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.component.glassPane
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
@@ -240,7 +243,7 @@ internal fun Breadcrumbs(crumbs: List<Crumb>, onJump: (String) -> Unit, modifier
                             )
                         }
                         Chip(
-                            text = crumb.label,
+                            text = crumb.label.asString(),
                             selected = index == crumbs.lastIndex,
                             onClick = { onJump(crumb.path) },
                             icon = if (index == 0) Icons.Rounded.PhoneAndroid else null,
@@ -361,7 +364,7 @@ private fun ItemDetails(
         Spacer(Modifier.width(Space.s))
         PadlasIconButton(
             icon = Icons.Rounded.Close,
-            contentDescription = "Bezárás",
+            contentDescription = stringResource(R.string.map_close),
             onClick = onClose,
             background = Ink.SurfaceHighest,
             size = 36.dp,
@@ -370,19 +373,27 @@ private fun ItemDetails(
     }
     Spacer(Modifier.height(Space.l))
     Row(modifier = Modifier.fillMaxWidth()) {
-        DetailStat(label = "Méret", value = Format.bytes(item.bytes), modifier = Modifier.weight(1f))
-        DetailStat(label = "A mappából", value = Format.percent(share), modifier = Modifier.weight(1f))
+        DetailStat(label = stringResource(R.string.map_detail_size), value = Format.bytes(item.bytes), modifier = Modifier.weight(1f))
+        DetailStat(label = stringResource(R.string.map_detail_share), value = Format.percent(share), modifier = Modifier.weight(1f))
         if (item.isDirectory) {
-            DetailStat(label = "Fájl", value = Format.count(item.fileCount), modifier = Modifier.weight(1f))
+            DetailStat(
+                label = stringResource(R.string.map_detail_files),
+                value = Format.count(item.fileCount),
+                modifier = Modifier.weight(1f),
+            )
         } else {
-            DetailStat(label = "Módosítva", value = TimeText.date(item.modified), modifier = Modifier.weight(1f))
+            DetailStat(
+                label = stringResource(R.string.map_detail_modified),
+                value = TimeText.date(item.modified).asString(),
+                modifier = Modifier.weight(1f),
+            )
         }
     }
     Spacer(Modifier.height(Space.l))
     Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
         if (item.isDirectory) {
             PadlasButton(
-                text = "Megnyitás",
+                text = stringResource(R.string.map_open),
                 onClick = { onOpen(item) },
                 icon = Icons.Rounded.FolderOpen,
                 style = ButtonStyle.Secondary,
@@ -391,7 +402,7 @@ private fun ItemDetails(
             )
         }
         PadlasButton(
-            text = "Törlés",
+            text = stringResource(R.string.map_delete),
             onClick = { onDelete(item) },
             icon = Icons.Rounded.DeleteOutline,
             style = ButtonStyle.Destructive,
@@ -400,7 +411,7 @@ private fun ItemDetails(
             modifier = Modifier.weight(1f),
         )
     }
-    val note = if (protected) "Rendszermappa, ezt nem törölheted." else hint
+    val note = if (protected) stringResource(R.string.map_system_folder_note) else hint
     if (note != null) {
         Spacer(Modifier.height(Space.s))
         Text(
@@ -420,13 +431,13 @@ private fun RestDetails(focus: Focus.Rest, onShowAll: () -> Unit, onClose: () ->
         Spacer(Modifier.width(Space.m))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "${Format.count(focus.count)} kisebb elem",
+                text = pluralStringResource(R.plurals.map_smaller_items, focus.count, Format.count(focus.count)),
                 style = PadlasTheme.type.title,
                 color = Ink.Text,
                 maxLines = 1,
             )
             Text(
-                text = "${Format.bytes(focus.bytes)} · ${Format.percent(share)} a mappából",
+                text = stringResource(R.string.map_rest_share, Format.bytes(focus.bytes), Format.percent(share)),
                 style = PadlasTheme.type.caption,
                 color = Ink.TextSecondary,
                 maxLines = 1,
@@ -434,7 +445,7 @@ private fun RestDetails(focus: Focus.Rest, onShowAll: () -> Unit, onClose: () ->
         }
         PadlasIconButton(
             icon = Icons.Rounded.Close,
-            contentDescription = "Bezárás",
+            contentDescription = stringResource(R.string.map_close),
             onClick = onClose,
             background = Ink.SurfaceHighest,
             size = 36.dp,
@@ -443,7 +454,7 @@ private fun RestDetails(focus: Focus.Rest, onShowAll: () -> Unit, onClose: () ->
     }
     Spacer(Modifier.height(Space.l))
     PadlasButton(
-        text = "Megnézem a listában",
+        text = stringResource(R.string.map_show_in_list),
         onClick = onShowAll,
         style = ButtonStyle.Secondary,
         size = ButtonSize.Medium,
@@ -472,11 +483,12 @@ internal fun SelectionBar(
 ) {
     val dirs = selection.items.values.count { it.isDirectory }
     val files = selection.count - dirs
-    val (count, noun) = when {
-        dirs == 0 -> files to "fájl"
-        files == 0 -> dirs to "mappa"
-        else -> selection.count to "elem"
+    val (count, nouns) = when {
+        dirs == 0 -> files to R.plurals.map_noun_files
+        files == 0 -> dirs to R.plurals.map_noun_folders
+        else -> selection.count to R.plurals.map_noun_items
     }
+    val noun = pluralStringResource(nouns, count)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -486,7 +498,7 @@ internal fun SelectionBar(
     ) {
         PadlasIconButton(
             icon = Icons.Rounded.Close,
-            contentDescription = "Kijelölés megszüntetése",
+            contentDescription = stringResource(R.string.map_clear_selection),
             onClick = onClear,
             background = Ink.SurfaceHighest,
             size = 44.dp,
@@ -501,7 +513,7 @@ internal fun SelectionBar(
         }
         Spacer(Modifier.width(Space.s))
         PadlasButton(
-            text = "Törlés",
+            text = stringResource(R.string.map_delete),
             onClick = onDelete,
             icon = Icons.Rounded.DeleteOutline,
             style = ButtonStyle.Destructive,

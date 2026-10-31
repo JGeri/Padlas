@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="index_failed_title">The scan didn\'t finish</string>
+    <string name="index_scan_interrupted">The scan was interrupted.</string>
+    <string name="index_retry">Try again</string>
+
+    <string name="index_title_running">Scanning your gallery</string>
+    <string name="index_title_done">Scan complete</string>
+    <string name="index_subtitle_running">Nothing gets moved or deleted. We\'re only looking at what\'s where.</string>
+    <string name="index_subtitle_done">Found everything. In a moment we\'ll show you where to free up space.</string>
+
+    <string name="index_leave_hint">Feel free to leave. The scan keeps going in the background.</string>
+    <string name="index_continue_in_background">Continue in the background</string>
+
+    <!-- Under the big rolling count. -->
+    <plurals name="index_files_noun">
+        <item quantity="one">file</item>
+        <item quantity="other">files</item>
+    </plurals>
+    <!-- %1$s: file count, %2$s: total size, e.g. "2,341 files · 12.8 GB". -->
+    <plurals name="index_phase_done">
+        <item quantity="one">%1$s file · %2$s</item>
+        <item quantity="other">%1$s files · %2$s</item>
+    </plurals>
+    <!-- %1$s: the album or folder being read right now. -->
+    <string name="index_phase_bucket">Now: %1$s</string>
+    <plurals name="index_phase_waiting">
+        <item quantity="one">%1$s file to look through</item>
+        <item quantity="other">%1$s files to look through</item>
+    </plurals>
+    <string name="index_phase_walking">Walking through folders…</string>
+
+    <string name="index_stat_scanned">Scanned</string>
+    <string name="index_stat_duration">Time taken</string>
+    <string name="index_stat_progress">Progress</string>
+</resources>

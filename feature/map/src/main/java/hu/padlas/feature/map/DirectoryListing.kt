@@ -1,6 +1,8 @@
 package hu.padlas.feature.map
 
 import androidx.compose.runtime.Immutable
+import hu.padlas.core.common.text.UiText
+import hu.padlas.core.common.text.uiText
 import java.util.PriorityQueue
 
 /** A grandchild as the treemap draws it inside its folder: only weight and colour. */
@@ -13,12 +15,12 @@ internal data class PreviewSlice(
 )
 
 @Immutable
-internal data class Crumb(val path: String, val label: String)
+internal data class Crumb(val path: String, val label: UiText)
 
 @Immutable
 internal data class DirectoryUi(
     val path: String,
-    val label: String,
+    val label: UiText,
     val crumbs: List<Crumb>,
     val bytes: Long,
     val fileCount: Int,
@@ -36,7 +38,7 @@ internal data class DirectoryUi(
 
 internal object DirectoryListing {
 
-    const val ROOT_LABEL = "Belső tárhely"
+    val ROOT_LABEL: UiText = uiText(R.string.map_root_label)
     const val PREVIEW_LIMIT = 24
 
     fun build(root: DirNode, path: String, version: Int): DirectoryUi {
@@ -51,7 +53,7 @@ internal object DirectoryListing {
         }
         return DirectoryUi(
             path = dir.path,
-            label = if (dir.parent == null) ROOT_LABEL else dir.name,
+            label = if (dir.parent == null) ROOT_LABEL else UiText.Raw(dir.name),
             crumbs = crumbsOf(dir),
             bytes = dir.bytes,
             fileCount = dir.fileCount,
@@ -75,7 +77,7 @@ internal object DirectoryListing {
         val chain = ArrayList<Crumb>()
         var node: DirNode? = dir
         while (node != null) {
-            chain += Crumb(node.path, if (node.parent == null) ROOT_LABEL else node.name)
+            chain += Crumb(node.path, if (node.parent == null) ROOT_LABEL else UiText.Raw(node.name))
             node = node.parent
         }
         chain.reverse()

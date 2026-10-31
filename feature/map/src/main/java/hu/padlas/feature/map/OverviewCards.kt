@@ -38,6 +38,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -64,16 +66,15 @@ internal fun AllFilesGate(onGrant: () -> Unit, modifier: Modifier = Modifier) {
     GateCard(
         icon = Icons.Rounded.FolderOpen,
         tint = Ink.Accent,
-        title = "Teljes fájlhozzáférés kell",
-        text = "A tárhely-elemzőnek minden mappába be kell látnia, hogy megmutassa, " +
-            "mi foglalja a helyet a telefonodon.",
+        title = stringResource(R.string.map_all_files_title),
+        text = stringResource(R.string.map_all_files_text),
         points = listOf(
-            Icons.Rounded.PieChart to "Mappák és fájlok mérete egy pillantással",
-            Icons.Rounded.DeleteOutline to "Törlés csak a te jóváhagyásoddal",
-            Icons.Rounded.Lock to "Minden a telefonon marad, semmi nem kerül fel sehova",
+            Icons.Rounded.PieChart to stringResource(R.string.map_all_files_point_sizes),
+            Icons.Rounded.DeleteOutline to stringResource(R.string.map_all_files_point_approval),
+            Icons.Rounded.Lock to stringResource(R.string.map_all_files_point_local),
         ),
-        action = "Hozzáférés megadása",
-        footnote = "A megnyíló beállításban kapcsold be a Padlásnál.",
+        action = stringResource(R.string.map_grant_access),
+        footnote = stringResource(R.string.map_all_files_footnote),
         onAction = onGrant,
         modifier = modifier,
     )
@@ -84,14 +85,14 @@ internal fun UsageGate(onGrant: () -> Unit, modifier: Modifier = Modifier) {
     GateCard(
         icon = Icons.Rounded.Apps,
         tint = CategoryColor.Apps,
-        title = "Használati hozzáférés kell",
-        text = "Az appok méretét és gyorsítótárát a rendszer csak ezzel az engedéllyel árulja el.",
+        title = stringResource(R.string.map_usage_title),
+        text = stringResource(R.string.map_usage_text),
         points = listOf(
-            Icons.Rounded.PieChart to "Program, adat és gyorsítótár appokra bontva",
-            Icons.Rounded.Lock to "Csak méreteket olvasunk, a használati szokásaidat nem",
+            Icons.Rounded.PieChart to stringResource(R.string.map_usage_point_split),
+            Icons.Rounded.Lock to stringResource(R.string.map_usage_point_sizes_only),
         ),
-        action = "Hozzáférés megadása",
-        footnote = "A listában válaszd a Padlást, és kapcsold be.",
+        action = stringResource(R.string.map_grant_access),
+        footnote = stringResource(R.string.map_usage_footnote),
         onAction = onGrant,
         modifier = modifier,
     )
@@ -145,16 +146,16 @@ internal fun NoResultCard(onStart: () -> Unit, modifier: Modifier = Modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             IconBubble(icon = Icons.Rounded.DataUsage, size = 64.dp, iconSize = 30.dp)
             Spacer(Modifier.height(Space.l))
-            Text(text = "Még nincs elemzés", style = PadlasTheme.type.title, color = Ink.Text)
+            Text(text = stringResource(R.string.map_no_analysis_yet), style = PadlasTheme.type.title, color = Ink.Text)
             Spacer(Modifier.height(Space.xs))
             Text(
-                text = "Egy gyors bejárás megmutatja, mely mappák és fájlok foglalják a helyet.",
+                text = stringResource(R.string.map_no_result_text),
                 style = PadlasTheme.type.body,
                 color = Ink.TextSecondary,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(Space.l))
-            PadlasButton(text = "Elemzés indítása", onClick = onStart, size = ButtonSize.Medium)
+            PadlasButton(text = stringResource(R.string.map_start_analysis), onClick = onStart, size = ButtonSize.Medium)
         }
     }
 }
@@ -181,12 +182,15 @@ internal fun ScanProgressCard(
                 }
                 Spacer(Modifier.width(Space.l))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Elemzés folyamatban", style = PadlasTheme.type.title, color = Ink.Text)
+                    Text(text = stringResource(R.string.map_analysis_running), style = PadlasTheme.type.title, color = Ink.Text)
                     Spacer(Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         RollingNumber(value = Format.count(progress.files), style = PadlasTheme.type.numeric, color = Ink.Text)
                         Text(
-                            text = " fájl · ",
+                            text = " " + pluralStringResource(
+                                R.plurals.map_noun_files,
+                                progress.files.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
+                            ) + " · ",
                             style = PadlasTheme.type.numeric,
                             color = Ink.TextSecondary,
                             maxLines = 1,
@@ -197,7 +201,11 @@ internal fun ScanProgressCard(
             }
             Spacer(Modifier.height(Space.m))
             Text(
-                text = if (progress.currentPath.isEmpty()) "Indul…" else displayPath(progress.currentPath, rootPath),
+                text = if (progress.currentPath.isEmpty()) {
+                    stringResource(R.string.map_scan_starting)
+                } else {
+                    displayPath(progress.currentPath, rootPath)
+                },
                 style = PadlasTheme.type.caption,
                 color = Ink.TextTertiary,
                 maxLines = 1,
@@ -212,12 +220,12 @@ internal fun ScanProgressCard(
             Spacer(Modifier.height(Space.xs))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Közben nyugodtan válthatsz másik fülre.",
+                    text = stringResource(R.string.map_scan_switch_tabs),
                     style = PadlasTheme.type.micro,
                     color = Ink.TextTertiary,
                     modifier = Modifier.weight(1f),
                 )
-                PadlasTextButton(text = "Leállítás", onClick = onCancel, color = Ink.TextSecondary)
+                PadlasTextButton(text = stringResource(R.string.map_stop), onClick = onCancel, color = Ink.TextSecondary)
             }
         }
     }
@@ -277,7 +285,7 @@ internal fun SummaryCard(summary: SummaryUi, modifier: Modifier = Modifier) {
         Column {
             Row(verticalAlignment = Alignment.Bottom) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Foglalt tárhely", style = PadlasTheme.type.caption, color = Ink.TextSecondary)
+                    Text(text = stringResource(R.string.map_used_storage), style = PadlasTheme.type.caption, color = Ink.TextSecondary)
                     Row(verticalAlignment = Alignment.Bottom) {
                         RollingNumber(
                             value = Format.bytesValue(summary.usedBytes),
@@ -292,13 +300,13 @@ internal fun SummaryCard(summary: SummaryUi, modifier: Modifier = Modifier) {
                         )
                     }
                     Text(
-                        text = "Összesen ${Format.bytes(summary.totalBytes)}",
+                        text = stringResource(R.string.map_total, Format.bytes(summary.totalBytes)),
                         style = PadlasTheme.type.caption,
                         color = Ink.TextTertiary,
                     )
                 }
                 Pill(
-                    text = "${Format.bytes(summary.freeBytes)} szabad",
+                    text = stringResource(R.string.map_free_amount, Format.bytes(summary.freeBytes)),
                     color = Ink.Success,
                     background = Ink.SuccessSoft,
                     modifier = Modifier.padding(bottom = 4.dp),
@@ -311,8 +319,8 @@ internal fun SummaryCard(summary: SummaryUi, modifier: Modifier = Modifier) {
                 height = 14.dp,
             )
             Spacer(Modifier.height(Space.m))
-            val legend = summary.slices.map { Triple(it.label, it.bytes, it.color) } +
-                Triple("Szabad", summary.freeBytes, Ink.SurfaceHighest)
+            val legend = summary.slices.map { Triple(stringResource(it.label), it.bytes, it.color) } +
+                Triple(stringResource(R.string.map_free), summary.freeBytes, Ink.SurfaceHighest)
             Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
                 legend.chunked(2).forEachIndexed { row, pair ->
                     Row(horizontalArrangement = Arrangement.spacedBy(Space.l)) {

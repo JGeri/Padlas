@@ -37,6 +37,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import hu.padlas.core.common.format.Format
@@ -44,6 +46,7 @@ import hu.padlas.core.design.component.EmptyState
 import hu.padlas.core.design.component.LinearMeter
 import hu.padlas.core.design.component.PadlasIconButton
 import hu.padlas.core.design.component.SelectionMark
+import hu.padlas.core.design.component.asString
 import hu.padlas.core.design.motion.LocalReducedMotion
 import hu.padlas.core.design.motion.Motion
 import hu.padlas.core.design.motion.finite
@@ -94,14 +97,15 @@ internal fun LazyListScope.directoryHeader(
             ) { shown ->
                 Column {
                     Text(
-                        text = shown.label,
+                        text = shown.label.asString(),
                         style = PadlasTheme.type.title,
                         color = Ink.Text,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "${Format.bytes(shown.bytes)} · ${Format.count(shown.fileCount)} fájl",
+                        text = Format.bytes(shown.bytes) + " · " +
+                            pluralStringResource(R.plurals.map_count_files, shown.fileCount, Format.count(shown.fileCount)),
                         style = PadlasTheme.type.caption,
                         color = Ink.TextSecondary,
                         maxLines = 1,
@@ -115,7 +119,7 @@ internal fun LazyListScope.directoryHeader(
             ) {
                 PadlasIconButton(
                     icon = Icons.Rounded.ArrowUpward,
-                    contentDescription = "Egy szinttel feljebb",
+                    contentDescription = stringResource(R.string.map_up_one_level),
                     onClick = onUp,
                     background = Ink.Surface,
                 )
@@ -132,8 +136,8 @@ internal fun LazyListScope.mapSection(
     if (directory.plan.items.isEmpty() && directory.plan.restBytes <= 0L) {
         item(key = "map-empty") {
             EmptyState(
-                title = "Üres mappa",
-                text = "Ebben a mappában nincs semmi, ami helyet foglalna.",
+                title = stringResource(R.string.map_folder_empty_title),
+                text = stringResource(R.string.map_map_empty_text),
                 icon = Icons.Rounded.FolderOpen,
                 tint = Ink.TextSecondary,
                 modifier = Modifier.then(itemMotion()),
@@ -187,7 +191,7 @@ private fun MapLegend(directory: DirectoryUi, modifier: Modifier = Modifier) {
                             .background(category.color),
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text(text = category.label, style = PadlasTheme.type.caption, color = Ink.TextSecondary)
+                    Text(text = stringResource(category.label), style = PadlasTheme.type.caption, color = Ink.TextSecondary)
                     Spacer(Modifier.width(4.dp))
                     Text(
                         text = Format.percent(bytes.toFloat() / total),
@@ -199,7 +203,7 @@ private fun MapLegend(directory: DirectoryUi, modifier: Modifier = Modifier) {
         }
         Spacer(Modifier.height(Space.s))
         Text(
-            text = "Koppints egy csempére a részletekért, egy mappára még egyszer a megnyitáshoz.",
+            text = stringResource(R.string.map_legend_hint),
             style = PadlasTheme.type.micro,
             color = Ink.TextTertiary,
         )
@@ -216,8 +220,8 @@ internal fun LazyListScope.foldersSection(
     if (directory.entries.isEmpty()) {
         item(key = "folders-empty") {
             EmptyState(
-                title = "Üres mappa",
-                text = "Ebben a mappában nincs semmi.",
+                title = stringResource(R.string.map_folder_empty_title),
+                text = stringResource(R.string.map_folders_empty_text),
                 icon = Icons.Rounded.FolderOpen,
                 tint = Ink.TextSecondary,
                 modifier = Modifier.then(itemMotion()),
@@ -228,7 +232,7 @@ internal fun LazyListScope.foldersSection(
     if (!selection.active) {
         item(key = "folders-hint") {
             Text(
-                text = "Hosszan nyomva több elemet is kijelölhetsz.",
+                text = stringResource(R.string.map_long_press_hint),
                 style = PadlasTheme.type.micro,
                 color = Ink.TextTertiary,
                 modifier = Modifier.then(itemMotion()).padding(start = Space.page, end = Space.page, bottom = Space.s),
@@ -314,10 +318,11 @@ private fun LazyItemScope.FolderRow(
     }
 }
 
+@Composable
 private fun rowSubtitle(item: StorageItem): String = when {
-    item.isDirectory && item.fileCount == 0 -> "Nincs benne fájl"
-    item.isDirectory -> "${Format.count(item.fileCount)} fájl"
-    else -> listOf(FileTypes.extensionOf(item.name).uppercase(), TimeText.date(item.modified))
+    item.isDirectory && item.fileCount == 0 -> stringResource(R.string.map_no_files_inside)
+    item.isDirectory -> pluralStringResource(R.plurals.map_count_files, item.fileCount, Format.count(item.fileCount))
+    else -> listOf(FileTypes.extensionOf(item.name).uppercase(), TimeText.date(item.modified).asString())
         .filter { it.isNotEmpty() }
         .joinToString(" · ")
 }
